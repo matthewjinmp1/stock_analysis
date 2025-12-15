@@ -471,11 +471,8 @@ def search_glassdoor_web(company_name, ticker, silent=False):
 def get_glassdoor_rating_with_direct_grok(company_name, ticker, silent=False):
     """
     Use Grok API directly (via xAI) with RAG to get Glassdoor rating.
-    Uses Grok 4.1 Fast Reasoning model (optimized for tool calling and web search).
-    Implements Retrieval-Augmented Generation by:
-    1. Retrieving Glassdoor information via web search
-    2. Augmenting the prompt with retrieved context
-    3. Generating the final response using Grok 4.1 Fast Reasoning
+    Uses Grok 4.1 Fast Reasoning model with built-in web search capabilities.
+    Grok will use its RAG (Retrieval-Augmented Generation) to search the web and extract ratings.
     
     Args:
         company_name: Name of the company to search for
@@ -494,67 +491,43 @@ def get_glassdoor_rating_with_direct_grok(company_name, ticker, silent=False):
         return None
     
     try:
-        # Step 1: RAG Retrieval - Search for Glassdoor information
-        if not silent:
-            print(f"Searching web for Glassdoor information about {company_name}...")
-        
-        search_results = search_glassdoor_web(company_name, ticker, silent=silent)
-        
-        # If we successfully scraped the rating, use it directly
-        if search_results.get('rating') is not None:
-            if not silent:
-                print(f"Successfully extracted rating from Glassdoor page: {search_results['rating']}")
-            
-            rating_data = {
-                "ticker": ticker,
-                "company_name": company_name,
-                "rating": search_results['rating'],
-                "num_reviews": search_results.get('num_reviews'),
-                "url": search_results.get('glassdoor_url'),
-                "snippet": f"Glassdoor rating for {company_name}",
-                "raw_response": f"Scraped rating: {search_results['rating']}",
-                "token_usage": {},
-                "elapsed_time": 0,
-                "total_cost": 0
-            }
-            return rating_data
-        
-        # If scraping failed, use Grok as fallback with the URL we found
-        if not silent:
-            print("Could not extract rating directly. Using Grok to analyze the page...")
-        
-        # Build context from search results
-        context_parts = []
-        if search_results['glassdoor_url']:
-            context_parts.append(f"Glassdoor URL: {search_results['glassdoor_url']}")
-        if search_results['urls']:
-            context_parts.append(f"Found {len(search_results['urls'])} relevant URLs")
-        
-        context = "\n".join(context_parts) if context_parts else "No Glassdoor URL found."
-        
         # Initialize Grok client with API key from config
         client = GrokClient(api_key=XAI_API_KEY)
         
-        # Step 2: RAG Augmentation - Create prompt with retrieved context
-        prompt = f"""I need to find the current Glassdoor rating for {company_name} (stock ticker: {ticker}).
+        if not silent:
+            print(f"Querying Grok 4.1 Fast Reasoning to search for Glassdoor rating of {company_name}...")
+        
+        # Create prompt that asks Grok to use its web search capabilities
+        prompt = f"""Search the web for the current Glassdoor rating of {company_name} (stock ticker: {ticker}).
 
-I found this Glassdoor URL: {search_results.get('glassdoor_url', 'Not found')}
+Please search for "{company_name} Glassdoor rating" and find the current overall rating from Glassdoor.
 
-Please search for the current Glassdoor rating for {company_name} and extract:
+Extract and return:
 1. The overall rating (out of 5.0)
 2. The number of reviews (if available)
-3. A brief snippet describing the rating
-4. The Glassdoor URL
+3. A brief snippet of the rating information
+4. The Glassdoor URL if found
 
 Format your response as JSON with the following structure:
 {{
     "rating": <number between 0 and 5>,
     "num_reviews": <number or null>,
     "snippet": "<brief description>",
-    "url": "<glassdoor url>"
+    "url": "<glassdoor url or null>"
 }}
 
-Please search for the most current information available."""
+If you cannot find the rating, return null for the rating field."""
+        
+        messages = [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant with web search capabilities. When asked to find current information, you should use your web search tools to retrieve up-to-date data from the internet. Use search RAG (Retrieval-Augmented Generation) to find and cite accurate information."
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
 
         if not silent:
             print(f"Querying Grok API with RAG context to extract Glassdoor rating...")

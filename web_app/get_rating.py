@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
 Simple script to get Glassdoor rating for a single company by ticker symbol.
-Uses RAG (Retrieval-Augmented Generation) with web scraping to fetch accurate Glassdoor ratings.
-- First scrapes the Glassdoor page directly to extract the rating
-- Falls back to Grok 4.1 Fast Reasoning API if scraping fails
+Uses Grok 4.1 Fast Reasoning API with built-in RAG (Retrieval-Augmented Generation).
+Grok uses its web search capabilities to find and extract current Glassdoor ratings.
 
 Usage: python get_rating.py AAPL
        python get_rating.py MSFT
@@ -61,7 +60,7 @@ def main():
         sys.exit(1)
     
     print(f"Company name: {company_name}")
-    print(f"\nFetching Glassdoor rating for {ticker} using RAG (web scraping + Grok API)...")
+    print(f"\nFetching Glassdoor rating for {ticker} using Grok 4.1 Fast Reasoning with RAG...")
     print("=" * 80)
     
     # Use direct Grok API with improved RAG (web scraping first, then Grok fallback)

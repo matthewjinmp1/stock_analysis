@@ -376,7 +376,7 @@ def get_glassdoor_rating_with_direct_grok(company_name, ticker, silent=False):
         if not silent:
             print(f"Searching web for Glassdoor information about {company_name}...")
         
-        search_results = search_glassdoor_web(company_name, ticker)
+        search_results = search_glassdoor_web(company_name, ticker, silent=silent)
         
         # Build context from search results
         context_parts = []

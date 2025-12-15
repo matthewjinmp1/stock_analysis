@@ -11,6 +11,7 @@ Usage:
 import os
 import sys
 import shutil
+import json
 
 # Ensure project root is on path so we can import src modules
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))

@@ -50,12 +50,12 @@ def find_company(query, companies):
 def main():
     """Get and display Glassdoor rating for a ticker or company name."""
     if len(sys.argv) < 2:
-        print("Usage: python get_rating_from_data.py <TICKER_OR_NAME>")
-        print("Example: python get_rating_from_data.py AAPL")
-        print("Example: python get_rating_from_data.py Apple")
-        sys.exit(1)
-    
-    query = sys.argv[1].strip()
+        query = input("Enter ticker symbol or company name: ").strip()
+        if not query:
+            print("Error: No ticker or company name provided")
+            sys.exit(1)
+    else:
+        query = sys.argv[1].strip()
     
     print(f"Looking up Glassdoor rating for '{query}'...")
     print("=" * 80)

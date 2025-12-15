@@ -16,11 +16,12 @@ from src.scrapers.glassdoor_scraper import get_glassdoor_rating, display_snippet
 def main():
     """Get and display Glassdoor rating for a ticker."""
     if len(sys.argv) < 2:
-        print("Usage: python get_rating.py <TICKER>")
-        print("Example: python get_rating.py AAPL")
-        sys.exit(1)
-    
-    ticker = sys.argv[1].strip().upper()
+        ticker = input("Enter ticker symbol: ").strip().upper()
+        if not ticker:
+            print("Error: No ticker provided")
+            sys.exit(1)
+    else:
+        ticker = sys.argv[1].strip().upper()
     
     print(f"Fetching Glassdoor rating for {ticker}...")
     print("=" * 80)

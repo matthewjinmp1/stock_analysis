@@ -527,41 +527,93 @@ def get_glassdoor_rating(company_name: str, use_cache: bool = True) -> Optional[
 if __name__ == "__main__":
     import sys
     
-    if len(sys.argv) < 2:
-        company_name = input("Enter company name: ").strip()
-        if not company_name:
-            print("Error: Company name cannot be empty.")
-            sys.exit(1)
-    else:
+    # If command-line arguments provided, run once and exit (backward compatibility)
+    if len(sys.argv) >= 2:
         company_name = ' '.join(sys.argv[1:])
-    
-    result = get_glassdoor_rating(company_name)
-    
-    if result:
-        print("\n" + "="*50)
-        print("RESULT")
-        print("="*50)
-        print(f"Company: {company_name}")
-        if result.get('rating'):
-            print(f"Overall Rating: {result['rating']}/5.0")
-        if result.get('num_reviews'):
-            print(f"Number of Reviews: {result['num_reviews']}")
-        if result.get('recommend_to_friend'):
-            print(f"Recommend to Friend: {result['recommend_to_friend']}%")
-        if result.get('ceo_approval'):
-            print(f"CEO Approval: {result['ceo_approval']}%")
-        if result.get('positive_business_outlook'):
-            print(f"Positive Business Outlook: {result['positive_business_outlook']}%")
-        if result.get('category_ratings'):
-            print("\nCategory Ratings:")
-            for category, rating in result['category_ratings'].items():
-                print(f"  • {category}: {rating}/5.0")
-        if result.get('url'):
-            print(f"\nURL: {result['url']}")
-        if result.get('source'):
-            print(f"Source: {result['source']}")
-        if result.get('_cached'):
-            print(f"Cached: Yes (cached at {result.get('_cached_at', 'unknown')})")
-        print("="*50)
+        result = get_glassdoor_rating(company_name)
+        
+        if result:
+            print("\n" + "="*50)
+            print("RESULT")
+            print("="*50)
+            print(f"Company: {company_name}")
+            if result.get('rating'):
+                print(f"Overall Rating: {result['rating']}/5.0")
+            if result.get('num_reviews'):
+                print(f"Number of Reviews: {result['num_reviews']}")
+            if result.get('recommend_to_friend'):
+                print(f"Recommend to Friend: {result['recommend_to_friend']}%")
+            if result.get('ceo_approval'):
+                print(f"CEO Approval: {result['ceo_approval']}%")
+            if result.get('positive_business_outlook'):
+                print(f"Positive Business Outlook: {result['positive_business_outlook']}%")
+            if result.get('category_ratings'):
+                print("\nCategory Ratings:")
+                for category, rating in result['category_ratings'].items():
+                    print(f"  • {category}: {rating}/5.0")
+            if result.get('url'):
+                print(f"\nURL: {result['url']}")
+            if result.get('source'):
+                print(f"Source: {result['source']}")
+            if result.get('_cached'):
+                print(f"Cached: Yes (cached at {result.get('_cached_at', 'unknown')})")
+            print("="*50)
+        else:
+            print(f"\nCould not find Glassdoor rating for {company_name}")
     else:
-        print(f"\nCould not find Glassdoor rating for {company_name}")
+        # Interactive mode: run continuously
+        print("Glassdoor Rating Lookup")
+        print("Enter company names to get their Glassdoor ratings.")
+        print("Type 'quit', 'exit', or 'q' to exit.\n")
+        
+        while True:
+            try:
+                company_name = input("Enter company name: ").strip()
+                
+                # Check for exit commands
+                if not company_name or company_name.lower() in ['quit', 'exit', 'q']:
+                    print("Exiting...")
+                    break
+                
+                result = get_glassdoor_rating(company_name)
+                
+                if result:
+                    print("\n" + "="*50)
+                    print("RESULT")
+                    print("="*50)
+                    print(f"Company: {company_name}")
+                    if result.get('rating'):
+                        print(f"Overall Rating: {result['rating']}/5.0")
+                    if result.get('num_reviews'):
+                        print(f"Number of Reviews: {result['num_reviews']}")
+                    if result.get('recommend_to_friend'):
+                        print(f"Recommend to Friend: {result['recommend_to_friend']}%")
+                    if result.get('ceo_approval'):
+                        print(f"CEO Approval: {result['ceo_approval']}%")
+                    if result.get('positive_business_outlook'):
+                        print(f"Positive Business Outlook: {result['positive_business_outlook']}%")
+                    if result.get('category_ratings'):
+                        print("\nCategory Ratings:")
+                        for category, rating in result['category_ratings'].items():
+                            print(f"  • {category}: {rating}/5.0")
+                    if result.get('url'):
+                        print(f"\nURL: {result['url']}")
+                    if result.get('source'):
+                        print(f"Source: {result['source']}")
+                    if result.get('_cached'):
+                        print(f"Cached: Yes (cached at {result.get('_cached_at', 'unknown')})")
+                    print("="*50)
+                else:
+                    print(f"\nCould not find Glassdoor rating for {company_name}")
+                
+                print()  # Add blank line between results
+                
+            except KeyboardInterrupt:
+                print("\n\nExiting...")
+                break
+            except EOFError:
+                print("\n\nExiting...")
+                break
+            except Exception as e:
+                print(f"\nError: {e}")
+                print()  # Add blank line and continue

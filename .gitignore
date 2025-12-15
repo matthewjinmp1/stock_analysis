@@ -62,6 +62,5 @@ dist/
 *.heic
 *.heif
 
-# Old project directories (can be removed after verification)
-AI_stock_scorer/
-quantitative_stock_scorer/
+# Old project directories are now included as regular directories
+# (not submodules)

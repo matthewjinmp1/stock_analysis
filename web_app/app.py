@@ -42,11 +42,13 @@ def find_best_match(query, companies):
         if ticker.upper() == query_upper:
             return ticker, companies[ticker], 1.0
     
-    # Search by company name - find exact word matches first
+    # Search by company name - ONLY exact word matches, no fuzzy matching
     exact_word_matches = []
     
     query_words = query_upper.split()
     
+    # If query is a single word, check if it appears as a complete word in company name
+    # If query is multiple words, ALL words must appear as complete words
     for ticker, data in companies.items():
         company_name = data.get('company_name', '')
         company_name_upper = company_name.upper()
@@ -57,48 +59,31 @@ def find_best_match(query, companies):
         
         # Check if ALL query words appear as complete words in company name
         all_words_match = True
+        matched_words = []
         for query_word in query_words:
-            if query_word not in company_words:
+            found = False
+            for company_word in company_words:
+                if company_word == query_word:
+                    matched_words.append(query_word)
+                    found = True
+                    break
+            if not found:
                 all_words_match = False
                 break
         
         if all_words_match and len(query_words) > 0:
             # Perfect match - all words found as complete words
-            exact_word_matches.append((ticker, data, 1.0, len(query_words)))
+            exact_word_matches.append((ticker, data, 1.0, len(matched_words)))
     
     # If we found exact word matches, return the best one
     if exact_word_matches:
-        # Sort by number of words matched (more is better)
-        exact_word_matches.sort(key=lambda x: x[3], reverse=True)
+        # Sort by number of words matched (more is better), then alphabetically by ticker
+        exact_word_matches.sort(key=lambda x: (x[3], x[0]), reverse=True)
         best = exact_word_matches[0]
         return best[0], best[1], best[2]
     
-    # No exact word matches - fall back to other matching methods
-    # Only for short queries that look like tickers, try ticker fuzzy match
-    if len(query) <= 4 and query_upper.isalnum():
-        best_ticker = None
-        best_score = 0.0
-        for ticker in companies:
-            score = similarity(query_upper, ticker.upper())
-            if score > best_score:
-                best_score = score
-                best_ticker = ticker
-        if best_score > 0.6:  # Higher threshold for ticker matching
-            return best_ticker, companies[best_ticker], best_score
-    
-    # Try fuzzy company name matching as last resort
-    fuzzy_matches = []
-    for ticker, data in companies.items():
-        company_name = data.get('company_name', '')
-        score = similarity(query, company_name)
-        if score > 0.4:  # Higher threshold
-            fuzzy_matches.append((ticker, data, score))
-    
-    if fuzzy_matches:
-        fuzzy_matches.sort(key=lambda x: x[2], reverse=True)
-        best = fuzzy_matches[0]
-        return best[0], best[1], best[2]
-    
+    # No matches found - return None
+    # We don't do fuzzy matching anymore - only exact word matches
     return None, None, 0.0
 
 @app.route('/')

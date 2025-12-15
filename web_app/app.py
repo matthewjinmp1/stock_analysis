@@ -29,52 +29,79 @@ def similarity(a, b):
 
 def find_best_match(query, companies):
     """Find the best matching company by ticker or company name."""
-    query = query.strip().upper()
+    query = query.strip()
+    query_upper = query.upper()
     
     # First, try exact ticker match
-    if query in companies:
-        return query, companies[query], 1.0
+    if query_upper in companies:
+        return query_upper, companies[query_upper], 1.0
     
     # Try case-insensitive ticker match
     for ticker in companies:
-        if ticker.upper() == query:
+        if ticker.upper() == query_upper:
             return ticker, companies[ticker], 1.0
     
     # If query looks like a ticker (short, uppercase, alphanumeric), search only tickers
-    if len(query) <= 5 and query.isalnum():
+    if len(query) <= 5 and query.replace(' ', '').isalnum():
         best_ticker = None
         best_score = 0.0
         for ticker in companies:
-            score = similarity(query, ticker)
+            score = similarity(query_upper, ticker.upper())
             if score > best_score:
                 best_score = score
                 best_ticker = ticker
         if best_score > 0.5:  # Threshold for ticker matching
             return best_ticker, companies[best_ticker], best_score
     
-    # Otherwise, search by company name
-    best_ticker = None
-    best_score = 0.0
-    best_company_name = None
+    # Search by company name - prioritize exact word matches
+    exact_word_matches = []
+    substring_matches = []
+    fuzzy_matches = []
+    
+    query_words = query_upper.split()
     
     for ticker, data in companies.items():
-        company_name = data.get('company_name', '').upper()
-        query_upper = query.upper()
+        company_name = data.get('company_name', '')
+        company_name_upper = company_name.upper()
         
-        # Check if query is contained in company name or vice versa
-        if query_upper in company_name or company_name in query_upper:
-            score = 0.9  # High score for substring match
+        # Check for exact word matches (highest priority)
+        company_words = company_name_upper.split()
+        exact_word_count = sum(1 for word in query_words if word in company_words)
+        
+        if exact_word_count > 0:
+            # Score based on how many query words match exactly
+            score = 0.95 + (exact_word_count * 0.01)  # 0.95-1.0 range
+            exact_word_matches.append((ticker, data, score, exact_word_count))
+        # Check if query is contained in company name as substring
+        elif query_upper in company_name_upper:
+            score = 0.85  # High score for substring match
+            substring_matches.append((ticker, data, score))
+        # Check if company name starts with query
+        elif company_name_upper.startswith(query_upper):
+            score = 0.80
+            substring_matches.append((ticker, data, score))
         else:
-            # Calculate similarity
+            # Calculate fuzzy similarity
             score = similarity(query, company_name)
-        
-        if score > best_score:
-            best_score = score
-            best_ticker = ticker
-            best_company_name = company_name
+            if score > 0.3:
+                fuzzy_matches.append((ticker, data, score))
     
-    if best_score > 0.3:  # Threshold for company name matching
-        return best_ticker, companies[best_ticker], best_score
+    # Return best match in priority order: exact words > substring > fuzzy
+    if exact_word_matches:
+        # Sort by number of exact word matches, then by score
+        exact_word_matches.sort(key=lambda x: (x[3], x[2]), reverse=True)
+        best = exact_word_matches[0]
+        return best[0], best[1], best[2]
+    
+    if substring_matches:
+        substring_matches.sort(key=lambda x: x[2], reverse=True)
+        best = substring_matches[0]
+        return best[0], best[1], best[2]
+    
+    if fuzzy_matches:
+        fuzzy_matches.sort(key=lambda x: x[2], reverse=True)
+        best = fuzzy_matches[0]
+        return best[0], best[1], best[2]
     
     return None, None, 0.0
 

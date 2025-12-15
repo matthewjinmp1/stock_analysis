@@ -282,10 +282,127 @@ If you cannot find the rating, return null for the rating field."""
         return None
 
 
+def scrape_glassdoor_rating(glassdoor_url, silent=False):
+    """
+    Actually scrape the Glassdoor page to extract the rating.
+    
+    Args:
+        glassdoor_url: URL to the Glassdoor company page
+        silent: If True, suppress warning messages
+        
+    Returns:
+        dict: Dictionary with rating, num_reviews, and other extracted data
+    """
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+    }
+    
+    rating_data = {
+        'rating': None,
+        'num_reviews': None,
+        'url': glassdoor_url
+    }
+    
+    try:
+        response = requests.get(glassdoor_url, headers=headers, timeout=15)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Try multiple methods to find the rating
+            # Method 1: Look for rating in JSON-LD structured data
+            json_scripts = soup.find_all('script', type='application/ld+json')
+            for script in json_scripts:
+                try:
+                    data = json.loads(script.string)
+                    if isinstance(data, dict):
+                        # Check for aggregateRating
+                        if 'aggregateRating' in data:
+                            rating_info = data['aggregateRating']
+                            if 'ratingValue' in rating_info:
+                                rating_data['rating'] = float(rating_info['ratingValue'])
+                            if 'reviewCount' in rating_info:
+                                rating_data['num_reviews'] = int(rating_info['reviewCount'])
+                except:
+                    pass
+            
+            # Method 2: Look for rating in common Glassdoor HTML patterns
+            if rating_data['rating'] is None:
+                # Try to find rating in various HTML elements
+                rating_selectors = [
+                    '[data-test="rating"]',
+                    '.rating',
+                    '.ratingValue',
+                    '[class*="rating"]',
+                    '[data-rating]'
+                ]
+                
+                for selector in rating_selectors:
+                    elements = soup.select(selector)
+                    for elem in elements:
+                        text = elem.get_text(strip=True)
+                        # Look for number like "4.5" or "4.5 out of 5"
+                        rating_match = re.search(r'(\d+\.?\d*)', text)
+                        if rating_match:
+                            rating_val = float(rating_match.group(1))
+                            if 0 <= rating_val <= 5:
+                                rating_data['rating'] = rating_val
+                                break
+                    if rating_data['rating'] is not None:
+                        break
+            
+            # Method 3: Look for reviews count
+            if rating_data['num_reviews'] is None:
+                review_selectors = [
+                    '[data-test="reviewsCount"]',
+                    '.reviewsCount',
+                    '[class*="review"]',
+                    '[class*="Review"]'
+                ]
+                
+                for selector in review_selectors:
+                    elements = soup.select(selector)
+                    for elem in elements:
+                        text = elem.get_text(strip=True)
+                        # Look for numbers like "1,234 reviews"
+                        review_match = re.search(r'([\d,]+)\s*reviews?', text, re.IGNORECASE)
+                        if review_match:
+                            rating_data['num_reviews'] = int(review_match.group(1).replace(',', ''))
+                            break
+                    if rating_data['num_reviews'] is not None:
+                        break
+            
+            # Method 4: Look in page text for common patterns
+            page_text = soup.get_text()
+            if rating_data['rating'] is None:
+                # Look for patterns like "4.5 out of 5" or "Rating: 4.5"
+                rating_patterns = [
+                    r'rating[:\s]+(\d+\.?\d*)\s*(?:out\s+of\s+5|/5)?',
+                    r'(\d+\.?\d*)\s*(?:out\s+of\s+|/)\s*5',
+                    r'overall[:\s]+(\d+\.?\d*)'
+                ]
+                for pattern in rating_patterns:
+                    match = re.search(pattern, page_text, re.IGNORECASE)
+                    if match:
+                        rating_val = float(match.group(1))
+                        if 0 <= rating_val <= 5:
+                            rating_data['rating'] = rating_val
+                            break
+            
+    except Exception as e:
+        if not silent:
+            print(f"Warning: Error scraping Glassdoor page: {e}")
+    
+    return rating_data
+
+
 def search_glassdoor_web(company_name, ticker, silent=False):
     """
-    Use web search to retrieve Glassdoor information (RAG retrieval step).
-    This implements the retrieval part of RAG by searching for Glassdoor data.
+    Use web search to retrieve Glassdoor URL, then scrape the actual rating.
+    This implements proper RAG retrieval by actually fetching the rating data.
     
     Args:
         company_name: Name of the company
@@ -293,12 +410,13 @@ def search_glassdoor_web(company_name, ticker, silent=False):
         silent: If True, suppress warning messages
         
     Returns:
-        dict: Dictionary with search results including URLs and snippets
+        dict: Dictionary with rating data extracted from Glassdoor page
     """
     search_results = {
         'urls': [],
-        'snippets': [],
-        'glassdoor_url': None
+        'glassdoor_url': None,
+        'rating': None,
+        'num_reviews': None
     }
     
     try:
@@ -307,7 +425,7 @@ def search_glassdoor_web(company_name, ticker, silent=False):
         google_search_url = f"https://www.google.com/search?q={requests.utils.quote(search_query)}"
         
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
         
         response = requests.get(google_search_url, headers=headers, timeout=10)
@@ -325,20 +443,23 @@ def search_glassdoor_web(company_name, ticker, silent=False):
                         search_results['urls'].append(href)
                         if 'glassdoor.com/Reviews' in href or 'glassdoor.com/Overview' in href:
                             search_results['glassdoor_url'] = href
-            
-            # Extract snippets from search results
-            for snippet in soup.find_all(['span', 'div'], class_=['st', 's']):
-                text = snippet.get_text()
-                if 'glassdoor' in text.lower() or 'rating' in text.lower():
-                    search_results['snippets'].append(text[:200])  # Limit snippet length
         
         # Also try direct Glassdoor URL construction
         if not search_results['glassdoor_url']:
             # Common Glassdoor URL pattern
-            company_slug = company_name.lower().replace(' ', '-').replace(',', '').replace('.', '')
+            company_slug = company_name.lower().replace(' ', '-').replace(',', '').replace('.', '').replace('&', 'and')
             potential_url = f"https://www.glassdoor.com/Reviews/{company_slug}-Reviews-E1.htm"
             search_results['urls'].append(potential_url)
             search_results['glassdoor_url'] = potential_url
+        
+        # Now actually scrape the Glassdoor page to get the rating
+        if search_results['glassdoor_url']:
+            if not silent:
+                print(f"Scraping Glassdoor page: {search_results['glassdoor_url']}")
+            
+            scraped_data = scrape_glassdoor_rating(search_results['glassdoor_url'], silent=silent)
+            search_results['rating'] = scraped_data.get('rating')
+            search_results['num_reviews'] = scraped_data.get('num_reviews')
             
     except Exception as e:
         if not silent:

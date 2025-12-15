@@ -282,7 +282,6 @@
 
         function displayResult(ticker, data, originalQuery, matchScore) {
             const shortFloat = data.short_float || null;
-            const shortFloatScrapedAt = data.scraped_at || '';
 
             const resultHTML = `
                 <div class="result-card">
@@ -303,12 +302,6 @@
                             <div class="detail-value">No data available</div>
                         </div>
                         `}
-                        ${shortFloatScrapedAt ? `
-                        <div class="detail-item">
-                            <div class="detail-label">Last Updated</div>
-                            <div class="detail-value">${shortFloatScrapedAt}</div>
-                        </div>
-                        ` : ''}
                     </div>
                 </div>
             `;

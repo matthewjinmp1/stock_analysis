@@ -1,0 +1,67 @@
+# API Keys and sensitive configuration
+config.py
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test coverage
+htmlcov/
+.coverage
+.coverage.*
+.pytest_cache/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Data files - exclude all JSON, JSONL, CSV, XLSX files
+*.json
+*.jsonl
+*.csv
+*.xlsx
+*.xls
+# But keep config.example.py (it's a Python file, not JSON)
+!config.example.py
+
+# Image files - exclude all image formats
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.svg
+*.ico
+*.webp
+*.tiff
+*.tif
+*.heic
+*.heif
+
+# Old project directories (can be removed after verification)
+AI_stock_scorer/
+quantitative_stock_scorer/

@@ -104,12 +104,6 @@ def extract_rating_from_search_snippets(company_name: str) -> Optional[Dict[str,
         search = GoogleSearch(params)
         results = search.get_dict()
         
-        # Debug: print entire SerpAPI response
-        import json
-        print("DEBUG - Full SerpAPI response:")
-        print(json.dumps(results, indent=2, default=str))
-        print("\n" + "="*80 + "\n")
-        
         # Helper function to extract stats from snippet text
         def parse_snippet(snippet_text: str) -> Dict:
             stats = {}
@@ -224,14 +218,30 @@ def extract_rating_from_search_snippets(company_name: str) -> Optional[Dict[str,
             
             return stats
         
-        # Check answer box first (often contains rich snippet with all stats)
+        # Check related_questions first - often has the best snippet with overall rating
+        if "related_questions" in results:
+            for q in results["related_questions"]:
+                if q.get("type") == "featured_snippet":
+                    snippet = q.get("snippet", "")
+                    link = q.get("link", "")
+                    if snippet and "glassdoor" in snippet.lower():
+                        stats = parse_snippet(snippet)
+                        if stats.get('rating'):
+                            return {
+                                'rating': stats['rating'],
+                                'num_reviews': stats.get('num_reviews'),
+                                'recommend_to_friend': stats.get('recommend_to_friend'),
+                                'ceo_approval': stats.get('ceo_approval'),
+                                'positive_business_outlook': stats.get('positive_business_outlook'),
+                                'category_ratings': stats.get('category_ratings'),
+                                'url': link,
+                                'source': 'serpapi_related_questions'
+                            }
+        
+        # Check answer box (often contains rich snippet with all stats)
         if "answer_box" in results:
             answer_box = results["answer_box"]
             snippet = answer_box.get("snippet", "")
-            
-            # Debug: print snippet to see format
-            if snippet:
-                print(f"DEBUG - Answer box snippet (first 800 chars):\n{repr(snippet[:800])}\n")
             
             if snippet:
                 stats = parse_snippet(snippet)
@@ -248,15 +258,39 @@ def extract_rating_from_search_snippets(company_name: str) -> Optional[Dict[str,
                     }
                     return result
         
-        # Check organic results snippets
+        # Check organic results - prioritize rich_snippet which has structured data
         if "organic_results" in results:
             for result in results["organic_results"]:
                 snippet = result.get("snippet", "")
                 link = result.get("link", "")
+                
                 if "glassdoor" in snippet.lower() or "glassdoor.com" in link:
-                    # Debug: print snippet to see format
-                    print(f"DEBUG - Organic snippet (first 800 chars):\n{repr(snippet[:800])}\n")
+                    # First, check for rich_snippet which has structured rating data
+                    rich_snippet = result.get("rich_snippet", {})
+                    if rich_snippet:
+                        top = rich_snippet.get("top", {})
+                        detected = top.get("detected_extensions", {})
+                        
+                        # Extract rating from rich_snippet (most reliable)
+                        if "rating" in detected:
+                            rating = float(detected["rating"])
+                            num_reviews = detected.get("reviews")
+                            
+                            # Parse snippet for additional stats
+                            stats = parse_snippet(snippet)
+                            
+                            return {
+                                'rating': rating,
+                                'num_reviews': num_reviews or stats.get('num_reviews'),
+                                'recommend_to_friend': stats.get('recommend_to_friend'),
+                                'ceo_approval': stats.get('ceo_approval'),
+                                'positive_business_outlook': stats.get('positive_business_outlook'),
+                                'category_ratings': stats.get('category_ratings'),
+                                'url': link,
+                                'source': 'serpapi_rich_snippet'
+                            }
                     
+                    # Fallback to parsing snippet text
                     stats = parse_snippet(snippet)
                     if stats.get('rating'):
                         return {

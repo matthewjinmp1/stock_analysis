@@ -176,96 +176,105 @@ def extract_rating_from_search_snippets(company_name: str) -> Optional[Dict[str,
             if review_match:
                 stats['num_reviews'] = int(review_match.group(1).replace(',', ''))
             
-            # Extract "recommend to friend" percentage
-            recommend_match = re.search(r'(\d+)%\s*(?:would\s+)?recommend(?: to a friend)?', snippet_text, re.IGNORECASE)
-            if recommend_match:
-                stats['recommend_to_friend'] = int(recommend_match.group(1))
-            
-            # Extract CEO approval percentage
-            ceo_match = re.search(r'(\d+)%\s*approve of CEO', snippet_text, re.IGNORECASE)
-            if ceo_match:
-                stats['ceo_approval'] = int(ceo_match.group(1))
-            
-            # Extract positive business outlook percentage
-            outlook_match = re.search(r'(\d+)%\s*positive business outlook', snippet_text, re.IGNORECASE)
-            if outlook_match:
-                stats['positive_business_outlook'] = int(outlook_match.group(1))
-            
-            # Extract category ratings - look for patterns like "4.0 -- Culture & values"
-            category_ratings = {}
-            # Try multiple patterns for category ratings
-            category_patterns = [
-                r'(\d+\.?\d*)\s*[-–—]\s*([A-Z][^\\n]+?)(?=\\n|\d+\.|$)',
-                r'(\d+\.?\d*)\s*[-–—]\s*([A-Z][^\\r\\n]+?)(?=\\r|\\n|\d+\.|$)',
-                r'(\d+\.?\d*)\s*[-–—]\s*([A-Za-z][^\\n]+?)(?=\\n|$)',
+            # Extract "recommend to friend" percentage - try multiple patterns
+            recommend_patterns = [
+                r'(\d+)%\s*(?:of\s+\w+\s+)?(?:employees\s+)?would\s+recommend(?: working there)?(?: to a friend)?',
+                r'(\d+)%\s*(?:would\s+)?recommend(?: to a friend)?',
+                r'(\d+)%\s*recommend',
             ]
-            
-            for pattern in category_patterns:
-                category_matches = re.findall(pattern, snippet_text)
-                for rating_val, category in category_matches:
-                    # Filter out non-category matches (like dates, etc.)
-                    category_clean = category.strip()
-                    if len(category_clean) > 3 and not re.match(r'^\d', category_clean):
-                        try:
-                            category_ratings[category_clean] = float(rating_val)
-                        except:
-                            pass
-                if category_ratings:
+            for pattern in recommend_patterns:
+                recommend_match = re.search(pattern, snippet_text, re.IGNORECASE)
+                if recommend_match:
+                    stats['recommend_to_friend'] = int(recommend_match.group(1))
                     break
+            
+            # Extract CEO approval percentage - try multiple patterns
+            ceo_patterns = [
+                r'(\d+)%\s*approve of CEO',
+                r'(\d+)%\s*CEO approval',
+                r'CEO[:\s]+(\d+)%',
+            ]
+            for pattern in ceo_patterns:
+                ceo_match = re.search(pattern, snippet_text, re.IGNORECASE)
+                if ceo_match:
+                    stats['ceo_approval'] = int(ceo_match.group(1))
+                    break
+            
+            # Extract positive business outlook percentage - try multiple patterns
+            outlook_patterns = [
+                r'(\d+)%\s*positive business outlook',
+                r'(\d+)%\s*business outlook',
+                r'positive business outlook[:\s]+(\d+)%',
+            ]
+            for pattern in outlook_patterns:
+                outlook_match = re.search(pattern, snippet_text, re.IGNORECASE)
+                if outlook_match:
+                    stats['positive_business_outlook'] = int(outlook_match.group(1))
+                    break
+            
+            # Extract category ratings - look for patterns like:
+            # "4.0 -- Culture & values"
+            # "3.1 out of 5 for work life balance"
+            # "rated Figma 3.1 out of 5 for work life balance"
+            category_ratings = {}
+            
+            # Pattern 1: "X out of 5 for [category]"
+            pattern1 = r'(\d+\.?\d*)\s*(?:out of|/)\s*5\s+for\s+([^,\.\n]+?)(?=[,\.\n]|$)'
+            matches = re.finditer(pattern1, snippet_text, re.IGNORECASE)
+            for match in matches:
+                rating_val = float(match.group(1))
+                category = match.group(2).strip()
+                # Filter out overall rating mentions
+                if category.lower() not in ['overall', 'rating', 'stars'] and len(category) > 3:
+                    category_ratings[category] = rating_val
+            
+            # Pattern 2: "X -- Category Name" or "X - Category Name"
+            if not category_ratings:
+                pattern2 = r'(\d+\.?\d*)\s*[-–—]\s*([A-Z][^,\n\.]+?)(?=[,\n\.]|$)'
+                matches = re.finditer(pattern2, snippet_text)
+                for match in matches:
+                    rating_val = float(match.group(1))
+                    category = match.group(2).strip()
+                    if len(category) > 3 and not re.match(r'^\d', category):
+                        category_ratings[category] = rating_val
+            
+            # Pattern 3: Look for common category names with nearby ratings
+            if not category_ratings:
+                categories = ['Culture & values', 'Diversity', 'Compensation', 'Career opportunities', 
+                             'Senior management', 'Work/Life balance', 'Work-Life balance', 'Work life balance']
+                for category in categories:
+                    # Find category name
+                    cat_match = re.search(re.escape(category), snippet_text, re.IGNORECASE)
+                    if cat_match:
+                        # Look for rating before or after category (within 30 chars)
+                        start = max(0, cat_match.start() - 30)
+                        end = min(len(snippet_text), cat_match.end() + 30)
+                        context = snippet_text[start:end]
+                        rating_match = re.search(r'(\d+\.?\d*)\s*(?:out of|/)\s*5', context, re.IGNORECASE)
+                        if rating_match:
+                            category_ratings[category] = float(rating_match.group(1))
             
             if category_ratings:
                 stats['category_ratings'] = category_ratings
             
             return stats
         
-        # Check related_questions first - often has the best snippet with overall rating
-        if "related_questions" in results:
-            for q in results["related_questions"]:
-                if q.get("type") == "featured_snippet":
-                    snippet = q.get("snippet", "")
-                    link = q.get("link", "")
-                    if snippet and "glassdoor" in snippet.lower():
-                        stats = parse_snippet(snippet)
-                        if stats.get('rating'):
-                            return {
-                                'rating': stats['rating'],
-                                'num_reviews': stats.get('num_reviews'),
-                                'recommend_to_friend': stats.get('recommend_to_friend'),
-                                'ceo_approval': stats.get('ceo_approval'),
-                                'positive_business_outlook': stats.get('positive_business_outlook'),
-                                'category_ratings': stats.get('category_ratings'),
-                                'url': link,
-                                'source': 'serpapi_related_questions'
-                            }
+        # Collect stats from all sources and merge them
+        combined_stats = {}
+        best_url = None
+        source = None
         
-        # Check answer box (often contains rich snippet with all stats)
-        if "answer_box" in results:
-            answer_box = results["answer_box"]
-            snippet = answer_box.get("snippet", "")
-            
-            if snippet:
-                stats = parse_snippet(snippet)
-                if stats.get('rating'):
-                    result = {
-                        'rating': stats['rating'],
-                        'num_reviews': stats.get('num_reviews'),
-                        'recommend_to_friend': stats.get('recommend_to_friend'),
-                        'ceo_approval': stats.get('ceo_approval'),
-                        'positive_business_outlook': stats.get('positive_business_outlook'),
-                        'category_ratings': stats.get('category_ratings'),
-                        'url': answer_box.get('link'),
-                        'source': 'serpapi_answer_box'
-                    }
-                    return result
-        
-        # Check organic results - prioritize rich_snippet which has structured data
+        # Check organic results first - prioritize rich_snippet which has structured data
         if "organic_results" in results:
             for result in results["organic_results"]:
                 snippet = result.get("snippet", "")
                 link = result.get("link", "")
                 
                 if "glassdoor" in snippet.lower() or "glassdoor.com" in link:
-                    # First, check for rich_snippet which has structured rating data
+                    if not best_url:
+                        best_url = link
+                    
+                    # Check for rich_snippet which has structured rating data (most reliable)
                     rich_snippet = result.get("rich_snippet", {})
                     if rich_snippet:
                         top = rich_snippet.get("top", {})
@@ -273,36 +282,83 @@ def extract_rating_from_search_snippets(company_name: str) -> Optional[Dict[str,
                         
                         # Extract rating from rich_snippet (most reliable)
                         if "rating" in detected:
-                            rating = float(detected["rating"])
-                            num_reviews = detected.get("reviews")
-                            
-                            # Parse snippet for additional stats
-                            stats = parse_snippet(snippet)
-                            
-                            return {
-                                'rating': rating,
-                                'num_reviews': num_reviews or stats.get('num_reviews'),
-                                'recommend_to_friend': stats.get('recommend_to_friend'),
-                                'ceo_approval': stats.get('ceo_approval'),
-                                'positive_business_outlook': stats.get('positive_business_outlook'),
-                                'category_ratings': stats.get('category_ratings'),
-                                'url': link,
-                                'source': 'serpapi_rich_snippet'
-                            }
+                            combined_stats['rating'] = float(detected["rating"])
+                            if "reviews" in detected:
+                                combined_stats['num_reviews'] = detected["reviews"]
+                            if not source:
+                                source = 'serpapi_rich_snippet'
                     
-                    # Fallback to parsing snippet text
-                    stats = parse_snippet(snippet)
-                    if stats.get('rating'):
-                        return {
-                            'rating': stats['rating'],
-                            'num_reviews': stats.get('num_reviews'),
-                            'recommend_to_friend': stats.get('recommend_to_friend'),
-                            'ceo_approval': stats.get('ceo_approval'),
-                            'positive_business_outlook': stats.get('positive_business_outlook'),
-                            'category_ratings': stats.get('category_ratings'),
-                            'url': link,
-                            'source': 'serpapi_snippet'
-                        }
+                    # Parse snippet for additional stats (recommend, CEO, outlook, categories)
+                    snippet_stats = parse_snippet(snippet)
+                    
+                    # Merge stats, prioritizing already collected values
+                    if not combined_stats.get('num_reviews') and snippet_stats.get('num_reviews'):
+                        combined_stats['num_reviews'] = snippet_stats['num_reviews']
+                    if not combined_stats.get('recommend_to_friend') and snippet_stats.get('recommend_to_friend'):
+                        combined_stats['recommend_to_friend'] = snippet_stats['recommend_to_friend']
+                    if not combined_stats.get('ceo_approval') and snippet_stats.get('ceo_approval'):
+                        combined_stats['ceo_approval'] = snippet_stats['ceo_approval']
+                    if not combined_stats.get('positive_business_outlook') and snippet_stats.get('positive_business_outlook'):
+                        combined_stats['positive_business_outlook'] = snippet_stats['positive_business_outlook']
+                    if not combined_stats.get('category_ratings') and snippet_stats.get('category_ratings'):
+                        combined_stats['category_ratings'] = snippet_stats['category_ratings']
+        
+        # Check related_questions for additional stats
+        if "related_questions" in results:
+            for q in results["related_questions"]:
+                if q.get("type") == "featured_snippet":
+                    snippet = q.get("snippet", "")
+                    link = q.get("link", "")
+                    if snippet and "glassdoor" in snippet.lower():
+                        if not best_url:
+                            best_url = link
+                        
+                        snippet_stats = parse_snippet(snippet)
+                        
+                        # Merge stats, prioritizing already collected values
+                        if not combined_stats.get('rating') and snippet_stats.get('rating'):
+                            combined_stats['rating'] = snippet_stats['rating']
+                        if not combined_stats.get('num_reviews') and snippet_stats.get('num_reviews'):
+                            combined_stats['num_reviews'] = snippet_stats['num_reviews']
+                        if not combined_stats.get('recommend_to_friend') and snippet_stats.get('recommend_to_friend'):
+                            combined_stats['recommend_to_friend'] = snippet_stats['recommend_to_friend']
+                        if not combined_stats.get('ceo_approval') and snippet_stats.get('ceo_approval'):
+                            combined_stats['ceo_approval'] = snippet_stats['ceo_approval']
+                        if not combined_stats.get('positive_business_outlook') and snippet_stats.get('positive_business_outlook'):
+                            combined_stats['positive_business_outlook'] = snippet_stats['positive_business_outlook']
+                        if not combined_stats.get('category_ratings') and snippet_stats.get('category_ratings'):
+                            combined_stats['category_ratings'] = snippet_stats['category_ratings']
+        
+        # Check answer box for additional stats
+        if "answer_box" in results:
+            answer_box = results["answer_box"]
+            snippet = answer_box.get("snippet", "")
+            
+            if snippet:
+                if not best_url:
+                    best_url = answer_box.get('link')
+                
+                snippet_stats = parse_snippet(snippet)
+                
+                # Merge stats, prioritizing already collected values
+                if not combined_stats.get('rating') and snippet_stats.get('rating'):
+                    combined_stats['rating'] = snippet_stats['rating']
+                if not combined_stats.get('num_reviews') and snippet_stats.get('num_reviews'):
+                    combined_stats['num_reviews'] = snippet_stats['num_reviews']
+                if not combined_stats.get('recommend_to_friend') and snippet_stats.get('recommend_to_friend'):
+                    combined_stats['recommend_to_friend'] = snippet_stats['recommend_to_friend']
+                if not combined_stats.get('ceo_approval') and snippet_stats.get('ceo_approval'):
+                    combined_stats['ceo_approval'] = snippet_stats['ceo_approval']
+                if not combined_stats.get('positive_business_outlook') and snippet_stats.get('positive_business_outlook'):
+                    combined_stats['positive_business_outlook'] = snippet_stats['positive_business_outlook']
+                if not combined_stats.get('category_ratings') and snippet_stats.get('category_ratings'):
+                    combined_stats['category_ratings'] = snippet_stats['category_ratings']
+        
+        # Return combined stats if we have at least a rating
+        if combined_stats.get('rating'):
+            combined_stats['url'] = best_url
+            combined_stats['source'] = source or 'serpapi_combined'
+            return combined_stats
         
         return None
         

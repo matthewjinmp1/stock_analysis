@@ -3,7 +3,9 @@ Get Glassdoor rating for a company by using SerpAPI web search.
 """
 import re
 import os
+import json
 from typing import Optional, Dict
+from datetime import datetime
 
 # Import SerpAPI
 try:
@@ -29,6 +31,82 @@ if not SERP_API_KEY:
     print("Error: SERP_API_KEY not found. Set it in config.py or as environment variable SERP_API_KEY")
     print("Get your free API key from: https://serpapi.com/")
     exit(1)
+
+# Cache file path
+CACHE_FILE = os.path.join(os.path.dirname(__file__), 'glassdoor_cache.json')
+
+
+def load_cache() -> Dict[str, Dict]:
+    """
+    Load cached results from JSON file.
+    
+    Returns:
+        Dictionary mapping company names to cached results
+    """
+    if os.path.exists(CACHE_FILE):
+        try:
+            with open(CACHE_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Warning: Could not load cache file: {e}")
+            return {}
+    return {}
+
+
+def save_cache(cache: Dict[str, Dict]) -> None:
+    """
+    Save cache to JSON file.
+    
+    Args:
+        cache: Dictionary mapping company names to cached results
+    """
+    try:
+        with open(CACHE_FILE, 'w', encoding='utf-8') as f:
+            json.dump(cache, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f"Warning: Could not save cache file: {e}")
+
+
+def get_cached_result(company_name: str) -> Optional[Dict[str, any]]:
+    """
+    Get cached result for a company if available.
+    
+    Args:
+        company_name: Name of the company
+        
+    Returns:
+        Cached result dictionary or None if not found
+    """
+    cache = load_cache()
+    # Normalize company name for cache lookup (lowercase)
+    key = company_name.lower().strip()
+    if key in cache:
+        cached_data = cache[key]
+        # Add a flag to indicate this is from cache
+        cached_data['_cached'] = True
+        cached_data['_cached_at'] = cached_data.get('_cached_at', 'unknown')
+        return cached_data
+    return None
+
+
+def cache_result(company_name: str, result: Dict[str, any]) -> None:
+    """
+    Cache a result for a company.
+    
+    Args:
+        company_name: Name of the company
+        result: Result dictionary to cache
+    """
+    cache = load_cache()
+    # Normalize company name for cache lookup (lowercase)
+    key = company_name.lower().strip()
+    
+    # Create a copy without internal flags for caching
+    cache_entry = {k: v for k, v in result.items() if not k.startswith('_')}
+    cache_entry['_cached_at'] = datetime.now().isoformat()
+    
+    cache[key] = cache_entry
+    save_cache(cache)
 
 
 def search_glassdoor_url(company_name: str) -> Optional[str]:
@@ -369,12 +447,14 @@ def extract_rating_from_search_snippets(company_name: str) -> Optional[Dict[str,
         return None
 
 
-def get_glassdoor_rating(company_name: str) -> Optional[Dict[str, any]]:
+def get_glassdoor_rating(company_name: str, use_cache: bool = True) -> Optional[Dict[str, any]]:
     """
     Get Glassdoor rating for a company by using SerpAPI web search.
+    Results are cached in a JSON file to avoid repeated API calls.
     
     Args:
         company_name: Name of the company
+        use_cache: If True, check cache first and save results (default: True)
         
     Returns:
         Dictionary with 'rating', 'num_reviews', and 'url' keys, or None if not found
@@ -384,6 +464,14 @@ def get_glassdoor_rating(company_name: str) -> Optional[Dict[str, any]]:
         >>> print(result)
         {'rating': 4.3, 'num_reviews': 15000, 'url': 'https://www.glassdoor.com/...'}
     """
+    # Check cache first
+    if use_cache:
+        cached_result = get_cached_result(company_name)
+        if cached_result:
+            print(f"Found cached result for: {company_name}")
+            print(f"(Cached at: {cached_result.get('_cached_at', 'unknown')})")
+            return cached_result
+    
     print(f"Searching for Glassdoor rating for: {company_name}")
     
     # Try to extract rating directly from search snippets (faster and more reliable)
@@ -404,6 +492,11 @@ def get_glassdoor_rating(company_name: str) -> Optional[Dict[str, any]]:
             print("\nCategory Ratings:")
             for category, rating in result['category_ratings'].items():
                 print(f"  {category}: {rating}/5.0")
+        
+        # Cache the result
+        if use_cache:
+            cache_result(company_name, result)
+        
         return result
     
     # If snippet extraction didn't work, try to find the URL and inform user
@@ -414,12 +507,18 @@ def get_glassdoor_rating(company_name: str) -> Optional[Dict[str, any]]:
         print(f"Found Glassdoor URL: {glassdoor_url}")
         print("Note: Rating extraction from page requires web scraping which may be blocked.")
         print(f"Please visit the URL manually to see the rating: {glassdoor_url}")
-        return {
+        url_result = {
             'rating': None,
             'num_reviews': None,
             'url': glassdoor_url,
             'source': 'serpapi_url_only'
         }
+        
+        # Cache the URL result (even if no rating)
+        if use_cache:
+            cache_result(company_name, url_result)
+        
+        return url_result
     
     print(f"Could not find Glassdoor information for {company_name}")
     return None
@@ -461,6 +560,8 @@ if __name__ == "__main__":
             print(f"\nURL: {result['url']}")
         if result.get('source'):
             print(f"Source: {result['source']}")
+        if result.get('_cached'):
+            print(f"Cached: Yes (cached at {result.get('_cached_at', 'unknown')})")
         print("="*50)
     else:
         print(f"\nCould not find Glassdoor rating for {company_name}")

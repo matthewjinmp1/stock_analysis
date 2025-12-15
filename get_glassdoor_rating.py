@@ -104,6 +104,12 @@ def extract_rating_from_search_snippets(company_name: str) -> Optional[Dict[str,
         search = GoogleSearch(params)
         results = search.get_dict()
         
+        # Debug: print entire SerpAPI response
+        import json
+        print("DEBUG - Full SerpAPI response:")
+        print(json.dumps(results, indent=2, default=str))
+        print("\n" + "="*80 + "\n")
+        
         # Helper function to extract stats from snippet text
         def parse_snippet(snippet_text: str) -> Dict:
             stats = {}

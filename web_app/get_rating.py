@@ -13,6 +13,7 @@ import os
 import json
 from typing import Optional, Dict
 from datetime import datetime
+import time
 
 # Add parent directory to path to import modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -197,10 +198,16 @@ IMPORTANT: Use web search to find the actual current Glassdoor rating. Include c
         # Send the prompt
         chat.append(user(prompt))
         
+        # Time the full API call (including web search)
+        start_time = time.time()
+        
         # Get response
         response = chat.sample()
         
+        elapsed_time = time.time() - start_time
+        
         print(f"Grok response received (length: {len(response.content)} chars)")
+        print(f"Total query time: {elapsed_time:.2f} seconds")
         
         # Extract usage information if available
         token_usage = {}
@@ -280,7 +287,8 @@ IMPORTANT: Use web search to find the actual current Glassdoor rating. Include c
             "raw_response": response.content,
             "source": "grok_web_search",
             "token_usage": token_usage,
-            "total_cost": total_cost
+            "total_cost": total_cost,
+            "elapsed_time": elapsed_time,
         }
         
         # Try to extract JSON from the response
@@ -390,6 +398,9 @@ def process_ticker(ticker: str):
         if result.get('total_cost') and result['total_cost'] > 0:
             print(f"\nTotal Cost: ${result['total_cost']:.6f} USD")
             print(f"Total Cost: ${result['total_cost'] * 100:.4f} cents")
+        # Only show elapsed time for live (non-cached) queries
+        if not result.get('_cached') and result.get('elapsed_time') is not None:
+            print(f"Total Time: {result['elapsed_time']:.2f} seconds")
         print("=" * 80)
         
         # Also print as JSON for easy parsing
@@ -410,7 +421,8 @@ def process_ticker(ticker: str):
             'source': result.get('source', 'grok_web_search'),
             'token_usage': result.get('token_usage'),
             'total_cost_usd': result.get('total_cost', 0),
-            'total_cost_cents': result.get('total_cost', 0) * 100 if result.get('total_cost') else 0
+            'total_cost_cents': result.get('total_cost', 0) * 100 if result.get('total_cost') else 0,
+            'elapsed_time_seconds': result.get('elapsed_time', None),
         }, indent=2))
         return True
     else:

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 Simple script to get Glassdoor rating for a single company by ticker symbol.
-Uses Grok 4.1 Fast Reasoning API with built-in RAG (Retrieval-Augmented Generation).
-Grok uses its web search capabilities to find and extract current Glassdoor ratings.
+Uses Grok 4.1 Fast with xAI SDK web search tool for RAG (Retrieval-Augmented Generation).
+Grok performs actual web searches to find and extract current Glassdoor ratings.
 
 Usage: python get_rating.py AAPL
        python get_rating.py MSFT
@@ -12,16 +12,18 @@ import sys
 import os
 import json
 
-# Add parent directory to path to import scraper
+# Add parent directory to path to import modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from src.scrapers.glassdoor_scraper import get_glassdoor_rating, display_snippet, get_company_name_from_ticker
+from get_glassdoor_rating import ticker_to_company_name
+
 
 def check_api_availability():
-    """Check if Grok API (direct xAI) is available."""
+    """Check if xAI SDK and API key are available."""
     try:
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-        from src.clients.grok_client import GrokClient
+        from xai_sdk import Client
+        from xai_sdk.chat import user
+        from xai_sdk.tools import web_search
         from config import XAI_API_KEY
         
         if not XAI_API_KEY:
@@ -30,15 +32,137 @@ def check_api_availability():
             print("Get your API key from: https://console.x.ai/")
             return False
         return True
-    except ImportError:
-        print("Error: GrokClient not available. Make sure dependencies are installed.")
+    except ImportError as e:
+        print(f"Error: xAI SDK not available. Install with: pip install xai-sdk")
+        print(f"Import error: {e}")
         return False
     except Exception as e:
         print(f"Error checking API availability: {e}")
         return False
 
+
+def get_glassdoor_rating_with_web_search(company_name: str, ticker: str):
+    """
+    Use Grok with web search tool to find and extract Glassdoor rating.
+    
+    Args:
+        company_name: Name of the company
+        ticker: Stock ticker symbol
+        
+    Returns:
+        Dictionary with rating information or None if error
+    """
+    try:
+        from xai_sdk import Client
+        from xai_sdk.chat import user
+        from xai_sdk.tools import web_search
+        from config import XAI_API_KEY
+        
+        print(f"Creating Grok chat session with web search enabled...")
+        
+        # Initialize client
+        client = Client(api_key=XAI_API_KEY)
+        
+        # Create chat with web search tool enabled
+        chat = client.chat.create(
+            model="grok-4-1-fast",
+            tools=[
+                web_search(),  # Enable web search + page browsing
+            ],
+        )
+        
+        # Create prompt that asks Grok to search and extract Glassdoor rating
+        prompt = f"""Find the current Glassdoor rating for {company_name} (stock ticker: {ticker}).
+
+Use web search to find "{company_name} Glassdoor rating" and extract the following information:
+1. The overall rating (out of 5.0)
+2. The number of reviews (if available)
+3. Recommend to friend percentage (if available)
+4. CEO approval percentage (if available)
+5. Positive business outlook percentage (if available)
+6. Category ratings (Work/Life Balance, Culture & Values, Career Opportunities, etc.) if available
+7. The Glassdoor URL
+
+Format your response as JSON with the following structure:
+{{
+    "rating": <number between 0 and 5, or null if not found>,
+    "num_reviews": <number or null>,
+    "recommend_to_friend": <percentage number or null>,
+    "ceo_approval": <percentage number or null>,
+    "positive_business_outlook": <percentage number or null>,
+    "category_ratings": {{
+        "Work/Life Balance": <rating>,
+        "Culture & Values": <rating>,
+        ...
+    }} or null,
+    "url": "<glassdoor url or null>",
+    "snippet": "<brief summary of the rating information>"
+}}
+
+IMPORTANT: Use web search to find the actual current Glassdoor rating. Include citations/links for the information you find.
+"""
+        
+        print(f"Querying Grok with web search for {company_name}...")
+        
+        # Send the prompt
+        chat.append(user(prompt))
+        
+        # Get response
+        response = chat.sample()
+        
+        print(f"Grok response received (length: {len(response.content)} chars)")
+        
+        # Parse the response
+        result = {
+            "ticker": ticker,
+            "company_name": company_name,
+            "raw_response": response.content,
+            "source": "grok_web_search"
+        }
+        
+        # Try to extract JSON from the response
+        try:
+            # Look for JSON in the response
+            json_start = response.content.find('{')
+            json_end = response.content.rfind('}') + 1
+            if json_start >= 0 and json_end > json_start:
+                json_str = response.content[json_start:json_end]
+                parsed_data = json.loads(json_str)
+                result.update(parsed_data)
+            else:
+                # Try to extract rating from natural language using regex
+                import re
+                rating_match = re.search(r'"rating"\s*:\s*(\d+\.?\d*)', response.content, re.IGNORECASE)
+                if not rating_match:
+                    rating_match = re.search(r'rating["\']?\s*[:=]\s*(\d+\.?\d*)', response.content, re.IGNORECASE)
+                if rating_match:
+                    result["rating"] = float(rating_match.group(1))
+                
+                reviews_match = re.search(r'"num_reviews"\s*:\s*(\d+[,\d]*)', response.content, re.IGNORECASE)
+                if not reviews_match:
+                    reviews_match = re.search(r'reviews?["\']?\s*[:=]\s*(\d+[,\d]*)', response.content, re.IGNORECASE)
+                if reviews_match:
+                    result["num_reviews"] = int(reviews_match.group(1).replace(',', ''))
+                
+                url_match = re.search(r'https?://[^\s\)"]+glassdoor[^\s\)"]+', response.content, re.IGNORECASE)
+                if url_match:
+                    result["url"] = url_match.group(0)
+        except json.JSONDecodeError as e:
+            print(f"Warning: Could not parse JSON from response: {e}")
+        except Exception as e:
+            print(f"Warning: Error parsing response: {e}")
+        
+        return result
+        
+    except Exception as e:
+        print(f"Error querying Grok with web search: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+
 def main():
-    """Get and display Glassdoor rating for a ticker using Grok API directly."""
+    """Get and display Glassdoor rating for a ticker using Grok with web search."""
     # Check API availability first
     if not check_api_availability():
         sys.exit(1)
@@ -51,27 +175,47 @@ def main():
     else:
         ticker = sys.argv[1].strip().upper()
     
-    # Get company name first
+    # Get company name from ticker
     print(f"Looking up company name for {ticker}...")
-    company_name = get_company_name_from_ticker(ticker)
+    company_name = ticker_to_company_name(ticker)
     
     if not company_name:
-        print(f"Error: Could not find company name for ticker {ticker}")
+        print(f"Error: Ticker '{ticker}' not found in ticker database.")
+        print("Please enter a valid ticker from stock_tickers_clean.json or ticker_definitions.json")
         sys.exit(1)
     
     print(f"Company name: {company_name}")
-    print(f"\nFetching Glassdoor rating for {ticker} using Grok 4.1 Fast Reasoning with RAG...")
+    print(f"\nFetching Glassdoor rating for {ticker} using Grok with web search...")
     print("=" * 80)
     
-    # Use direct Grok API with improved RAG (web scraping first, then Grok fallback)
-    # Set silent=False to show scraping progress
-    result = get_glassdoor_rating(ticker, silent=False, use_direct_grok=True)
+    # Use Grok with web search
+    result = get_glassdoor_rating_with_web_search(company_name, ticker)
     
     if result:
         print("\n" + "=" * 80)
         print("RESULT:")
         print("=" * 80)
-        display_snippet(result)
+        print(f"Ticker: {ticker}")
+        print(f"Company: {company_name}")
+        if result.get('rating'):
+            print(f"\nOverall Rating: {result['rating']}/5.0")
+        if result.get('num_reviews'):
+            print(f"Number of Reviews: {result['num_reviews']:,}")
+        if result.get('recommend_to_friend'):
+            print(f"Recommend to Friend: {result['recommend_to_friend']}%")
+        if result.get('ceo_approval'):
+            print(f"CEO Approval: {result['ceo_approval']}%")
+        if result.get('positive_business_outlook'):
+            print(f"Positive Business Outlook: {result['positive_business_outlook']}%")
+        if result.get('category_ratings'):
+            print("\nCategory Ratings:")
+            for category, rating in result['category_ratings'].items():
+                print(f"  • {category}: {rating}/5.0")
+        if result.get('url'):
+            print(f"\nGlassdoor URL: {result['url']}")
+        if result.get('snippet'):
+            print(f"\nSnippet: {result['snippet']}")
+        print("=" * 80)
         
         # Also print as JSON for easy parsing
         print("\n" + "=" * 80)
@@ -79,15 +223,21 @@ def main():
         print("=" * 80)
         print(json.dumps({
             'ticker': ticker,
-            'company_name': result.get('company_name'),
+            'company_name': result.get('company_name', company_name),
             'rating': result.get('rating'),
             'num_reviews': result.get('num_reviews'),
+            'recommend_to_friend': result.get('recommend_to_friend'),
+            'ceo_approval': result.get('ceo_approval'),
+            'positive_business_outlook': result.get('positive_business_outlook'),
+            'category_ratings': result.get('category_ratings'),
             'snippet': result.get('snippet'),
-            'url': result.get('url')
+            'url': result.get('url'),
+            'source': result.get('source', 'grok_web_search')
         }, indent=2))
     else:
         print(f"\nError: Could not fetch Glassdoor rating for {ticker}")
         sys.exit(1)
+
 
 if __name__ == '__main__':
     main()

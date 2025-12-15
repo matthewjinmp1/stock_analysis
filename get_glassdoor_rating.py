@@ -108,36 +108,61 @@ def extract_rating_from_search_snippets(company_name: str) -> Optional[Dict[str,
         def parse_snippet(snippet_text: str) -> Dict:
             stats = {}
             
-            # Find overall rating - look for patterns like "has an employee rating of X" or "X out of 5 stars"
-            # This should come before category ratings
-            overall_patterns = [
-                r'has an employee rating of (\d+\.?\d*)\s*(?:out of|/)\s*5',
-                r'(\d+\.?\d*)\s*(?:out of|/)\s*5\s*stars?',
-                r'rating[:\s]+(\d+\.?\d*)\s*(?:out of|/)\s*5',
-            ]
-            
+            # Find overall rating - try explicit patterns first
             rating = None
-            for pattern in overall_patterns:
-                match = re.search(pattern, snippet_text, re.IGNORECASE)
-                if match:
-                    rating = float(match.group(1))
-                    break
             
-            # If no overall pattern found, try to find the first rating that's likely overall
-            # (usually appears early in the text, before "Ratings by category")
+            # Pattern 1: "has an employee rating of X out of 5"
+            match = re.search(r'has an employee rating of (\d+\.?\d*)\s*(?:out of|/)\s*5', snippet_text, re.IGNORECASE)
+            if match:
+                rating = float(match.group(1))
+            
+            # Pattern 2: Look for rating with context that suggests it's overall
+            # Check for ratings that appear near words like "rating", "stars", "overall", etc.
             if not rating:
-                # Look for rating before "Ratings by category" or category names
-                # Split by common category indicators
-                before_categories = snippet_text
-                for splitter in ['Ratings by category', 'Culture & values', 'Diversity', 'Compensation']:
-                    if splitter in before_categories:
-                        before_categories = before_categories.split(splitter)[0]
+                # Find all ratings with their surrounding context
+                rating_matches = list(re.finditer(r'(\d+\.?\d*)\s*(?:out of|/)\s*5', snippet_text, re.IGNORECASE))
+                
+                for match in rating_matches:
+                    rating_val = float(match.group(1))
+                    start_pos = max(0, match.start() - 50)  # Look 50 chars before
+                    end_pos = min(len(snippet_text), match.end() + 50)  # Look 50 chars after
+                    context = snippet_text[start_pos:end_pos].lower()
+                    
+                    # Check if this rating is in overall rating context
+                    overall_indicators = ['employee rating', 'overall', 'stars', 'based on', 'company reviews']
+                    category_indicators = ['culture', 'diversity', 'compensation', 'career', 'senior management', 'work/life', 'work-life']
+                    
+                    has_overall_indicator = any(ind in context for ind in overall_indicators)
+                    has_category_indicator = any(ind in context for ind in category_indicators)
+                    
+                    # If it has overall indicators and no category indicators, it's likely the overall rating
+                    if has_overall_indicator and not has_category_indicator:
+                        rating = rating_val
                         break
                 
-                # Look for the first rating in this section
-                rating_match = re.search(r'(\d+\.?\d*)\s*(?:out of|/)\s*5', before_categories, re.IGNORECASE)
-                if rating_match:
-                    rating = float(rating_match.group(1))
+                # If still no rating found, find ratings before category section
+                if not rating and rating_matches:
+                    # Find where category section starts
+                    category_section_start = len(snippet_text)
+                    for marker in ['Ratings by category', 'Culture & values', 'Diversity', 'Compensation']:
+                        idx = snippet_text.find(marker)
+                        if idx != -1 and idx < category_section_start:
+                            category_section_start = idx
+                    
+                    # Get ratings before categories
+                    ratings_before_categories = []
+                    for match in rating_matches:
+                        if match.start() < category_section_start:
+                            ratings_before_categories.append(float(match.group(1)))
+                    
+                    if ratings_before_categories:
+                        # Take the first rating before categories (overall appears first)
+                        rating = ratings_before_categories[0]
+                    else:
+                        # If all ratings are in category section, take the first one
+                        # (might be a short snippet where overall appears first)
+                        if rating_matches:
+                            rating = float(rating_matches[0].group(1))
             
             if rating:
                 stats['rating'] = rating
@@ -197,6 +222,11 @@ def extract_rating_from_search_snippets(company_name: str) -> Optional[Dict[str,
         if "answer_box" in results:
             answer_box = results["answer_box"]
             snippet = answer_box.get("snippet", "")
+            
+            # Debug: print snippet to see format
+            if snippet:
+                print(f"DEBUG - Answer box snippet (first 800 chars):\n{repr(snippet[:800])}\n")
+            
             if snippet:
                 stats = parse_snippet(snippet)
                 if stats.get('rating'):
@@ -218,6 +248,9 @@ def extract_rating_from_search_snippets(company_name: str) -> Optional[Dict[str,
                 snippet = result.get("snippet", "")
                 link = result.get("link", "")
                 if "glassdoor" in snippet.lower() or "glassdoor.com" in link:
+                    # Debug: print snippet to see format
+                    print(f"DEBUG - Organic snippet (first 800 chars):\n{repr(snippet[:800])}\n")
+                    
                     stats = parse_snippet(snippet)
                     if stats.get('rating'):
                         return {

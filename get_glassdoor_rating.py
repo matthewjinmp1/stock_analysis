@@ -213,11 +213,12 @@ if __name__ == "__main__":
     import sys
     
     if len(sys.argv) < 2:
-        print("Usage: python get_glassdoor_rating.py <company_name>")
-        print("Example: python get_glassdoor_rating.py 'Apple Inc'")
-        sys.exit(1)
-    
-    company_name = ' '.join(sys.argv[1:])
+        company_name = input("Enter company name: ").strip()
+        if not company_name:
+            print("Error: Company name cannot be empty.")
+            sys.exit(1)
+    else:
+        company_name = ' '.join(sys.argv[1:])
     result = get_glassdoor_rating(company_name)
     
     if result:

@@ -500,41 +500,61 @@ def get_glassdoor_rating_with_direct_grok(company_name, ticker, silent=False):
         
         search_results = search_glassdoor_web(company_name, ticker, silent=silent)
         
+        # If we successfully scraped the rating, use it directly
+        if search_results.get('rating') is not None:
+            if not silent:
+                print(f"Successfully extracted rating from Glassdoor page: {search_results['rating']}")
+            
+            rating_data = {
+                "ticker": ticker,
+                "company_name": company_name,
+                "rating": search_results['rating'],
+                "num_reviews": search_results.get('num_reviews'),
+                "url": search_results.get('glassdoor_url'),
+                "snippet": f"Glassdoor rating for {company_name}",
+                "raw_response": f"Scraped rating: {search_results['rating']}",
+                "token_usage": {},
+                "elapsed_time": 0,
+                "total_cost": 0
+            }
+            return rating_data
+        
+        # If scraping failed, use Grok as fallback with the URL we found
+        if not silent:
+            print("Could not extract rating directly. Using Grok to analyze the page...")
+        
         # Build context from search results
         context_parts = []
         if search_results['glassdoor_url']:
             context_parts.append(f"Glassdoor URL: {search_results['glassdoor_url']}")
-        if search_results['snippets']:
-            context_parts.append(f"Search snippets: {' '.join(search_results['snippets'][:3])}")
         if search_results['urls']:
             context_parts.append(f"Found {len(search_results['urls'])} relevant URLs")
         
-        context = "\n".join(context_parts) if context_parts else "No specific web search results found."
+        context = "\n".join(context_parts) if context_parts else "No Glassdoor URL found."
         
         # Initialize Grok client with API key from config
         client = GrokClient(api_key=XAI_API_KEY)
         
         # Step 2: RAG Augmentation - Create prompt with retrieved context
-        prompt = f"""Based on the following web search results, extract the Glassdoor rating information for {company_name} (stock ticker: {ticker}).
+        prompt = f"""I need to find the current Glassdoor rating for {company_name} (stock ticker: {ticker}).
 
-WEB SEARCH RESULTS:
-{context}
+I found this Glassdoor URL: {search_results.get('glassdoor_url', 'Not found')}
 
-Please extract and return:
-1. The overall rating (out of 5.0) - this is typically displayed prominently on Glassdoor
+Please search for the current Glassdoor rating for {company_name} and extract:
+1. The overall rating (out of 5.0)
 2. The number of reviews (if available)
 3. A brief snippet describing the rating
-4. The Glassdoor URL (use the one from search results if available)
+4. The Glassdoor URL
 
 Format your response as JSON with the following structure:
 {{
     "rating": <number between 0 and 5>,
     "num_reviews": <number or null>,
     "snippet": "<brief description>",
-    "url": "<glassdoor url or null>"
+    "url": "<glassdoor url>"
 }}
 
-If you cannot find the rating in the search results, you may use your knowledge, but prioritize the search results provided above."""
+Please search for the most current information available."""
 
         if not silent:
             print(f"Querying Grok API with RAG context to extract Glassdoor rating...")

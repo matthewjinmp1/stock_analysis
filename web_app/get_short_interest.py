@@ -12,7 +12,7 @@ import os
 import sys
 import shutil
 import json
-from datetime import datetime
+from datetime import datetime, date
 
 # Ensure project root is on path so we can import src modules
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -72,6 +72,7 @@ def cache_result(ticker: str, result: dict) -> None:
 def get_short_interest_for_ticker(ticker: str):
     """
     Get short interest for a single ticker using existing scraper logic, with caching.
+    Automatically refreshes cached data if it's not from today.
     
     Args:
         ticker: Stock ticker symbol
@@ -83,10 +84,37 @@ def get_short_interest_for_ticker(ticker: str):
 
     # Check cache first
     cached = get_cached_result(ticker)
+    should_refetch = False
+    
     if cached:
+        # Check if the scraped_at date is today
+        scraped_at_str = cached.get('scraped_at')
+        if scraped_at_str:
+            try:
+                # Parse ISO format date: "2025-12-15T14:04:00.421697"
+                scraped_at = datetime.fromisoformat(scraped_at_str).date()
+                today = date.today()
+                if scraped_at != today:
+                    should_refetch = True
+                    print(f"Cached data for {ticker} is from {scraped_at}, refreshing...")
+            except (ValueError, AttributeError):
+                # If date parsing fails, refetch to be safe
+                should_refetch = True
+                print(f"Could not parse date for cached {ticker}, refreshing...")
+        else:
+            # No date, refetch
+            should_refetch = True
+            print(f"No date found for cached {ticker}, refreshing...")
+    else:
+        # Not in cache, need to fetch
+        should_refetch = True
+    
+    # If we have fresh cached data (from today), return it
+    if cached and not should_refetch:
         print(f"Found cached short interest for {ticker} (cached at {cached.get('_cached_at', 'unknown')})")
         return cached
 
+    # Fetch new data (either not cached or needs refresh)
     # Ensure we run with project root as CWD so any relative paths inside the scraper
     # (if added later) will still work correctly.
     prev_cwd = os.getcwd()
@@ -97,7 +125,9 @@ def get_short_interest_for_ticker(ticker: str):
         os.chdir(prev_cwd)
 
     if result:
+        # Replace old cache entry with new data
         cache_result(ticker, result)
+        print(f"Fetched and cached short interest for {ticker}")
 
     return result
 

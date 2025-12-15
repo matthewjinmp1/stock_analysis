@@ -6,7 +6,6 @@ from flask import Flask, render_template, jsonify, request
 import json
 import os
 import sys
-from datetime import datetime, date
 
 # Ensure project root is on path so we can import modules
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -47,66 +46,37 @@ def index():
 def search_ticker(query):
     """API endpoint to search for short interest by ticker symbol.
     
-    If short interest is not in cache or the cached date is not today, fetches it and caches it.
+    get_short_interest_for_ticker handles all caching and date checking logic.
     """
     ticker = query.strip().upper()
-    short_interest = load_short_interest_data()
     
-    si = short_interest.get(ticker, {})
-    should_refetch = False
-    
-    # Check if we need to refetch (not in cache or date is not today)
-    if not si:
-        should_refetch = True
-    else:
-        # Check if the scraped_at date is today
-        scraped_at_str = si.get('scraped_at')
-        if scraped_at_str:
-            try:
-                # Parse ISO format date: "2025-12-15T14:04:00.421697"
-                scraped_at = datetime.fromisoformat(scraped_at_str).date()
-                today = date.today()
-                if scraped_at != today:
-                    should_refetch = True
-            except (ValueError, AttributeError):
-                # If date parsing fails, refetch to be safe
-                should_refetch = True
+    try:
+        # get_short_interest_for_ticker handles cache checking and refreshing
+        si_result = get_short_interest_for_ticker(ticker)
+        
+        if si_result:
+            return jsonify({
+                'success': True,
+                'ticker': ticker,
+                'query': query,
+                'data': {
+                    'ticker': ticker,
+                    'short_float': si_result.get('short_float'),
+                }
+            })
         else:
-            # No date, refetch
-            should_refetch = True
-    
-    # If not in cache or date is not today, fetch and cache it
-    if should_refetch:
-        try:
-            si_result = get_short_interest_for_ticker(ticker)
-            if si_result:
-                # Reload cache to get the newly cached result
-                short_interest = load_short_interest_data()
-                si = short_interest.get(ticker, {})
-        except Exception as e:
-            # If fetching fails, return error
-            print(f"Warning: Could not fetch short interest for {ticker}: {e}")
             return jsonify({
                 'success': False,
                 'query': query,
-                'message': f'Could not fetch short interest for "{ticker}". Please check that the ticker is valid.'
+                'message': f'No short interest data found for "{ticker}". Please check that the ticker is valid.'
             }), 404
-    
-    if si:
-        return jsonify({
-            'success': True,
-            'ticker': ticker,
-            'query': query,
-            'data': {
-                'ticker': ticker,
-                'short_float': si.get('short_float'),
-            }
-        })
-    else:
+    except Exception as e:
+        # If fetching fails, return error
+        print(f"Warning: Could not fetch short interest for {ticker}: {e}")
         return jsonify({
             'success': False,
             'query': query,
-            'message': f'No short interest data found for "{ticker}". Please check that the ticker is valid.'
+            'message': f'Could not fetch short interest for "{ticker}". Please check that the ticker is valid.'
         }), 404
 
 @app.route('/api/list')

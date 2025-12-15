@@ -35,6 +35,14 @@ if not SERP_API_KEY:
 # Cache file path
 CACHE_FILE = os.path.join(os.path.dirname(__file__), 'glassdoor_cache.json')
 
+# Ticker file paths
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+TICKER_FILE = os.path.join(PROJECT_ROOT, "data", "stock_tickers_clean.json")
+TICKER_DEFINITIONS_FILE = os.path.join(PROJECT_ROOT, "data", "ticker_definitions.json")
+
+# Global ticker cache
+_ticker_cache = None
+
 
 def load_cache() -> Dict[str, Dict]:
     """
@@ -107,6 +115,64 @@ def cache_result(company_name: str, result: Dict[str, any]) -> None:
     
     cache[key] = cache_entry
     save_cache(cache)
+
+
+def load_ticker_database() -> Dict[str, str]:
+    """
+    Load ticker to company name mappings from stock_tickers_clean.json.
+    
+    Returns:
+        Dictionary mapping ticker -> company name
+    """
+    global _ticker_cache
+    if _ticker_cache is not None:
+        return _ticker_cache
+    
+    _ticker_cache = {}
+    
+    # Load from stock_tickers_clean.json
+    if os.path.exists(TICKER_FILE):
+        try:
+            with open(TICKER_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                for company in data.get('companies', []):
+                    ticker = company.get('ticker', '').strip().upper()
+                    name = company.get('name', '').strip()
+                    if ticker and name:
+                        _ticker_cache[ticker] = name
+        except Exception as e:
+            print(f"Warning: Could not load ticker file {TICKER_FILE}: {e}")
+    
+    # Load from ticker_definitions.json (overrides main file)
+    if os.path.exists(TICKER_DEFINITIONS_FILE):
+        try:
+            with open(TICKER_DEFINITIONS_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                definitions = data.get('definitions', {})
+                for ticker, name in definitions.items():
+                    ticker = ticker.strip().upper()
+                    name = name.strip()
+                    if ticker and name:
+                        _ticker_cache[ticker] = name
+        except Exception as e:
+            print(f"Warning: Could not load ticker definitions file {TICKER_DEFINITIONS_FILE}: {e}")
+    
+    return _ticker_cache
+
+
+def ticker_to_company_name(ticker: str) -> Optional[str]:
+    """
+    Convert a ticker symbol to company name.
+    
+    Args:
+        ticker: Ticker symbol (e.g., "AAPL")
+        
+    Returns:
+        Company name if ticker exists, None otherwise
+    """
+    ticker_db = load_ticker_database()
+    ticker_upper = ticker.strip().upper()
+    return ticker_db.get(ticker_upper)
 
 
 def search_glassdoor_url(company_name: str) -> Optional[str]:
@@ -527,84 +593,112 @@ def get_glassdoor_rating(company_name: str, use_cache: bool = True) -> Optional[
 if __name__ == "__main__":
     import sys
     
+    # Load ticker database at startup
+    print("Loading ticker database...")
+    ticker_db = load_ticker_database()
+    print(f"Loaded {len(ticker_db)} tickers from database\n")
+    
+    def lookup_and_get_rating(ticker_input: str):
+        """Look up ticker and get Glassdoor rating."""
+        ticker_upper = ticker_input.strip().upper()
+        company_name = ticker_to_company_name(ticker_upper)
+        
+        if not company_name:
+            print(f"Error: Ticker '{ticker_upper}' not found in ticker database.")
+            print("Please enter a valid ticker from stock_tickers_clean.json or ticker_definitions.json")
+            return None
+        
+        print(f"Ticker: {ticker_upper}")
+        print(f"Company: {company_name}")
+        
+        result = get_glassdoor_rating(company_name)
+        return result, ticker_upper, company_name
+    
     # If command-line arguments provided, run once and exit (backward compatibility)
     if len(sys.argv) >= 2:
-        company_name = ' '.join(sys.argv[1:])
-        result = get_glassdoor_rating(company_name)
+        ticker_input = ' '.join(sys.argv[1:])
+        lookup_result = lookup_and_get_rating(ticker_input)
         
-        if result:
-            print("\n" + "="*50)
-            print("RESULT")
-            print("="*50)
-            print(f"Company: {company_name}")
-            if result.get('rating'):
-                print(f"Overall Rating: {result['rating']}/5.0")
-            if result.get('num_reviews'):
-                print(f"Number of Reviews: {result['num_reviews']}")
-            if result.get('recommend_to_friend'):
-                print(f"Recommend to Friend: {result['recommend_to_friend']}%")
-            if result.get('ceo_approval'):
-                print(f"CEO Approval: {result['ceo_approval']}%")
-            if result.get('positive_business_outlook'):
-                print(f"Positive Business Outlook: {result['positive_business_outlook']}%")
-            if result.get('category_ratings'):
-                print("\nCategory Ratings:")
-                for category, rating in result['category_ratings'].items():
-                    print(f"  • {category}: {rating}/5.0")
-            if result.get('url'):
-                print(f"\nURL: {result['url']}")
-            if result.get('source'):
-                print(f"Source: {result['source']}")
-            if result.get('_cached'):
-                print(f"Cached: Yes (cached at {result.get('_cached_at', 'unknown')})")
-            print("="*50)
-        else:
-            print(f"\nCould not find Glassdoor rating for {company_name}")
+        if lookup_result:
+            result, ticker, company_name = lookup_result
+            if result:
+                print("\n" + "="*50)
+                print("RESULT")
+                print("="*50)
+                print(f"Ticker: {ticker}")
+                print(f"Company: {company_name}")
+                if result.get('rating'):
+                    print(f"Overall Rating: {result['rating']}/5.0")
+                if result.get('num_reviews'):
+                    print(f"Number of Reviews: {result['num_reviews']}")
+                if result.get('recommend_to_friend'):
+                    print(f"Recommend to Friend: {result['recommend_to_friend']}%")
+                if result.get('ceo_approval'):
+                    print(f"CEO Approval: {result['ceo_approval']}%")
+                if result.get('positive_business_outlook'):
+                    print(f"Positive Business Outlook: {result['positive_business_outlook']}%")
+                if result.get('category_ratings'):
+                    print("\nCategory Ratings:")
+                    for category, rating in result['category_ratings'].items():
+                        print(f"  • {category}: {rating}/5.0")
+                if result.get('url'):
+                    print(f"\nURL: {result['url']}")
+                if result.get('source'):
+                    print(f"Source: {result['source']}")
+                if result.get('_cached'):
+                    print(f"Cached: Yes (cached at {result.get('_cached_at', 'unknown')})")
+                print("="*50)
+            else:
+                print(f"\nCould not find Glassdoor rating for {company_name}")
     else:
         # Interactive mode: run continuously
         print("Glassdoor Rating Lookup")
-        print("Enter company names to get their Glassdoor ratings.")
+        print("Enter ticker symbols to get their Glassdoor ratings.")
+        print("Tickers must exist in stock_tickers_clean.json or ticker_definitions.json")
         print("Type 'quit', 'exit', or 'q' to exit.\n")
         
         while True:
             try:
-                company_name = input("Enter company name: ").strip()
+                ticker_input = input("Enter ticker: ").strip()
                 
                 # Check for exit commands
-                if not company_name or company_name.lower() in ['quit', 'exit', 'q']:
+                if not ticker_input or ticker_input.lower() in ['quit', 'exit', 'q']:
                     print("Exiting...")
                     break
                 
-                result = get_glassdoor_rating(company_name)
+                lookup_result = lookup_and_get_rating(ticker_input)
                 
-                if result:
-                    print("\n" + "="*50)
-                    print("RESULT")
-                    print("="*50)
-                    print(f"Company: {company_name}")
-                    if result.get('rating'):
-                        print(f"Overall Rating: {result['rating']}/5.0")
-                    if result.get('num_reviews'):
-                        print(f"Number of Reviews: {result['num_reviews']}")
-                    if result.get('recommend_to_friend'):
-                        print(f"Recommend to Friend: {result['recommend_to_friend']}%")
-                    if result.get('ceo_approval'):
-                        print(f"CEO Approval: {result['ceo_approval']}%")
-                    if result.get('positive_business_outlook'):
-                        print(f"Positive Business Outlook: {result['positive_business_outlook']}%")
-                    if result.get('category_ratings'):
-                        print("\nCategory Ratings:")
-                        for category, rating in result['category_ratings'].items():
-                            print(f"  • {category}: {rating}/5.0")
-                    if result.get('url'):
-                        print(f"\nURL: {result['url']}")
-                    if result.get('source'):
-                        print(f"Source: {result['source']}")
-                    if result.get('_cached'):
-                        print(f"Cached: Yes (cached at {result.get('_cached_at', 'unknown')})")
-                    print("="*50)
-                else:
-                    print(f"\nCould not find Glassdoor rating for {company_name}")
+                if lookup_result:
+                    result, ticker, company_name = lookup_result
+                    if result:
+                        print("\n" + "="*50)
+                        print("RESULT")
+                        print("="*50)
+                        print(f"Ticker: {ticker}")
+                        print(f"Company: {company_name}")
+                        if result.get('rating'):
+                            print(f"Overall Rating: {result['rating']}/5.0")
+                        if result.get('num_reviews'):
+                            print(f"Number of Reviews: {result['num_reviews']}")
+                        if result.get('recommend_to_friend'):
+                            print(f"Recommend to Friend: {result['recommend_to_friend']}%")
+                        if result.get('ceo_approval'):
+                            print(f"CEO Approval: {result['ceo_approval']}%")
+                        if result.get('positive_business_outlook'):
+                            print(f"Positive Business Outlook: {result['positive_business_outlook']}%")
+                        if result.get('category_ratings'):
+                            print("\nCategory Ratings:")
+                            for category, rating in result['category_ratings'].items():
+                                print(f"  • {category}: {rating}/5.0")
+                        if result.get('url'):
+                            print(f"\nURL: {result['url']}")
+                        if result.get('source'):
+                            print(f"Source: {result['source']}")
+                        if result.get('_cached'):
+                            print(f"Cached: Yes (cached at {result.get('_cached_at', 'unknown')})")
+                        print("="*50)
+                    else:
+                        print(f"\nCould not find Glassdoor rating for {company_name}")
                 
                 print()  # Add blank line between results
                 

@@ -84,13 +84,13 @@ def search_glassdoor_url(company_name: str) -> Optional[str]:
 
 def extract_rating_from_search_snippets(company_name: str) -> Optional[Dict[str, any]]:
     """
-    Extract rating from Google search result snippets using SerpAPI.
+    Extract rating and stats from Google search result snippets using SerpAPI.
     
     Args:
         company_name: Name of the company
         
     Returns:
-        Dictionary with rating info if found in snippets, None otherwise
+        Dictionary with rating info and additional stats if found in snippets, None otherwise
     """
     try:
         search_query = f"{company_name} glassdoor rating"
@@ -104,23 +104,113 @@ def extract_rating_from_search_snippets(company_name: str) -> Optional[Dict[str,
         search = GoogleSearch(params)
         results = search.get_dict()
         
-        # Check answer box first (often contains rating)
+        # Helper function to extract stats from snippet text
+        def parse_snippet(snippet_text: str) -> Dict:
+            stats = {}
+            
+            # Find overall rating - look for patterns like "has an employee rating of X" or "X out of 5 stars"
+            # This should come before category ratings
+            overall_patterns = [
+                r'has an employee rating of (\d+\.?\d*)\s*(?:out of|/)\s*5',
+                r'(\d+\.?\d*)\s*(?:out of|/)\s*5\s*stars?',
+                r'rating[:\s]+(\d+\.?\d*)\s*(?:out of|/)\s*5',
+            ]
+            
+            rating = None
+            for pattern in overall_patterns:
+                match = re.search(pattern, snippet_text, re.IGNORECASE)
+                if match:
+                    rating = float(match.group(1))
+                    break
+            
+            # If no overall pattern found, try to find the first rating that's likely overall
+            # (usually appears early in the text, before "Ratings by category")
+            if not rating:
+                # Look for rating before "Ratings by category" or category names
+                # Split by common category indicators
+                before_categories = snippet_text
+                for splitter in ['Ratings by category', 'Culture & values', 'Diversity', 'Compensation']:
+                    if splitter in before_categories:
+                        before_categories = before_categories.split(splitter)[0]
+                        break
+                
+                # Look for the first rating in this section
+                rating_match = re.search(r'(\d+\.?\d*)\s*(?:out of|/)\s*5', before_categories, re.IGNORECASE)
+                if rating_match:
+                    rating = float(rating_match.group(1))
+            
+            if rating:
+                stats['rating'] = rating
+            
+            # Extract number of reviews
+            review_match = re.search(r'based on (\d+(?:,\d+)*)\s*company reviews?', snippet_text, re.IGNORECASE)
+            if not review_match:
+                review_match = re.search(r'(\d+(?:,\d+)*)\s*company reviews?', snippet_text, re.IGNORECASE)
+            if not review_match:
+                review_match = re.search(r'(\d+(?:,\d+)*)\s*reviews?', snippet_text, re.IGNORECASE)
+            if review_match:
+                stats['num_reviews'] = int(review_match.group(1).replace(',', ''))
+            
+            # Extract "recommend to friend" percentage
+            recommend_match = re.search(r'(\d+)%\s*(?:would\s+)?recommend(?: to a friend)?', snippet_text, re.IGNORECASE)
+            if recommend_match:
+                stats['recommend_to_friend'] = int(recommend_match.group(1))
+            
+            # Extract CEO approval percentage
+            ceo_match = re.search(r'(\d+)%\s*approve of CEO', snippet_text, re.IGNORECASE)
+            if ceo_match:
+                stats['ceo_approval'] = int(ceo_match.group(1))
+            
+            # Extract positive business outlook percentage
+            outlook_match = re.search(r'(\d+)%\s*positive business outlook', snippet_text, re.IGNORECASE)
+            if outlook_match:
+                stats['positive_business_outlook'] = int(outlook_match.group(1))
+            
+            # Extract category ratings - look for patterns like "4.0 -- Culture & values"
+            category_ratings = {}
+            # Try multiple patterns for category ratings
+            category_patterns = [
+                r'(\d+\.?\d*)\s*[-–—]\s*([A-Z][^\\n]+?)(?=\\n|\d+\.|$)',
+                r'(\d+\.?\d*)\s*[-–—]\s*([A-Z][^\\r\\n]+?)(?=\\r|\\n|\d+\.|$)',
+                r'(\d+\.?\d*)\s*[-–—]\s*([A-Za-z][^\\n]+?)(?=\\n|$)',
+            ]
+            
+            for pattern in category_patterns:
+                category_matches = re.findall(pattern, snippet_text)
+                for rating_val, category in category_matches:
+                    # Filter out non-category matches (like dates, etc.)
+                    category_clean = category.strip()
+                    if len(category_clean) > 3 and not re.match(r'^\d', category_clean):
+                        try:
+                            category_ratings[category_clean] = float(rating_val)
+                        except:
+                            pass
+                if category_ratings:
+                    break
+            
+            if category_ratings:
+                stats['category_ratings'] = category_ratings
+            
+            return stats
+        
+        # Check answer box first (often contains rich snippet with all stats)
         if "answer_box" in results:
             answer_box = results["answer_box"]
             snippet = answer_box.get("snippet", "")
-            rating_match = re.search(r'(\d+\.?\d*)\s*(?:out of|/)\s*5', snippet, re.IGNORECASE)
-            if rating_match:
-                rating = float(rating_match.group(1))
-                review_match = re.search(r'(\d+(?:,\d+)*)\s*reviews?', snippet, re.IGNORECASE)
-                num_reviews = None
-                if review_match:
-                    num_reviews = int(review_match.group(1).replace(',', ''))
-                return {
-                    'rating': rating,
-                    'num_reviews': num_reviews,
-                    'url': answer_box.get('link'),
-                    'source': 'serpapi_answer_box'
-                }
+            if snippet:
+                stats = parse_snippet(snippet)
+                if stats.get('rating'):
+                    result = {
+                        'rating': stats['rating'],
+                        'num_reviews': stats.get('num_reviews'),
+                        'recommend_to_friend': stats.get('recommend_to_friend'),
+                        'ceo_approval': stats.get('ceo_approval'),
+                        'positive_business_outlook': stats.get('positive_business_outlook'),
+                        'category_ratings': stats.get('category_ratings'),
+                        'url': answer_box.get('link'),
+                        'source': 'serpapi_answer_box'
+                    }
+                    return result
         
         # Check organic results snippets
         if "organic_results" in results:
@@ -128,16 +218,15 @@ def extract_rating_from_search_snippets(company_name: str) -> Optional[Dict[str,
                 snippet = result.get("snippet", "")
                 link = result.get("link", "")
                 if "glassdoor" in snippet.lower() or "glassdoor.com" in link:
-                    rating_match = re.search(r'(\d+\.?\d*)\s*(?:out of|/)\s*5', snippet, re.IGNORECASE)
-                    if rating_match:
-                        rating = float(rating_match.group(1))
-                        review_match = re.search(r'(\d+(?:,\d+)*)\s*reviews?', snippet, re.IGNORECASE)
-                        num_reviews = None
-                        if review_match:
-                            num_reviews = int(review_match.group(1).replace(',', ''))
+                    stats = parse_snippet(snippet)
+                    if stats.get('rating'):
                         return {
-                            'rating': rating,
-                            'num_reviews': num_reviews,
+                            'rating': stats['rating'],
+                            'num_reviews': stats.get('num_reviews'),
+                            'recommend_to_friend': stats.get('recommend_to_friend'),
+                            'ceo_approval': stats.get('ceo_approval'),
+                            'positive_business_outlook': stats.get('positive_business_outlook'),
+                            'category_ratings': stats.get('category_ratings'),
                             'url': link,
                             'source': 'serpapi_snippet'
                         }
@@ -146,6 +235,8 @@ def extract_rating_from_search_snippets(company_name: str) -> Optional[Dict[str,
         
     except Exception as e:
         print(f"SerpAPI snippet extraction failed: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 
@@ -171,9 +262,19 @@ def get_glassdoor_rating(company_name: str) -> Optional[Dict[str, any]]:
     result = extract_rating_from_search_snippets(company_name)
     
     if result:
-        print(f"Rating: {result['rating']}/5.0")
+        print(f"Overall Rating: {result['rating']}/5.0")
         if result.get('num_reviews'):
             print(f"Number of reviews: {result['num_reviews']}")
+        if result.get('recommend_to_friend'):
+            print(f"Recommend to friend: {result['recommend_to_friend']}%")
+        if result.get('ceo_approval'):
+            print(f"CEO approval: {result['ceo_approval']}%")
+        if result.get('positive_business_outlook'):
+            print(f"Positive business outlook: {result['positive_business_outlook']}%")
+        if result.get('category_ratings'):
+            print("\nCategory Ratings:")
+            for category, rating in result['category_ratings'].items():
+                print(f"  {category}: {rating}/5.0")
         return result
     
     # If snippet extraction didn't work, try to find the URL and inform user
@@ -209,15 +310,28 @@ if __name__ == "__main__":
     result = get_glassdoor_rating(company_name)
     
     if result:
-        print("\nResult:")
-        print(f"  Company: {company_name}")
+        print("\n" + "="*50)
+        print("RESULT")
+        print("="*50)
+        print(f"Company: {company_name}")
         if result.get('rating'):
-            print(f"  Rating: {result['rating']}/5.0")
+            print(f"Overall Rating: {result['rating']}/5.0")
         if result.get('num_reviews'):
-            print(f"  Reviews: {result['num_reviews']}")
+            print(f"Number of Reviews: {result['num_reviews']}")
+        if result.get('recommend_to_friend'):
+            print(f"Recommend to Friend: {result['recommend_to_friend']}%")
+        if result.get('ceo_approval'):
+            print(f"CEO Approval: {result['ceo_approval']}%")
+        if result.get('positive_business_outlook'):
+            print(f"Positive Business Outlook: {result['positive_business_outlook']}%")
+        if result.get('category_ratings'):
+            print("\nCategory Ratings:")
+            for category, rating in result['category_ratings'].items():
+                print(f"  • {category}: {rating}/5.0")
         if result.get('url'):
-            print(f"  URL: {result['url']}")
+            print(f"\nURL: {result['url']}")
         if result.get('source'):
-            print(f"  Source: {result['source']}")
+            print(f"Source: {result['source']}")
+        print("="*50)
     else:
         print(f"\nCould not find Glassdoor rating for {company_name}")

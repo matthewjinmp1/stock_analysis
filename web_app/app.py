@@ -9,7 +9,7 @@ from difflib import SequenceMatcher
 
 app = Flask(__name__)
 
-# Path to the Glassdoor data file
+# Path to the Glassdoor data file (relative to this script)
 GLASSDOOR_DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'glassdoor.json')
 
 def load_glassdoor_data():

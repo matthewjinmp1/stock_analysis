@@ -24,9 +24,14 @@ pip install -r requirements.txt
 
 ## Running the App
 
-1. Start the Flask server:
+1. Navigate to the web_app directory:
 ```bash
-python web_app.py
+cd web_app
+```
+
+2. Start the Flask server:
+```bash
+python app.py
 ```
 
 2. Open your web browser and navigate to:
@@ -51,7 +56,7 @@ http://localhost:5000/api/search/AAPL
 
 ## Data Source
 
-The app reads from `data/glassdoor.json` which contains Glassdoor ratings for various companies. Make sure this file exists and is populated with data.
+The app reads from `web_app/data/glassdoor.json` which contains Glassdoor ratings for various companies. The data file is included in this directory for easy deployment.
 
 ## Notes
 

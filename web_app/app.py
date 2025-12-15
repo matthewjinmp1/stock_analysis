@@ -11,8 +11,8 @@ app = Flask(__name__)
 
 # Path to the Glassdoor data file (relative to this script)
 GLASSDOOR_DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'glassdoor.json')
-# Path to the short interest data file (copied for web app)
-SHORT_INTEREST_FILE = os.path.join(os.path.dirname(__file__), 'data', 'short_interest.json')
+# Path to the short interest cache file
+SHORT_INTEREST_FILE = os.path.join(os.path.dirname(__file__), 'data', 'short_interest_cache.json')
 
 def load_glassdoor_data():
     """Load Glassdoor data from JSON file."""
@@ -27,7 +27,7 @@ def load_glassdoor_data():
 
 
 def load_short_interest_data():
-    """Load short interest data from JSON file.
+    """Load short interest data from cache JSON file.
 
     Returns:
         dict mapping ticker -> short interest info dict
@@ -35,8 +35,9 @@ def load_short_interest_data():
     try:
         with open(SHORT_INTEREST_FILE, 'r') as f:
             data = json.load(f)
-            # File format: {"tickers": { "AAPL": {...}, ...}, "last_updated": ..., ...}
-            return data.get('tickers', {})
+            # Cache file format: {"AAPL": {...}, "MSFT": {...}, ...}
+            # Already a flat dict, so return it directly
+            return data
     except FileNotFoundError:
         return {}
     except json.JSONDecodeError:

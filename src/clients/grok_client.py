@@ -38,6 +38,7 @@ class GrokClient:
         
         # Available Grok models
         self.available_models = [
+            "grok-4-1-fast-reasoning",  # Grok 4.1 Fast Reasoning (optimized for tool calling and web search)
             "grok-4-latest",
             "grok-3-latest",
             "grok-2-latest"

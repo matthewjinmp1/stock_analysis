@@ -350,10 +350,11 @@ def search_glassdoor_web(company_name, ticker, silent=False):
 def get_glassdoor_rating_with_direct_grok(company_name, ticker, silent=False):
     """
     Use Grok API directly (via xAI) with RAG to get Glassdoor rating.
+    Uses Grok 4.1 Fast Reasoning model (optimized for tool calling and web search).
     Implements Retrieval-Augmented Generation by:
     1. Retrieving Glassdoor information via web search
     2. Augmenting the prompt with retrieved context
-    3. Generating the final response using Grok
+    3. Generating the final response using Grok 4.1 Fast Reasoning
     
     Args:
         company_name: Name of the company to search for
@@ -434,7 +435,7 @@ If you cannot find the rating in the search results, you may use your knowledge,
         # Step 3: RAG Generation - Call Grok API with augmented context
         response_text, token_usage = client.chat_completion_with_tokens(
             messages=messages,
-            model="grok-4-latest",  # Use latest Grok model available via direct API
+            model="grok-4-1-fast-reasoning",  # Use Grok 4.1 Fast Reasoning model (optimized for tool calling and web search)
             temperature=0.3,  # Lower temperature for more factual responses
             max_tokens=1000
         )
@@ -442,11 +443,13 @@ If you cannot find the rating in the search results, you may use your knowledge,
         # Calculate elapsed time
         elapsed_time = time.time() - start_time
         
-        # Calculate cost (using Grok API pricing)
-        # Grok API pricing: $0.20 per 1M input tokens, $0.50 per 1M output tokens
-        input_tokens = token_usage.get('prompt_tokens', 0)
-        output_tokens = token_usage.get('completion_tokens', 0)
-        total_cost = (input_tokens / 1_000_000) * 0.20 + (output_tokens / 1_000_000) * 0.50
+        # Calculate cost (using Grok 4.1 Fast Reasoning pricing)
+        # Grok 4.1 Fast Reasoning pricing: $0.20 per 1M input tokens, $0.50 per 1M output tokens, $0.05 per 1M cached input tokens
+        total_cost = calculate_token_cost(
+            total_tokens=token_usage.get('total_tokens', 0),
+            model="grok-4-1-fast-reasoning",
+            token_usage=token_usage
+        )
         
         cost_cents = total_cost * 100
         if not silent:

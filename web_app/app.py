@@ -42,13 +42,12 @@ def find_best_match(query, companies):
         if ticker.upper() == query_upper:
             return ticker, companies[ticker], 1.0
     
-    # Search by company name - ONLY exact word matches, no fuzzy matching
+    # Search by company name - prioritize exact word matches, then substring matches
     exact_word_matches = []
+    substring_matches = []
     
     query_words = query_upper.split()
     
-    # If query is a single word, check if it appears as a complete word in company name
-    # If query is multiple words, ALL words must appear as complete words
     for ticker, data in companies.items():
         company_name = data.get('company_name', '')
         company_name_upper = company_name.upper()
@@ -74,16 +73,29 @@ def find_best_match(query, companies):
         if all_words_match and len(query_words) > 0:
             # Perfect match - all words found as complete words
             exact_word_matches.append((ticker, data, 1.0, len(matched_words)))
+        # Check if query appears as substring in company name
+        elif query_upper in company_name_upper:
+            # Score based on position - beginning of name gets higher score
+            if company_name_upper.startswith(query_upper):
+                score = 0.9
+            else:
+                score = 0.8
+            substring_matches.append((ticker, data, score))
     
-    # If we found exact word matches, return the best one
+    # Return best match: exact words first, then substrings
     if exact_word_matches:
         # Sort by number of words matched (more is better), then alphabetically by ticker
         exact_word_matches.sort(key=lambda x: (x[3], x[0]), reverse=True)
         best = exact_word_matches[0]
         return best[0], best[1], best[2]
     
-    # No matches found - return None
-    # We don't do fuzzy matching anymore - only exact word matches
+    if substring_matches:
+        # Sort by score (higher is better), then alphabetically by ticker
+        substring_matches.sort(key=lambda x: (x[2], x[0]), reverse=True)
+        best = substring_matches[0]
+        return best[0], best[1], best[2]
+    
+    # No matches found
     return None, None, 0.0
 
 @app.route('/')

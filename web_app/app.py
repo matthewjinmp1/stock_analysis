@@ -39,14 +39,25 @@ def get_score_for_ticker(ticker: str):
         conn = sqlite3.connect(SCORES_DB)
         cursor = conn.cursor()
         
-        cursor.execute('SELECT scores_json FROM scores WHERE ticker = ?', (ticker.upper(),))
+        # Get all columns (ticker + all metrics)
+        cursor.execute('SELECT * FROM scores WHERE ticker = ?', (ticker.upper(),))
         row = cursor.fetchone()
         
-        conn.close()
+        if not row:
+            conn.close()
+            return None
         
-        if row:
-            return json.loads(row[0])
-        return None
+        # Get column names
+        column_names = [description[0] for description in cursor.description]
+        
+        # Build dictionary from row data
+        score_data = {}
+        for i, value in enumerate(row):
+            if column_names[i] != 'ticker' and value is not None:
+                score_data[column_names[i]] = value
+        
+        conn.close()
+        return score_data if score_data else None
     except Exception as e:
         print(f"Error querying scores database: {e}")
         return None

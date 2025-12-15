@@ -14,7 +14,7 @@ import json
 # Add parent directory to path to import scraper
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from src.scrapers.glassdoor_scraper import get_glassdoor_rating, display_snippet
+from src.scrapers.glassdoor_scraper import get_glassdoor_rating, display_snippet, get_company_name_from_ticker
 
 def check_api_availability():
     """Check if Grok API (direct xAI) is available."""
@@ -50,11 +50,21 @@ def main():
     else:
         ticker = sys.argv[1].strip().upper()
     
-    print(f"Fetching Glassdoor rating for {ticker} using Grok API directly (xAI)...")
+    # Get company name first
+    print(f"Looking up company name for {ticker}...")
+    company_name = get_company_name_from_ticker(ticker)
+    
+    if not company_name:
+        print(f"Error: Could not find company name for ticker {ticker}")
+        sys.exit(1)
+    
+    print(f"Company name: {company_name}")
+    print(f"\nFetching Glassdoor rating for {ticker} using Grok API directly (xAI)...")
     print("=" * 80)
     
     # Use direct Grok API (not OpenRouter)
-    result = get_glassdoor_rating(ticker, silent=False, use_direct_grok=True)
+    # Set silent=True to avoid duplicate "Company name" message
+    result = get_glassdoor_rating(ticker, silent=True, use_direct_grok=True)
     
     if result:
         print("\n" + "=" * 80)

@@ -280,13 +280,144 @@ If you cannot find the rating, return null for the rating field."""
         return None
 
 
-def get_glassdoor_rating(ticker, silent=False):
+def get_glassdoor_rating_with_direct_grok(company_name, ticker, silent=False):
     """
-    Main function to get Glassdoor rating for a ticker using Grok 4.1 with search RAG.
+    Use Grok API directly (via xAI) to get Glassdoor rating.
+    
+    Args:
+        company_name: Name of the company to search for
+        ticker: Stock ticker symbol
+        silent: If True, suppress output messages
+        
+    Returns:
+        dict: Dictionary containing rating data and snippet, or None if error
+    """
+    if not GROK_API_AVAILABLE:
+        print("Error: GrokClient not available.")
+        return None
+    
+    if not XAI_API_KEY:
+        print("Error: XAI_API_KEY not configured in config.py")
+        return None
+    
+    try:
+        # Initialize Grok client with API key from config
+        client = GrokClient(api_key=XAI_API_KEY)
+        
+        # Create a prompt that asks Grok to search for Glassdoor rating
+        prompt = f"""Search for the Glassdoor rating of {company_name} (stock ticker: {ticker}).
+
+Please find the current overall rating from Glassdoor for {company_name}.
+
+Extract and return:
+1. The overall rating (out of 5.0)
+2. The number of reviews (if available)
+3. A brief snippet of the rating information
+4. The Glassdoor URL if found
+
+Format your response as JSON with the following structure:
+{{
+    "rating": <number between 0 and 5>,
+    "num_reviews": <number or null>,
+    "snippet": "<brief description>",
+    "url": "<glassdoor url or null>"
+}}
+
+If you cannot find the rating, return null for the rating field."""
+
+        if not silent:
+            print(f"Querying Grok API directly to search for Glassdoor rating of {company_name}...")
+        
+        messages = [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant. When asked to find current information, provide accurate and up-to-date data."
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
+        
+        # Start timing
+        start_time = time.time()
+        
+        # Call Grok API directly using grok-4-latest
+        response_text, token_usage = client.chat_completion_with_tokens(
+            messages=messages,
+            model="grok-4-latest",  # Use latest Grok model available via direct API
+            temperature=0.3,  # Lower temperature for more factual responses
+            max_tokens=1000
+        )
+        
+        # Calculate elapsed time
+        elapsed_time = time.time() - start_time
+        
+        # Calculate cost (using Grok API pricing)
+        # Grok API pricing: $0.20 per 1M input tokens, $0.50 per 1M output tokens
+        input_tokens = token_usage.get('prompt_tokens', 0)
+        output_tokens = token_usage.get('completion_tokens', 0)
+        total_cost = (input_tokens / 1_000_000) * 0.20 + (output_tokens / 1_000_000) * 0.50
+        
+        cost_cents = total_cost * 100
+        if not silent:
+            print(f"Time: {elapsed_time:.2f}s | Tokens: {token_usage.get('total_tokens', 0)} | Cost: {cost_cents:.4f} cents")
+            print(f"\nGrok Response:\n{response_text}\n")
+        
+        # Try to parse JSON from the response
+        rating_data = {
+            "ticker": ticker,
+            "company_name": company_name,
+            "raw_response": response_text,
+            "token_usage": token_usage,
+            "elapsed_time": elapsed_time,
+            "total_cost": total_cost
+        }
+        
+        # Try to extract JSON from the response
+        try:
+            # Look for JSON in the response
+            json_start = response_text.find('{')
+            json_end = response_text.rfind('}') + 1
+            if json_start >= 0 and json_end > json_start:
+                json_str = response_text[json_start:json_end]
+                parsed_data = json.loads(json_str)
+                rating_data.update(parsed_data)
+            else:
+                # Try to extract rating from natural language
+                import re
+                rating_match = re.search(r'rating["\']?\s*[:=]\s*(\d+\.?\d*)', response_text, re.IGNORECASE)
+                if rating_match:
+                    rating_data["rating"] = float(rating_match.group(1))
+                
+                reviews_match = re.search(r'reviews?["\']?\s*[:=]\s*(\d+[,\d]*)', response_text, re.IGNORECASE)
+                if reviews_match:
+                    rating_data["num_reviews"] = int(reviews_match.group(1).replace(',', ''))
+                
+                url_match = re.search(r'https?://[^\s\)]+glassdoor[^\s\)]+', response_text, re.IGNORECASE)
+                if url_match:
+                    rating_data["url"] = url_match.group(0)
+        except json.JSONDecodeError:
+            # If JSON parsing fails, we'll use the raw response
+            pass
+        
+        return rating_data
+        
+    except Exception as e:
+        print(f"Error querying Grok API: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+
+def get_glassdoor_rating(ticker, silent=False, use_direct_grok=True):
+    """
+    Main function to get Glassdoor rating for a ticker using Grok API.
     
     Args:
         ticker: Stock ticker symbol (e.g., 'AAPL')
         silent: If True, suppress output messages
+        use_direct_grok: If True, use direct Grok API. If False, use OpenRouter.
         
     Returns:
         dict: Dictionary containing rating data and snippet, or None if error
@@ -303,8 +434,11 @@ def get_glassdoor_rating(ticker, silent=False):
     if not silent:
         print(f"Company name: {company_name}")
     
-    # Step 2: Use Grok 4.1 with search RAG to get Glassdoor rating
-    rating_data = get_glassdoor_rating_with_grok(company_name, ticker_upper, silent=silent)
+    # Step 2: Use Grok API to get Glassdoor rating
+    if use_direct_grok:
+        rating_data = get_glassdoor_rating_with_direct_grok(company_name, ticker_upper, silent=silent)
+    else:
+        rating_data = get_glassdoor_rating_with_grok(company_name, ticker_upper, silent=silent)
     
     return rating_data
 

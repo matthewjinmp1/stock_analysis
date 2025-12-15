@@ -38,7 +38,7 @@ htmlcov/
 build/
 dist/
 *.egg-info/ 
-
+ 
 # Data files - exclude all JSON, JSONL, CSV, XLSX files
 *.json
 *.jsonl

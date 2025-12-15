@@ -6,6 +6,7 @@ from flask import Flask, render_template, jsonify, request
 import json
 import os
 import sys
+import sqlite3
 
 # Ensure project root is on path so we can import modules
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -19,24 +20,36 @@ app = Flask(__name__)
 
 # Path to the short interest cache file
 SHORT_INTEREST_FILE = os.path.join(os.path.dirname(__file__), 'data', 'short_interest_cache.json')
-# Path to the scores file
-SCORES_FILE = os.path.join(os.path.dirname(__file__), 'data', 'scores.json')
+# Path to the scores database
+SCORES_DB = os.path.join(os.path.dirname(__file__), 'data', 'scores.db')
 
-def load_scores_data():
-    """Load scores data from JSON file.
+def get_score_for_ticker(ticker: str):
+    """Get score data for a ticker from the database.
 
+    Args:
+        ticker: Stock ticker symbol (uppercase)
+        
     Returns:
-        dict mapping ticker -> score info dict
+        dict: Score data for the ticker, or None if not found
     """
+    if not os.path.exists(SCORES_DB):
+        return None
+    
     try:
-        with open(SCORES_FILE, 'r') as f:
-            data = json.load(f)
-            # File format: {"companies": {"AAPL": {...}, "MSFT": {...}, ...}}
-            return data.get('companies', {})
-    except FileNotFoundError:
-        return {}
-    except json.JSONDecodeError:
-        return {}
+        conn = sqlite3.connect(SCORES_DB)
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT scores_json FROM scores WHERE ticker = ?', (ticker.upper(),))
+        row = cursor.fetchone()
+        
+        conn.close()
+        
+        if row:
+            return json.loads(row[0])
+        return None
+    except Exception as e:
+        print(f"Error querying scores database: {e}")
+        return None
 
 def load_short_interest_data():
     """Load short interest data from cache JSON file.
@@ -65,13 +78,12 @@ def search_ticker(query):
     """API endpoint to search for short interest by ticker symbol.
     
     get_short_interest_for_ticker handles all caching and date checking logic.
-    Also includes score data from scores.json if available.
+    Also includes score data from scores.db if available.
     """
     ticker = query.strip().upper()
     
-    # Load scores data
-    scores = load_scores_data()
-    score_data = scores.get(ticker, {})
+    # Get score data from database
+    score_data = get_score_for_ticker(ticker)
     
     try:
         # get_short_interest_for_ticker handles cache checking and refreshing

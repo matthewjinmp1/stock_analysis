@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Glassdoor Rating Search</title>
+    <title>Short Interest Lookup</title>
     <style>
         * {
             margin: 0;
@@ -135,28 +135,6 @@
             border-radius: 8px;
         }
 
-        .rating-display {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-
-        .rating-value {
-            font-size: 3em;
-            font-weight: 700;
-            color: #667eea;
-        }
-
-        .rating-stars {
-            font-size: 2em;
-            color: #ffc107;
-        }
-
-        .rating-out-of {
-            color: #666;
-            font-size: 1.2em;
-        }
 
         .rating-details {
             display: grid;
@@ -183,30 +161,6 @@
             color: #333;
         }
 
-        .snippet {
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 15px;
-            color: #555;
-            line-height: 1.6;
-        }
-
-        .glassdoor-link {
-            display: inline-block;
-            margin-top: 15px;
-            padding: 10px 20px;
-            background: #0caa41;
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: background 0.3s;
-        }
-
-        .glassdoor-link:hover {
-            background: #0a8a35;
-        }
 
         .error {
             background: #fee;
@@ -250,8 +204,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🔍 Glassdoor Rating Search</h1>
-            <p>Search for company Glassdoor ratings by ticker symbol</p>
+            <h1>📊 Short Interest Lookup</h1>
+            <p>Search for short interest (short float) by ticker symbol</p>
         </div>
 
         <div class="search-section">
@@ -260,7 +214,7 @@
                     type="text" 
                     class="search-input" 
                     id="tickerInput" 
-                    placeholder="Enter ticker (e.g., AAPL) or company name (e.g., Apple)"
+                    placeholder="Enter ticker symbol (e.g., AAPL)"
                     autocomplete="off"
                 >
                 <button class="search-button" onclick="searchTicker()">Search</button>
@@ -279,7 +233,7 @@
             .then(data => {
                 if (data.success) {
                     document.getElementById('stats').textContent = 
-                        `Database contains ${data.count} companies with Glassdoor ratings`;
+                        `Database contains ${data.count} tickers with cached short interest data`;
                 }
             })
             .catch(err => console.error('Error loading stats:', err));
@@ -295,7 +249,7 @@
             const query = document.getElementById('tickerInput').value.trim();
             
             if (!query) {
-                showError('Please enter a ticker symbol or company name');
+                showError('Please enter a ticker symbol');
                 return;
             }
 
@@ -315,7 +269,7 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        displayResult(data.ticker, data.data, data.query, data.match_score);
+                        displayResult(data.ticker, data.data, data.query, 1.0);
                     } else {
                         showError(data.message || `No data found for "${query}"`);
                     }
@@ -327,79 +281,35 @@
         }
 
         function displayResult(ticker, data, originalQuery, matchScore) {
-            const rating = data.rating || 0;
-            const numReviews = data.num_reviews || 0;
-            const companyName = data.company_name || ticker;
-            const snippet = data.snippet || '';
-            const url = data.url || '';
-            const fetchedAt = data.fetched_at || '';
             const shortFloat = data.short_float || null;
-            const shortFloatScrapedAt = data.short_interest_scraped_at || '';
-
-            // Generate stars
-            const fullStars = Math.floor(rating);
-            const hasHalfStar = (rating - fullStars) >= 0.5;
-            let starsHTML = '⭐'.repeat(fullStars);
-            if (hasHalfStar) {
-                starsHTML += '⭐';
-            }
-
-            // Show match info if it was a fuzzy match
-            let matchInfo = '';
-            if (originalQuery && originalQuery.toUpperCase() !== ticker && matchScore < 1.0) {
-                matchInfo = `<div style="font-size: 0.9em; color: #666; margin-bottom: 10px;">Matched "${originalQuery}" to ${companyName} (${ticker})</div>`;
-            }
+            const shortFloatScrapedAt = data.scraped_at || '';
 
             const resultHTML = `
                 <div class="result-card">
-                    ${matchInfo}
                     <div class="result-header">
-                        <div class="company-name">${companyName}</div>
-                        <div class="ticker">${ticker}</div>
-                    </div>
-                    
-                    <div class="rating-display">
-                        <div class="rating-value">${rating.toFixed(1)}</div>
-                        <div class="rating-stars">${starsHTML}</div>
-                        <div class="rating-out-of">out of 5.0</div>
+                        <div class="company-name">${ticker}</div>
+                        <div class="ticker">Ticker</div>
                     </div>
 
                     <div class="rating-details">
-                        <div class="detail-item">
-                            <div class="detail-label">Number of Reviews</div>
-                            <div class="detail-value">${numReviews.toLocaleString()}</div>
-                        </div>
-                        ${shortFloat ? `
+                        ${shortFloat !== null ? `
                         <div class="detail-item">
                             <div class="detail-label">Short Float (Short Interest)</div>
                             <div class="detail-value">${shortFloat}</div>
                         </div>
-                        ` : ''}
-                        ${fetchedAt ? `
+                        ` : `
                         <div class="detail-item">
-                            <div class="detail-label">Glassdoor Last Updated</div>
-                            <div class="detail-value">${fetchedAt}</div>
+                            <div class="detail-label">Short Float (Short Interest)</div>
+                            <div class="detail-value">No data available</div>
                         </div>
-                        ` : ''}
+                        `}
                         ${shortFloatScrapedAt ? `
                         <div class="detail-item">
-                            <div class="detail-label">Short Interest Last Updated</div>
+                            <div class="detail-label">Last Updated</div>
                             <div class="detail-value">${shortFloatScrapedAt}</div>
                         </div>
                         ` : ''}
                     </div>
-
-                    ${snippet ? `
-                    <div class="snippet">
-                        ${snippet}
-                    </div>
-                    ` : ''}
-
-                    ${url ? `
-                    <a href="${url}" target="_blank" class="glassdoor-link">
-                        View on Glassdoor →
-                    </a>
-                    ` : ''}
                 </div>
             `;
 

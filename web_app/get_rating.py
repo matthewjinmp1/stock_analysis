@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
 Simple script to get Glassdoor rating for a single company by ticker symbol.
-Uses Grok API directly (via xAI) to fetch fresh Glassdoor ratings.
+Uses RAG (Retrieval-Augmented Generation) with web scraping to fetch accurate Glassdoor ratings.
+- First scrapes the Glassdoor page directly to extract the rating
+- Falls back to Grok 4.1 Fast Reasoning API if scraping fails
 
 Usage: python get_rating.py AAPL
        python get_rating.py MSFT
@@ -59,12 +61,12 @@ def main():
         sys.exit(1)
     
     print(f"Company name: {company_name}")
-    print(f"\nFetching Glassdoor rating for {ticker} using Grok API directly (xAI)...")
+    print(f"\nFetching Glassdoor rating for {ticker} using RAG (web scraping + Grok API)...")
     print("=" * 80)
     
-    # Use direct Grok API (not OpenRouter)
-    # Set silent=True to avoid duplicate "Company name" message
-    result = get_glassdoor_rating(ticker, silent=True, use_direct_grok=True)
+    # Use direct Grok API with improved RAG (web scraping first, then Grok fallback)
+    # Set silent=False to show scraping progress
+    result = get_glassdoor_rating(ticker, silent=False, use_direct_grok=True)
     
     if result:
         print("\n" + "=" * 80)

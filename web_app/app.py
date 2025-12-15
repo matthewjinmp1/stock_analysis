@@ -5,7 +5,16 @@ Simple Flask web application to search for Glassdoor ratings by ticker symbol or
 from flask import Flask, render_template, jsonify, request
 import json
 import os
+import sys
 from difflib import SequenceMatcher
+
+# Ensure project root is on path so we can import modules
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+# Import short interest fetching function
+from web_app.get_short_interest import get_short_interest_for_ticker
 
 app = Flask(__name__)
 
@@ -128,6 +137,7 @@ def search_ticker(query):
     """API endpoint to search for a ticker or company name's Glassdoor rating.
 
     Also enriches the response with short interest (short float) data when available.
+    If short interest is not in cache, fetches it and caches it.
     """
     companies = load_glassdoor_data()
     short_interest = load_short_interest_data()
@@ -138,6 +148,19 @@ def search_ticker(query):
         # Enrich company data with short interest if available
         enriched = dict(company_data)
         si = short_interest.get(best_ticker, {})
+        
+        # If not in cache, fetch and cache it
+        if not si:
+            try:
+                si_result = get_short_interest_for_ticker(best_ticker)
+                if si_result:
+                    # Reload cache to get the newly cached result
+                    short_interest = load_short_interest_data()
+                    si = short_interest.get(best_ticker, {})
+            except Exception as e:
+                # If fetching fails, continue without short interest data
+                print(f"Warning: Could not fetch short interest for {best_ticker}: {e}")
+        
         if si:
             enriched['short_float'] = si.get('short_float')
             enriched['short_interest_scraped_at'] = si.get('scraped_at')

@@ -11,11 +11,89 @@ Usage: python get_rating.py AAPL
 import sys
 import os
 import json
+from typing import Optional, Dict
+from datetime import datetime
 
 # Add parent directory to path to import modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from get_glassdoor_rating import ticker_to_company_name
+
+# Cache file path (in web_app directory)
+CACHE_FILE = os.path.join(os.path.dirname(__file__), 'grok_glassdoor_cache.json')
+
+
+def load_cache() -> Dict[str, Dict]:
+    """
+    Load cached results from JSON file.
+    
+    Returns:
+        Dictionary mapping company names to cached results
+    """
+    if os.path.exists(CACHE_FILE):
+        try:
+            with open(CACHE_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Warning: Could not load cache file: {e}")
+            return {}
+    return {}
+
+
+def save_cache(cache: Dict[str, Dict]) -> None:
+    """
+    Save cache to JSON file.
+    
+    Args:
+        cache: Dictionary mapping company names to cached results
+    """
+    try:
+        with open(CACHE_FILE, 'w', encoding='utf-8') as f:
+            json.dump(cache, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f"Warning: Could not save cache file: {e}")
+
+
+def get_cached_result(company_name: str) -> Optional[Dict[str, any]]:
+    """
+    Get cached result for a company if available.
+    
+    Args:
+        company_name: Name of the company
+        
+    Returns:
+        Cached result dictionary or None if not found
+    """
+    cache = load_cache()
+    # Normalize company name for cache lookup (lowercase)
+    key = company_name.lower().strip()
+    if key in cache:
+        cached_data = cache[key].copy()
+        # Add a flag to indicate this is from cache
+        cached_data['_cached'] = True
+        cached_data['_cached_at'] = cached_data.get('_cached_at', 'unknown')
+        return cached_data
+    return None
+
+
+def cache_result(company_name: str, result: Dict[str, any]) -> None:
+    """
+    Cache a result for a company.
+    
+    Args:
+        company_name: Name of the company
+        result: Result dictionary to cache
+    """
+    cache = load_cache()
+    # Normalize company name for cache lookup (lowercase)
+    key = company_name.lower().strip()
+    
+    # Create a copy without internal flags for caching
+    cache_entry = {k: v for k, v in result.items() if not k.startswith('_')}
+    cache_entry['_cached_at'] = datetime.now().isoformat()
+    
+    cache[key] = cache_entry
+    save_cache(cache)
 
 
 def check_api_availability():
@@ -41,17 +119,29 @@ def check_api_availability():
         return False
 
 
-def get_glassdoor_rating_with_web_search(company_name: str, ticker: str):
+def get_glassdoor_rating_with_web_search(company_name: str, ticker: str, use_cache: bool = True):
     """
     Use Grok with web search tool to find and extract Glassdoor rating.
     
     Args:
         company_name: Name of the company
         ticker: Stock ticker symbol
+        use_cache: If True, check cache first and save results (default: True)
         
     Returns:
         Dictionary with rating information or None if error
     """
+    # Check cache first
+    if use_cache:
+        cached_result = get_cached_result(company_name)
+        if cached_result:
+            print(f"Found cached result for: {company_name}")
+            print(f"(Cached at: {cached_result.get('_cached_at', 'unknown')})")
+            # Ensure ticker is set
+            cached_result['ticker'] = ticker
+            cached_result['company_name'] = company_name
+            return cached_result
+    
     try:
         from xai_sdk import Client
         from xai_sdk.chat import user
@@ -225,6 +315,10 @@ IMPORTANT: Use web search to find the actual current Glassdoor rating. Include c
         except Exception as e:
             print(f"Warning: Error parsing response: {e}")
         
+        # Cache the result
+        if use_cache and result:
+            cache_result(company_name, result)
+        
         return result
         
     except Exception as e:
@@ -288,6 +382,8 @@ def main():
             print(f"\nGlassdoor URL: {result['url']}")
         if result.get('snippet'):
             print(f"\nSnippet: {result['snippet']}")
+        if result.get('_cached'):
+            print(f"\n(Cached result from {result.get('_cached_at', 'unknown')})")
         if result.get('token_usage') and result['token_usage'].get('total_tokens'):
             print(f"\nToken Usage:")
             print(f"  Total Tokens: {result['token_usage'].get('total_tokens', 0):,}")

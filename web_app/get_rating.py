@@ -112,12 +112,85 @@ IMPORTANT: Use web search to find the actual current Glassdoor rating. Include c
         
         print(f"Grok response received (length: {len(response.content)} chars)")
         
+        # Extract usage information if available
+        token_usage = {}
+        total_cost = 0.0
+        
+        # Check if response has usage information
+        # xAI SDK might return usage in different formats
+        if hasattr(response, 'usage'):
+            usage = response.usage
+            if usage:
+                token_usage = {
+                    'prompt_tokens': getattr(usage, 'prompt_tokens', 0),
+                    'completion_tokens': getattr(usage, 'completion_tokens', 0),
+                    'total_tokens': getattr(usage, 'total_tokens', 0),
+                }
+                # Check for cached tokens
+                if hasattr(usage, 'prompt_cache_hit_tokens'):
+                    token_usage['cached_tokens'] = usage.prompt_cache_hit_tokens
+                elif hasattr(usage, 'cached_input_tokens'):
+                    token_usage['cached_tokens'] = usage.cached_input_tokens
+                
+                # Calculate cost for grok-4-1-fast
+                # Pricing: $0.20 per 1M input tokens, $0.50 per 1M output tokens, $0.05 per 1M cached input tokens
+                input_cost_per_1M = 0.20
+                output_cost_per_1M = 0.50
+                cached_input_cost_per_1M = 0.05
+                
+                prompt_tokens = token_usage.get('prompt_tokens', 0)
+                completion_tokens = token_usage.get('completion_tokens', 0)
+                cached_tokens = token_usage.get('cached_tokens', 0)
+                
+                regular_input_tokens = max(0, prompt_tokens - cached_tokens)
+                regular_input_cost = (regular_input_tokens / 1_000_000) * input_cost_per_1M
+                cached_input_cost = (cached_tokens / 1_000_000) * cached_input_cost_per_1M
+                output_cost = (completion_tokens / 1_000_000) * output_cost_per_1M
+                
+                total_cost = regular_input_cost + cached_input_cost + output_cost
+        elif hasattr(response, 'token_usage'):
+            # Alternative: check if usage is directly on response
+            token_usage = response.token_usage
+            if token_usage:
+                # Calculate cost
+                input_cost_per_1M = 0.20
+                output_cost_per_1M = 0.50
+                cached_input_cost_per_1M = 0.05
+                
+                prompt_tokens = token_usage.get('prompt_tokens', 0) if isinstance(token_usage, dict) else getattr(token_usage, 'prompt_tokens', 0)
+                completion_tokens = token_usage.get('completion_tokens', 0) if isinstance(token_usage, dict) else getattr(token_usage, 'completion_tokens', 0)
+                cached_tokens = token_usage.get('cached_tokens', 0) if isinstance(token_usage, dict) else getattr(token_usage, 'cached_tokens', 0)
+                
+                regular_input_tokens = max(0, prompt_tokens - cached_tokens)
+                regular_input_cost = (regular_input_tokens / 1_000_000) * input_cost_per_1M
+                cached_input_cost = (cached_tokens / 1_000_000) * cached_input_cost_per_1M
+                output_cost = (completion_tokens / 1_000_000) * output_cost_per_1M
+                
+                total_cost = regular_input_cost + cached_input_cost + output_cost
+                
+                # Convert to dict if needed
+                if not isinstance(token_usage, dict):
+                    token_usage = {
+                        'prompt_tokens': prompt_tokens,
+                        'completion_tokens': completion_tokens,
+                        'total_tokens': prompt_tokens + completion_tokens,
+                        'cached_tokens': cached_tokens
+                    }
+        
+        # Debug: print response attributes to help troubleshoot
+        if not token_usage:
+            print(f"Debug: Response attributes: {dir(response)}")
+            if hasattr(response, '__dict__'):
+                print(f"Debug: Response dict keys: {list(response.__dict__.keys())}")
+        
         # Parse the response
         result = {
             "ticker": ticker,
             "company_name": company_name,
             "raw_response": response.content,
-            "source": "grok_web_search"
+            "source": "grok_web_search",
+            "token_usage": token_usage,
+            "total_cost": total_cost
         }
         
         # Try to extract JSON from the response
@@ -215,6 +288,16 @@ def main():
             print(f"\nGlassdoor URL: {result['url']}")
         if result.get('snippet'):
             print(f"\nSnippet: {result['snippet']}")
+        if result.get('token_usage') and result['token_usage'].get('total_tokens'):
+            print(f"\nToken Usage:")
+            print(f"  Total Tokens: {result['token_usage'].get('total_tokens', 0):,}")
+            print(f"  Input Tokens: {result['token_usage'].get('prompt_tokens', 0):,}")
+            print(f"  Output Tokens: {result['token_usage'].get('completion_tokens', 0):,}")
+            if result['token_usage'].get('cached_tokens'):
+                print(f"  Cached Tokens: {result['token_usage'].get('cached_tokens', 0):,}")
+        if result.get('total_cost') and result['total_cost'] > 0:
+            print(f"\nTotal Cost: ${result['total_cost']:.6f} USD")
+            print(f"Total Cost: ${result['total_cost'] * 100:.4f} cents")
         print("=" * 80)
         
         # Also print as JSON for easy parsing
@@ -232,7 +315,10 @@ def main():
             'category_ratings': result.get('category_ratings'),
             'snippet': result.get('snippet'),
             'url': result.get('url'),
-            'source': result.get('source', 'grok_web_search')
+            'source': result.get('source', 'grok_web_search'),
+            'token_usage': result.get('token_usage'),
+            'total_cost_usd': result.get('total_cost', 0),
+            'total_cost_cents': result.get('total_cost', 0) * 100 if result.get('total_cost') else 0
         }, indent=2))
     else:
         print(f"\nError: Could not fetch Glassdoor rating for {ticker}")

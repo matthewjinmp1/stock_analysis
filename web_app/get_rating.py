@@ -328,28 +328,24 @@ IMPORTANT: Use web search to find the actual current Glassdoor rating. Include c
         return None
 
 
-def main():
-    """Get and display Glassdoor rating for a ticker using Grok with web search."""
-    # Check API availability first
-    if not check_api_availability():
-        sys.exit(1)
+def process_ticker(ticker: str):
+    """
+    Process a single ticker and display results.
     
-    if len(sys.argv) < 2:
-        ticker = input("Enter ticker symbol: ").strip().upper()
-        if not ticker:
-            print("Error: No ticker provided")
-            sys.exit(1)
-    else:
-        ticker = sys.argv[1].strip().upper()
-    
+    Args:
+        ticker: Stock ticker symbol
+        
+    Returns:
+        True if successful, False otherwise
+    """
     # Get company name from ticker
-    print(f"Looking up company name for {ticker}...")
+    print(f"\nLooking up company name for {ticker}...")
     company_name = ticker_to_company_name(ticker)
     
     if not company_name:
         print(f"Error: Ticker '{ticker}' not found in ticker database.")
         print("Please enter a valid ticker from stock_tickers_clean.json or ticker_definitions.json")
-        sys.exit(1)
+        return False
     
     print(f"Company name: {company_name}")
     print(f"\nFetching Glassdoor rating for {ticker} using Grok with web search...")
@@ -416,9 +412,52 @@ def main():
             'total_cost_usd': result.get('total_cost', 0),
             'total_cost_cents': result.get('total_cost', 0) * 100 if result.get('total_cost') else 0
         }, indent=2))
+        return True
     else:
         print(f"\nError: Could not fetch Glassdoor rating for {ticker}")
+        return False
+
+
+def main():
+    """Get and display Glassdoor rating for tickers using Grok with web search."""
+    # Check API availability first
+    if not check_api_availability():
         sys.exit(1)
+    
+    # If command-line arguments provided, run once and exit (backward compatibility)
+    if len(sys.argv) >= 2:
+        ticker = sys.argv[1].strip().upper()
+        success = process_ticker(ticker)
+        sys.exit(0 if success else 1)
+    
+    # Otherwise, run continuously
+    print("Glassdoor Rating Lookup (Grok with Web Search)")
+    print("=" * 80)
+    print("Enter ticker symbols to look up Glassdoor ratings.")
+    print("Type 'quit', 'exit', or 'q' to exit.")
+    print("=" * 80)
+    
+    try:
+        while True:
+            ticker = input("\nEnter ticker symbol: ").strip().upper()
+            
+            if not ticker:
+                continue
+            
+            # Check for exit commands
+            if ticker.lower() in ['quit', 'exit', 'q']:
+                print("\nExiting...")
+                break
+            
+            # Process the ticker
+            process_ticker(ticker)
+            
+    except KeyboardInterrupt:
+        print("\n\nExiting...")
+        sys.exit(0)
+    except EOFError:
+        print("\n\nExiting...")
+        sys.exit(0)
 
 
 if __name__ == '__main__':

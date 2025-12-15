@@ -41,17 +41,12 @@ def get_short_interest_for_ticker(ticker: str):
         os.chdir(prev_cwd)
 
 
-def main() -> None:
-    """Prompt for a ticker (or use CLI arg) and print its short interest."""
-    # Determine ticker from CLI or prompt
-    if len(sys.argv) >= 2:
-        ticker = sys.argv[1].strip().upper()
-    else:
-        ticker = input("Enter ticker symbol: ").strip().upper()
-    
+def process_ticker(ticker: str) -> bool:
+    """Fetch and display short interest for a single ticker."""
+    ticker = ticker.strip().upper()
     if not ticker:
         print("Error: No ticker provided.")
-        sys.exit(1)
+        return False
 
     print(f"\nFetching short interest (short float) for {ticker}...")
     print("=" * 80)
@@ -60,7 +55,7 @@ def main() -> None:
 
     if not result:
         print(f"Error: Could not fetch short interest for {ticker}.")
-        sys.exit(1)
+        return False
 
     short_float = result.get("short_float")
     scraped_at = result.get("scraped_at")
@@ -82,6 +77,43 @@ def main() -> None:
     print("\nJSON OUTPUT:")
     print("=" * 80)
     print(json.dumps(result, indent=2))
+
+    return True
+
+
+def main() -> None:
+    """Run single-ticker short interest lookup (CLI arg once, or continuous prompt)."""
+    # If command-line argument provided, run once and exit (backward compatibility)
+    if len(sys.argv) >= 2:
+        ticker = sys.argv[1].strip().upper()
+        ok = process_ticker(ticker)
+        sys.exit(0 if ok else 1)
+
+    # Otherwise, run continuously
+    print("Short Interest Lookup (Finviz short float)")
+    print("=" * 80)
+    print("Enter ticker symbols to look up short interest.")
+    print("Type 'quit', 'exit', or 'q' to exit.")
+    print("=" * 80)
+
+    try:
+        while True:
+            ticker = input("\nEnter ticker symbol: ").strip()
+
+            if not ticker:
+                continue
+
+            if ticker.lower() in ("quit", "exit", "q"):
+                print("\nExiting...")
+                break
+
+            process_ticker(ticker)
+    except KeyboardInterrupt:
+        print("\n\nExiting...")
+        sys.exit(0)
+    except EOFError:
+        print("\n\nExiting...")
+        sys.exit(0)
 
 
 if __name__ == "__main__":

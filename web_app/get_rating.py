@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """
 Simple script to get Glassdoor rating for a single company by ticker symbol.
+Uses Grok 4.1 via OpenRouter API to fetch fresh Glassdoor ratings.
+
 Usage: python get_rating.py AAPL
        python get_rating.py MSFT
+       python get_rating.py  (will prompt for ticker)
 """
 import sys
 import os
@@ -13,8 +16,31 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from src.scrapers.glassdoor_scraper import get_glassdoor_rating, display_snippet
 
+def check_api_availability():
+    """Check if Grok API (OpenRouter) is available."""
+    try:
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+        from src.clients.openrouter_client import OpenRouterClient
+        from config import OPENROUTER_KEY
+        
+        if not OPENROUTER_KEY:
+            print("Error: OPENROUTER_KEY not found in config.py")
+            print("Please make sure your OpenRouter API key is configured.")
+            return False
+        return True
+    except ImportError:
+        print("Error: OpenRouterClient not available. Make sure dependencies are installed.")
+        return False
+    except Exception as e:
+        print(f"Error checking API availability: {e}")
+        return False
+
 def main():
-    """Get and display Glassdoor rating for a ticker."""
+    """Get and display Glassdoor rating for a ticker using Grok 4.1 API."""
+    # Check API availability first
+    if not check_api_availability():
+        sys.exit(1)
+    
     if len(sys.argv) < 2:
         ticker = input("Enter ticker symbol: ").strip().upper()
         if not ticker:
@@ -23,7 +49,7 @@ def main():
     else:
         ticker = sys.argv[1].strip().upper()
     
-    print(f"Fetching Glassdoor rating for {ticker}...")
+    print(f"Fetching Glassdoor rating for {ticker} using Grok 4.1 API via OpenRouter...")
     print("=" * 80)
     
     result = get_glassdoor_rating(ticker, silent=False)

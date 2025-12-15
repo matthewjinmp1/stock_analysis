@@ -2,11 +2,17 @@
 """
 Convert scores.json to SQLite database (scores.db).
 Stores each metric as a separate column in the database.
+Also calculates and stores total_score, max_score, and total_score_percentage.
 """
 
 import json
 import sqlite3
 import os
+import sys
+
+# Add parent directory to path to import score_calculator
+sys.path.insert(0, os.path.dirname(__file__))
+from score_calculator import calculate_total_score
 
 # Paths
 SCORES_JSON = os.path.join(os.path.dirname(__file__), 'data', 'scores.json')
@@ -70,6 +76,10 @@ def convert_json_to_db():
     columns_sql = ['ticker TEXT PRIMARY KEY']
     for metric in METRIC_COLUMNS:
         columns_sql.append(f'{metric} TEXT')
+    # Add calculated score columns
+    columns_sql.append('total_score REAL')
+    columns_sql.append('max_score REAL')
+    columns_sql.append('total_score_percentage REAL')
     
     create_table_sql = f'''
         CREATE TABLE scores (
@@ -85,17 +95,24 @@ def convert_json_to_db():
     print("Inserting data into database...")
     inserted = 0
     for ticker, scores in companies.items():
-        # Build INSERT statement with all columns
-        placeholders = ['?'] * (len(METRIC_COLUMNS) + 1)  # +1 for ticker
+        # Calculate total score
+        total_score, max_score, percentage = calculate_total_score(scores)
+        
+        # Build INSERT statement with all columns including calculated scores
+        placeholders = ['?'] * (len(METRIC_COLUMNS) + 4)  # +1 for ticker, +3 for calculated scores
         insert_sql = f'''
-            INSERT INTO scores (ticker, {', '.join(METRIC_COLUMNS)})
+            INSERT INTO scores (ticker, {', '.join(METRIC_COLUMNS)}, total_score, max_score, total_score_percentage)
             VALUES ({', '.join(placeholders)})
         '''
         
-        # Build values tuple: ticker first, then each metric value
+        # Build values tuple: ticker first, then each metric value, then calculated scores
         values = [ticker.upper()]
         for metric in METRIC_COLUMNS:
             values.append(scores.get(metric))  # None if not present
+        # Add calculated scores
+        values.append(total_score)
+        values.append(max_score)
+        values.append(percentage)
         
         try:
             cursor.execute(insert_sql, values)

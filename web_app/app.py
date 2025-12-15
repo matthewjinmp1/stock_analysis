@@ -15,8 +15,6 @@ if PROJECT_ROOT not in sys.path:
 
 # Import short interest fetching function
 from web_app.get_short_interest import get_short_interest_for_ticker
-# Import score calculator
-from web_app.score_calculator import calculate_total_score
 
 app = Flask(__name__)
 
@@ -41,7 +39,7 @@ def get_score_for_ticker(ticker: str):
         conn = sqlite3.connect(SCORES_DB)
         cursor = conn.cursor()
         
-        # Get all columns (ticker + all metrics)
+        # Get all columns (ticker + all metrics + calculated scores)
         cursor.execute('SELECT * FROM scores WHERE ticker = ?', (ticker.upper(),))
         row = cursor.fetchone()
         
@@ -113,11 +111,10 @@ def search_ticker(query):
             if score_data:
                 response_data['moat_score'] = score_data.get('moat_score')
                 
-                # Calculate total score
-                total_score, max_score, percentage = calculate_total_score(score_data)
-                response_data['total_score'] = total_score
-                response_data['max_score'] = max_score
-                response_data['total_score_percentage'] = percentage
+                # Get pre-calculated total score from database
+                response_data['total_score'] = score_data.get('total_score')
+                response_data['max_score'] = score_data.get('max_score')
+                response_data['total_score_percentage'] = score_data.get('total_score_percentage')
             
             return jsonify({
                 'success': True,

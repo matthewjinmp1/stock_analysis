@@ -64,15 +64,32 @@ def find_best_match(query, companies):
         company_name = data.get('company_name', '')
         company_name_upper = company_name.upper()
         
+        # Normalize company name: split by spaces and punctuation
+        import re
+        # Split by spaces, commas, periods, hyphens, etc. to get individual words
+        company_words = re.split(r'[\s,\-\.&]+', company_name_upper)
+        # Remove empty strings and normalize
+        company_words = [word.strip() for word in company_words if word.strip()]
+        
         # Check for exact word matches (highest priority)
-        company_words = company_name_upper.split()
-        exact_word_count = sum(1 for word in query_words if word in company_words)
+        # A word matches if it appears as a complete word in the company name
+        exact_word_count = 0
+        for query_word in query_words:
+            # Check if query_word appears as a complete word (not as part of another word)
+            for company_word in company_words:
+                if company_word == query_word:
+                    exact_word_count += 1
+                    break  # Found match for this query word, move to next
         
         if exact_word_count > 0:
             # Score based on how many query words match exactly
-            score = 0.95 + (exact_word_count * 0.01)  # 0.95-1.0 range
+            # All query words must match for highest score
+            if exact_word_count == len(query_words):
+                score = 1.0  # Perfect match - all words found
+            else:
+                score = 0.95 + (exact_word_count / len(query_words) * 0.04)  # 0.95-0.99 range
             exact_word_matches.append((ticker, data, score, exact_word_count))
-        # Check if query is contained in company name as substring
+        # Check if query is contained in company name as substring (only if no exact word match)
         elif query_upper in company_name_upper:
             score = 0.85  # High score for substring match
             substring_matches.append((ticker, data, score))

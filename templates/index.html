@@ -260,7 +260,7 @@
                     type="text" 
                     class="search-input" 
                     id="tickerInput" 
-                    placeholder="Enter ticker symbol (e.g., AAPL, MSFT, GOOGL)"
+                    placeholder="Enter ticker (e.g., AAPL) or company name (e.g., Apple)"
                     autocomplete="off"
                 >
                 <button class="search-button" onclick="searchTicker()">Search</button>
@@ -292,10 +292,10 @@
         });
 
         function searchTicker() {
-            const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
+            const query = document.getElementById('tickerInput').value.trim();
             
-            if (!ticker) {
-                showError('Please enter a ticker symbol');
+            if (!query) {
+                showError('Please enter a ticker symbol or company name');
                 return;
             }
 
@@ -303,18 +303,21 @@
             document.getElementById('results').innerHTML = `
                 <div class="loading">
                     <div class="spinner"></div>
-                    <p>Searching for ${ticker}...</p>
+                    <p>Searching for "${query}"...</p>
                 </div>
             `;
 
+            // Encode the query for URL
+            const encodedQuery = encodeURIComponent(query);
+
             // Fetch data
-            fetch(`/api/search/${ticker}`)
+            fetch(`/api/search/${encodedQuery}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        displayResult(data.ticker, data.data);
+                        displayResult(data.ticker, data.data, data.query, data.match_score);
                     } else {
-                        showError(data.message || 'No data found for this ticker');
+                        showError(data.message || `No data found for "${query}"`);
                     }
                 })
                 .catch(err => {
@@ -323,7 +326,7 @@
                 });
         }
 
-        function displayResult(ticker, data) {
+        function displayResult(ticker, data, originalQuery, matchScore) {
             const rating = data.rating || 0;
             const numReviews = data.num_reviews || 0;
             const companyName = data.company_name || ticker;
@@ -339,8 +342,15 @@
                 starsHTML += '⭐';
             }
 
+            // Show match info if it was a fuzzy match
+            let matchInfo = '';
+            if (originalQuery && originalQuery.toUpperCase() !== ticker && matchScore < 1.0) {
+                matchInfo = `<div style="font-size: 0.9em; color: #666; margin-bottom: 10px;">Matched "${originalQuery}" to ${companyName} (${ticker})</div>`;
+            }
+
             const resultHTML = `
                 <div class="result-card">
+                    ${matchInfo}
                     <div class="result-header">
                         <div class="company-name">${companyName}</div>
                         <div class="ticker">${ticker}</div>

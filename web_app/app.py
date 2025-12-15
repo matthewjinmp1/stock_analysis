@@ -19,6 +19,24 @@ app = Flask(__name__)
 
 # Path to the short interest cache file
 SHORT_INTEREST_FILE = os.path.join(os.path.dirname(__file__), 'data', 'short_interest_cache.json')
+# Path to the scores file
+SCORES_FILE = os.path.join(os.path.dirname(__file__), 'data', 'scores.json')
+
+def load_scores_data():
+    """Load scores data from JSON file.
+
+    Returns:
+        dict mapping ticker -> score info dict
+    """
+    try:
+        with open(SCORES_FILE, 'r') as f:
+            data = json.load(f)
+            # File format: {"companies": {"AAPL": {...}, "MSFT": {...}, ...}}
+            return data.get('companies', {})
+    except FileNotFoundError:
+        return {}
+    except json.JSONDecodeError:
+        return {}
 
 def load_short_interest_data():
     """Load short interest data from cache JSON file.
@@ -47,22 +65,34 @@ def search_ticker(query):
     """API endpoint to search for short interest by ticker symbol.
     
     get_short_interest_for_ticker handles all caching and date checking logic.
+    Also includes score data from scores.json if available.
     """
     ticker = query.strip().upper()
+    
+    # Load scores data
+    scores = load_scores_data()
+    score_data = scores.get(ticker, {})
     
     try:
         # get_short_interest_for_ticker handles cache checking and refreshing
         si_result = get_short_interest_for_ticker(ticker)
         
         if si_result:
+            # Build response data
+            response_data = {
+                'ticker': ticker,
+                'short_float': si_result.get('short_float'),
+            }
+            
+            # Add score if available
+            if score_data:
+                response_data['moat_score'] = score_data.get('moat_score')
+            
             return jsonify({
                 'success': True,
                 'ticker': ticker,
                 'query': query,
-                'data': {
-                    'ticker': ticker,
-                    'short_float': si_result.get('short_float'),
-                }
+                'data': response_data
             })
         else:
             return jsonify({

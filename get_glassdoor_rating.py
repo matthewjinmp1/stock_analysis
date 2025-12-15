@@ -19,46 +19,93 @@ def search_glassdoor_url(company_name: str) -> Optional[str]:
         Glassdoor URL if found, None otherwise
     """
     try:
-        # Search Google for the company's Glassdoor page
-        search_query = f"{company_name} glassdoor rating site:glassdoor.com"
-        google_search_url = f"https://www.google.com/search?q={requests.utils.quote(search_query)}"
-        
+        # Create a session to maintain cookies
+        session = requests.Session()
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Cache-Control': 'max-age=0'
         }
+        session.headers.update(headers)
         
-        response = requests.get(google_search_url, headers=headers, timeout=10)
-        response.raise_for_status()
+        # Try multiple search queries
+        search_queries = [
+            f"{company_name} glassdoor site:glassdoor.com",
+            f"{company_name} glassdoor reviews site:glassdoor.com",
+            f'"{company_name}" glassdoor site:glassdoor.com'
+        ]
         
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Extract search result URLs
         glassdoor_urls = []
-        for link in soup.find_all('a', href=True):
-            href = link.get('href')
-            if href and 'glassdoor.com' in href:
-                # Clean up Google redirect URLs
-                if href.startswith('/url?q='):
-                    href = href.split('/url?q=')[1].split('&')[0]
-                # Decode URL encoding
-                href = requests.utils.unquote(href)
-                
-                # Look for company review or overview pages
-                if ('glassdoor.com/Reviews' in href or 
-                    'glassdoor.com/Overview' in href or
-                    'glassdoor.com/Reviews/' in href):
-                    if href not in glassdoor_urls:
-                        glassdoor_urls.append(href)
         
-        # Return the first valid Glassdoor URL found
+        for search_query in search_queries:
+            try:
+                google_search_url = f"https://www.google.com/search?q={requests.utils.quote(search_query)}"
+                response = session.get(google_search_url, timeout=10)
+                response.raise_for_status()
+                
+                soup = BeautifulSoup(response.text, 'html.parser')
+                
+                # Method 1: Look for result links in search results
+                # Google search results are typically in <a> tags with href starting with /url?q=
+                for link in soup.find_all('a', href=True):
+                    href = link.get('href')
+                    if href:
+                        # Extract URL from Google's redirect format
+                        if href.startswith('/url?q='):
+                            url = href.split('/url?q=')[1].split('&')[0]
+                            url = requests.utils.unquote(url)
+                            
+                            # Check if it's a Glassdoor URL
+                            if 'glassdoor.com' in url:
+                                # Prefer Reviews or Overview pages
+                                if any(pattern in url for pattern in ['/Reviews/', '/Overview/', '/Reviews', '/Overview']):
+                                    if url not in glassdoor_urls:
+                                        glassdoor_urls.append(url)
+                                        print(f"Found potential URL from search: {url}")
+                
+                # Method 2: Look for direct links in result snippets
+                for result_div in soup.find_all('div', class_=re.compile(r'g|result')):
+                    for link in result_div.find_all('a', href=True):
+                        href = link.get('href')
+                        if href and 'glassdoor.com' in href:
+                            if href.startswith('/url?q='):
+                                url = href.split('/url?q=')[1].split('&')[0]
+                                url = requests.utils.unquote(url)
+                            else:
+                                url = href
+                            
+                            if 'glassdoor.com' in url and any(pattern in url for pattern in ['/Reviews/', '/Overview/']):
+                                if url not in glassdoor_urls:
+                                    glassdoor_urls.append(url)
+                                    print(f"Found potential URL from result: {url}")
+                
+                # If we found URLs, break early
+                if glassdoor_urls:
+                    break
+                    
+                time.sleep(0.5)  # Small delay between searches
+                
+            except Exception as e:
+                print(f"Error with search query '{search_query}': {e}")
+                continue
+        
+        # Return the best URL found (prefer Reviews pages)
         if glassdoor_urls:
+            # Prioritize URLs with /Reviews/ in them
+            reviews_urls = [url for url in glassdoor_urls if '/Reviews/' in url]
+            if reviews_urls:
+                return reviews_urls[0]
             return glassdoor_urls[0]
         
-        # Fallback: try constructing URL directly
-        company_slug = company_name.lower().replace(' ', '-').replace(',', '').replace('.', '').replace('&', 'and')
-        company_slug = re.sub(r'[^a-z0-9-]', '', company_slug)
-        potential_url = f"https://www.glassdoor.com/Reviews/{company_slug}-Reviews-E1.htm"
-        return potential_url
+        print(f"Could not find Glassdoor URL from web search for {company_name}")
+        return None
         
     except Exception as e:
         print(f"Error searching for Glassdoor URL: {e}")
@@ -76,16 +123,39 @@ def extract_rating_from_page(glassdoor_url: str) -> Optional[Dict[str, any]]:
         Dictionary with rating and number of reviews, or None if not found
     """
     try:
+        # Use a session to maintain cookies and headers
+        session = requests.Session()
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
             'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1'
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Cache-Control': 'max-age=0',
+            'Referer': 'https://www.google.com/'
         }
+        session.headers.update(headers)
         
-        response = requests.get(glassdoor_url, headers=headers, timeout=10)
+        # First, try to access the main Glassdoor page to establish session
+        try:
+            session.get('https://www.glassdoor.com', timeout=5)
+            time.sleep(0.5)
+        except:
+            pass
+        
+        response = session.get(glassdoor_url, timeout=10)
+        
+        # Handle 403 errors
+        if response.status_code == 403:
+            print(f"Warning: Got 403 Forbidden. Glassdoor may be blocking automated requests.")
+            print(f"Try accessing the URL manually: {glassdoor_url}")
+            return None
+        
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -169,6 +239,60 @@ def extract_rating_from_page(glassdoor_url: str) -> Optional[Dict[str, any]]:
     return None
 
 
+def extract_rating_from_search_snippets(company_name: str) -> Optional[Dict[str, any]]:
+    """
+    Try to extract rating from Google search result snippets as a fallback.
+    
+    Args:
+        company_name: Name of the company
+        
+    Returns:
+        Dictionary with rating info if found in snippets, None otherwise
+    """
+    try:
+        session = requests.Session()
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9'
+        }
+        session.headers.update(headers)
+        
+        search_query = f"{company_name} glassdoor rating"
+        google_search_url = f"https://www.google.com/search?q={requests.utils.quote(search_query)}"
+        response = session.get(google_search_url, timeout=10)
+        response.raise_for_status()
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Look for rating patterns in search result text
+        # Google sometimes shows "4.5 out of 5" or similar in snippets
+        rating_pattern = re.compile(r'(\d+\.?\d*)\s*(?:out of|/)\s*5', re.IGNORECASE)
+        
+        for text_elem in soup.find_all(['span', 'div', 'p']):
+            text = text_elem.get_text()
+            match = rating_pattern.search(text)
+            if match and 'glassdoor' in text.lower():
+                rating = float(match.group(1))
+                # Try to find review count
+                review_match = re.search(r'(\d+(?:,\d+)*)\s*reviews?', text, re.IGNORECASE)
+                num_reviews = None
+                if review_match:
+                    num_reviews = int(review_match.group(1).replace(',', ''))
+                
+                return {
+                    'rating': rating,
+                    'num_reviews': num_reviews,
+                    'url': None,
+                    'source': 'search_snippet'
+                }
+        
+    except Exception as e:
+        pass
+    
+    return None
+
+
 def get_glassdoor_rating(company_name: str) -> Optional[Dict[str, any]]:
     """
     Get Glassdoor rating for a company by using web search.
@@ -191,7 +315,9 @@ def get_glassdoor_rating(company_name: str) -> Optional[Dict[str, any]]:
     
     if not glassdoor_url:
         print(f"Could not find Glassdoor URL for {company_name}")
-        return None
+        # Try to extract from search snippets as fallback
+        print("Attempting to extract rating from search snippets...")
+        return extract_rating_from_search_snippets(company_name)
     
     print(f"Found Glassdoor URL: {glassdoor_url}")
     
@@ -205,6 +331,12 @@ def get_glassdoor_rating(company_name: str) -> Optional[Dict[str, any]]:
             print(f"Number of reviews: {result['num_reviews']}")
     else:
         print(f"Could not extract rating from {glassdoor_url}")
+        # Try fallback: extract from search snippets
+        print("Attempting to extract rating from search snippets as fallback...")
+        snippet_result = extract_rating_from_search_snippets(company_name)
+        if snippet_result:
+            print(f"Found rating in search snippet: {snippet_result['rating']}/5.0")
+            return snippet_result
     
     return result
 

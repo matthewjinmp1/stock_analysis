@@ -59,49 +59,49 @@ def find_best_match(query, companies):
     fuzzy_matches = []
     
     query_words = query_upper.split()
+    import re
     
     for ticker, data in companies.items():
         company_name = data.get('company_name', '')
         company_name_upper = company_name.upper()
         
-        # Normalize company name: split by spaces and punctuation
-        import re
+        # Normalize company name: split by word boundaries (spaces, punctuation)
         # Split by spaces, commas, periods, hyphens, etc. to get individual words
-        company_words = re.split(r'[\s,\-\.&]+', company_name_upper)
+        company_words = re.split(r'[\s,\-\.&()]+', company_name_upper)
         # Remove empty strings and normalize
         company_words = [word.strip() for word in company_words if word.strip()]
         
         # Check for exact word matches (highest priority)
-        # A word matches if it appears as a complete word in the company name
+        # A word matches ONLY if it appears as a complete word in the company name
         exact_word_count = 0
         for query_word in query_words:
-            # Check if query_word appears as a complete word (not as part of another word)
+            # Check if query_word appears as a complete word (exact match, not substring)
             for company_word in company_words:
                 if company_word == query_word:
                     exact_word_count += 1
                     break  # Found match for this query word, move to next
         
-        if exact_word_count > 0:
-            # Score based on how many query words match exactly
-            # All query words must match for highest score
-            if exact_word_count == len(query_words):
-                score = 1.0  # Perfect match - all words found
-            else:
-                score = 0.95 + (exact_word_count / len(query_words) * 0.04)  # 0.95-0.99 range
+        # Only consider it an exact word match if ALL query words match
+        if exact_word_count == len(query_words) and len(query_words) > 0:
+            # Perfect match - all words found as complete words
+            score = 1.0
             exact_word_matches.append((ticker, data, score, exact_word_count))
-        # Check if query is contained in company name as substring (only if no exact word match)
-        elif query_upper in company_name_upper:
-            score = 0.85  # High score for substring match
-            substring_matches.append((ticker, data, score))
-        # Check if company name starts with query
-        elif company_name_upper.startswith(query_upper):
-            score = 0.80
-            substring_matches.append((ticker, data, score))
-        else:
-            # Calculate fuzzy similarity
-            score = similarity(query, company_name)
-            if score > 0.3:
-                fuzzy_matches.append((ticker, data, score))
+        # Only do substring/fuzzy matching if NO exact word matches were found
+        elif exact_word_count == 0:
+            # Check if query is contained in company name as substring (word boundary aware)
+            # Use word boundaries to avoid matching "apple" in "applovin"
+            if re.search(r'\b' + re.escape(query_upper) + r'\b', company_name_upper):
+                score = 0.85  # High score for word-boundary substring match
+                substring_matches.append((ticker, data, score))
+            # Check if company name starts with query (as whole word)
+            elif company_name_upper.startswith(query_upper + ' ') or company_name_upper == query_upper:
+                score = 0.80
+                substring_matches.append((ticker, data, score))
+            else:
+                # Calculate fuzzy similarity
+                score = similarity(query, company_name)
+                if score > 0.3:
+                    fuzzy_matches.append((ticker, data, score))
     
     # Return best match in priority order: exact words > substring > fuzzy
     if exact_word_matches:

@@ -76,9 +76,7 @@ def convert_json_to_db():
     columns_sql = ['ticker TEXT PRIMARY KEY']
     for metric in METRIC_COLUMNS:
         columns_sql.append(f'{metric} TEXT')
-    # Add calculated score columns
-    columns_sql.append('total_score REAL')
-    columns_sql.append('max_score REAL')
+    # Add calculated score percentage column
     columns_sql.append('total_score_percentage REAL')
     
     create_table_sql = f'''
@@ -95,23 +93,21 @@ def convert_json_to_db():
     print("Inserting data into database...")
     inserted = 0
     for ticker, scores in companies.items():
-        # Calculate total score
-        total_score, max_score, percentage = calculate_total_score(scores)
+        # Calculate total score percentage
+        _, _, percentage = calculate_total_score(scores)
         
-        # Build INSERT statement with all columns including calculated scores
-        placeholders = ['?'] * (len(METRIC_COLUMNS) + 4)  # +1 for ticker, +3 for calculated scores
+        # Build INSERT statement with all columns including calculated percentage
+        placeholders = ['?'] * (len(METRIC_COLUMNS) + 2)  # +1 for ticker, +1 for percentage
         insert_sql = f'''
-            INSERT INTO scores (ticker, {', '.join(METRIC_COLUMNS)}, total_score, max_score, total_score_percentage)
+            INSERT INTO scores (ticker, {', '.join(METRIC_COLUMNS)}, total_score_percentage)
             VALUES ({', '.join(placeholders)})
         '''
         
-        # Build values tuple: ticker first, then each metric value, then calculated scores
+        # Build values tuple: ticker first, then each metric value, then percentage
         values = [ticker.upper()]
         for metric in METRIC_COLUMNS:
             values.append(scores.get(metric))  # None if not present
-        # Add calculated scores
-        values.append(total_score)
-        values.append(max_score)
+        # Add calculated percentage
         values.append(percentage)
         
         try:

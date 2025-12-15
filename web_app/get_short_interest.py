@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-Web app wrapper for batch short interest scraper.
+Simple script to get short interest (short float) for a single ticker.
+Uses the existing Finviz short interest scraper logic from src/scrapers/get_short_interest.py.
 
-Runs the existing batch short interest scraper from src/scrapers/get_short_interest.py
-and then syncs the generated short_interest.json into the web_app/data directory so the
-web app can read it directly.
+Usage:
+    python get_short_interest.py AAPL
+    python get_short_interest.py      # will prompt for ticker
 """
 
 import os
@@ -16,39 +17,70 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from src.scrapers.get_short_interest import main as scrape_short_interest
-
-SRC_DATA_FILE = os.path.join(PROJECT_ROOT, "data", "short_interest.json")
-WEBAPP_DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
-WEBAPP_DATA_FILE = os.path.join(WEBAPP_DATA_DIR, "short_interest.json")
+from src.scrapers.get_short_interest import scrape_ticker_short_interest
 
 
-def sync_short_interest_file() -> None:
-    """Copy the scraped short_interest.json into web_app/data."""
-    if not os.path.exists(SRC_DATA_FILE):
-        print(f"Source short interest file not found: {SRC_DATA_FILE}")
-        return
-
-    os.makedirs(WEBAPP_DATA_DIR, exist_ok=True)
-    shutil.copy2(SRC_DATA_FILE, WEBAPP_DATA_FILE)
-    print(f"Synced short interest data to {WEBAPP_DATA_FILE}")
-
-
-def main() -> None:
-    """Run the scraper and sync its data into the web app folder."""
-    # The batch scraper uses relative paths like "data/scores.json" based on CWD.
-    # Temporarily change to the project root so those paths resolve correctly,
-    # regardless of where this wrapper script is run from.
+def get_short_interest_for_ticker(ticker: str):
+    """
+    Get short interest for a single ticker using existing scraper logic.
+    
+    Args:
+        ticker: Stock ticker symbol
+        
+    Returns:
+        dict or None: Result from scrape_ticker_short_interest, or None on error
+    """
+    # Ensure we run with project root as CWD so any relative paths inside the scraper
+    # (if added later) will still work correctly.
     prev_cwd = os.getcwd()
     try:
         os.chdir(PROJECT_ROOT)
-        # Run the existing batch scraper (writes data/short_interest.json at project root)
-        scrape_short_interest()
+        return scrape_ticker_short_interest(ticker)
     finally:
         os.chdir(prev_cwd)
 
-    # Sync the generated data into web_app/data
-    sync_short_interest_file()
+
+def main() -> None:
+    """Prompt for a ticker (or use CLI arg) and print its short interest."""
+    # Determine ticker from CLI or prompt
+    if len(sys.argv) >= 2:
+        ticker = sys.argv[1].strip().upper()
+    else:
+        ticker = input("Enter ticker symbol: ").strip().upper()
+    
+    if not ticker:
+        print("Error: No ticker provided.")
+        sys.exit(1)
+
+    print(f"\nFetching short interest (short float) for {ticker}...")
+    print("=" * 80)
+
+    result = get_short_interest_for_ticker(ticker)
+
+    if not result:
+        print(f"Error: Could not fetch short interest for {ticker}.")
+        sys.exit(1)
+
+    short_float = result.get("short_float")
+    scraped_at = result.get("scraped_at")
+    note = result.get("note")
+
+    print(f"Ticker: {result.get('ticker', ticker)}")
+    if short_float is not None:
+        print(f"Short Float: {short_float}")
+    else:
+        print("Short Float: (no data available)")
+        if note:
+            print(f"Note: {note}")
+    if scraped_at:
+        print(f"Scraped At: {scraped_at}")
+
+    print("=" * 80)
+
+    # Also print JSON for easy machine parsing
+    print("\nJSON OUTPUT:")
+    print("=" * 80)
+    print(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":

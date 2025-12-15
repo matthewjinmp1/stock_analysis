@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Simple script to get Glassdoor rating for a single company by ticker symbol.
-Uses Grok 4.1 via OpenRouter API to fetch fresh Glassdoor ratings.
+Uses Grok API directly (via xAI) to fetch fresh Glassdoor ratings.
 
 Usage: python get_rating.py AAPL
        python get_rating.py MSFT
@@ -17,26 +17,27 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from src.scrapers.glassdoor_scraper import get_glassdoor_rating, display_snippet
 
 def check_api_availability():
-    """Check if Grok API (OpenRouter) is available."""
+    """Check if Grok API (direct xAI) is available."""
     try:
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-        from src.clients.openrouter_client import OpenRouterClient
-        from config import OPENROUTER_KEY
+        from src.clients.grok_client import GrokClient
+        from config import XAI_API_KEY
         
-        if not OPENROUTER_KEY:
-            print("Error: OPENROUTER_KEY not found in config.py")
-            print("Please make sure your OpenRouter API key is configured.")
+        if not XAI_API_KEY:
+            print("Error: XAI_API_KEY not found in config.py")
+            print("Please make sure your xAI Grok API key is configured.")
+            print("Get your API key from: https://console.x.ai/")
             return False
         return True
     except ImportError:
-        print("Error: OpenRouterClient not available. Make sure dependencies are installed.")
+        print("Error: GrokClient not available. Make sure dependencies are installed.")
         return False
     except Exception as e:
         print(f"Error checking API availability: {e}")
         return False
 
 def main():
-    """Get and display Glassdoor rating for a ticker using Grok 4.1 API."""
+    """Get and display Glassdoor rating for a ticker using Grok API directly."""
     # Check API availability first
     if not check_api_availability():
         sys.exit(1)
@@ -49,10 +50,11 @@ def main():
     else:
         ticker = sys.argv[1].strip().upper()
     
-    print(f"Fetching Glassdoor rating for {ticker} using Grok 4.1 API via OpenRouter...")
+    print(f"Fetching Glassdoor rating for {ticker} using Grok API directly (xAI)...")
     print("=" * 80)
     
-    result = get_glassdoor_rating(ticker, silent=False)
+    # Use direct Grok API (not OpenRouter)
+    result = get_glassdoor_rating(ticker, silent=False, use_direct_grok=True)
     
     if result:
         print("\n" + "=" * 80)

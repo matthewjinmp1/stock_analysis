@@ -27,6 +27,17 @@ except ImportError:
     print("Warning: openrouter_client not found. Make sure openrouter_client.py is in the same directory.")
     OPENROUTER_KEY = None
 
+try:
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
+    from src.clients.grok_client import GrokClient
+    from config import XAI_API_KEY
+    GROK_API_AVAILABLE = True
+except ImportError:
+    GROK_API_AVAILABLE = False
+    XAI_API_KEY = None
+
 
 def get_company_name_from_ticker(ticker):
     """

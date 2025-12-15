@@ -11,6 +11,8 @@ app = Flask(__name__)
 
 # Path to the Glassdoor data file (relative to this script)
 GLASSDOOR_DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'glassdoor.json')
+# Path to the short interest data file (copied for web app)
+SHORT_INTEREST_FILE = os.path.join(os.path.dirname(__file__), 'data', 'short_interest.json')
 
 def load_glassdoor_data():
     """Load Glassdoor data from JSON file."""
@@ -18,6 +20,23 @@ def load_glassdoor_data():
         with open(GLASSDOOR_DATA_FILE, 'r') as f:
             data = json.load(f)
             return data.get('companies', {})
+    except FileNotFoundError:
+        return {}
+    except json.JSONDecodeError:
+        return {}
+
+
+def load_short_interest_data():
+    """Load short interest data from JSON file.
+
+    Returns:
+        dict mapping ticker -> short interest info dict
+    """
+    try:
+        with open(SHORT_INTEREST_FILE, 'r') as f:
+            data = json.load(f)
+            # File format: {"tickers": { "AAPL": {...}, ...}, "last_updated": ..., ...}
+            return data.get('tickers', {})
     except FileNotFoundError:
         return {}
     except json.JSONDecodeError:
@@ -105,18 +124,28 @@ def index():
 
 @app.route('/api/search/<query>')
 def search_ticker(query):
-    """API endpoint to search for a ticker or company name's Glassdoor rating."""
+    """API endpoint to search for a ticker or company name's Glassdoor rating.
+
+    Also enriches the response with short interest (short float) data when available.
+    """
     companies = load_glassdoor_data()
+    short_interest = load_short_interest_data()
     
     best_ticker, company_data, match_score = find_best_match(query, companies)
     
     if best_ticker and company_data:
+        # Enrich company data with short interest if available
+        enriched = dict(company_data)
+        si = short_interest.get(best_ticker, {})
+        if si:
+            enriched['short_float'] = si.get('short_float')
+            enriched['short_interest_scraped_at'] = si.get('scraped_at')
         return jsonify({
             'success': True,
             'ticker': best_ticker,
             'query': query,
             'match_score': match_score,
-            'data': company_data
+            'data': enriched
         })
     else:
         return jsonify({

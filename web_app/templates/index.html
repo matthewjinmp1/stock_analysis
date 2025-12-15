@@ -333,6 +333,8 @@
             const snippet = data.snippet || '';
             const url = data.url || '';
             const fetchedAt = data.fetched_at || '';
+            const shortFloat = data.short_float || null;
+            const shortFloatScrapedAt = data.short_interest_scraped_at || '';
 
             // Generate stars
             const fullStars = Math.floor(rating);
@@ -367,10 +369,22 @@
                             <div class="detail-label">Number of Reviews</div>
                             <div class="detail-value">${numReviews.toLocaleString()}</div>
                         </div>
+                        ${shortFloat ? `
+                        <div class="detail-item">
+                            <div class="detail-label">Short Float (Short Interest)</div>
+                            <div class="detail-value">${shortFloat}</div>
+                        </div>
+                        ` : ''}
                         ${fetchedAt ? `
                         <div class="detail-item">
-                            <div class="detail-label">Last Updated</div>
+                            <div class="detail-label">Glassdoor Last Updated</div>
                             <div class="detail-value">${fetchedAt}</div>
+                        </div>
+                        ` : ''}
+                        ${shortFloatScrapedAt ? `
+                        <div class="detail-item">
+                            <div class="detail-label">Short Interest Last Updated</div>
+                            <div class="detail-value">${shortFloatScrapedAt}</div>
                         </div>
                         ` : ''}
                     </div>

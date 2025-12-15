@@ -5,12 +5,32 @@ import requests
 from bs4 import BeautifulSoup
 import time
 import re
+import os
 from typing import Optional, Dict
+
+# Try to import SerpAPI
+try:
+    from serpapi import GoogleSearch
+    SERPAPI_AVAILABLE = True
+except ImportError:
+    SERPAPI_AVAILABLE = False
+    print("Warning: serpapi not available. Install with: pip install google-search-results")
+
+# Try to load API key from config or environment
+SERP_API_KEY = None
+try:
+    import config
+    SERP_API_KEY = getattr(config, 'SERP_API_KEY', None)
+except ImportError:
+    pass
+
+if not SERP_API_KEY:
+    SERP_API_KEY = os.getenv('SERP_API_KEY')
 
 
 def search_glassdoor_url(company_name: str) -> Optional[str]:
     """
-    Use web search to find the Glassdoor URL for a company.
+    Use web search to find the Glassdoor URL for a company using SerpAPI (preferred) or fallback to scraping.
     
     Args:
         company_name: Name of the company to search for
@@ -18,6 +38,47 @@ def search_glassdoor_url(company_name: str) -> Optional[str]:
     Returns:
         Glassdoor URL if found, None otherwise
     """
+    # Try SerpAPI first (much more reliable)
+    if SERPAPI_AVAILABLE and SERP_API_KEY:
+        try:
+            # Use natural language search query
+            search_query = f"{company_name} glassdoor rating"
+            
+            params = {
+                "q": search_query,
+                "api_key": SERP_API_KEY,
+                "engine": "google",
+                "num": 10  # Get top 10 results
+            }
+            
+            search = GoogleSearch(params)
+            results = search.get_dict()
+            
+            # Look through organic results for Glassdoor URLs
+            if "organic_results" in results:
+                for result in results["organic_results"]:
+                    link = result.get("link", "")
+                    if "glassdoor.com" in link:
+                        # Prefer Reviews or Overview pages
+                        if any(pattern in link for pattern in ["/Reviews/", "/Overview/"]):
+                            print(f"Found Glassdoor URL via SerpAPI: {link}")
+                            return link
+                        # Also accept other Glassdoor pages as fallback
+                        elif "glassdoor.com" in link:
+                            print(f"Found Glassdoor URL via SerpAPI: {link}")
+                            return link
+            
+            # Also check knowledge graph and answer box
+            if "answer_box" in results:
+                answer_box = results["answer_box"]
+                if "link" in answer_box and "glassdoor.com" in answer_box["link"]:
+                    return answer_box["link"]
+            
+        except Exception as e:
+            print(f"SerpAPI search failed: {e}")
+            print("Falling back to web scraping method...")
+    
+    # Fallback: Use web scraping (original method)
     try:
         # Create a session to maintain cookies
         session = requests.Session()
@@ -35,11 +96,11 @@ def search_glassdoor_url(company_name: str) -> Optional[str]:
         }
         session.headers.update(headers)
         
-        # Try multiple search queries
+        # Try natural language search queries
         search_queries = [
-            f"{company_name} glassdoor site:glassdoor.com",
-            f"{company_name} glassdoor reviews site:glassdoor.com",
-            f'"{company_name}" glassdoor site:glassdoor.com'
+            f"{company_name} glassdoor rating",
+            f"{company_name} glassdoor reviews",
+            f"{company_name} glassdoor site:glassdoor.com"
         ]
         
         glassdoor_urls = []
@@ -52,8 +113,7 @@ def search_glassdoor_url(company_name: str) -> Optional[str]:
                 
                 soup = BeautifulSoup(response.text, 'html.parser')
                 
-                # Method 1: Look for result links in search results
-                # Google search results are typically in <a> tags with href starting with /url?q=
+                # Look for result links in search results
                 for link in soup.find_all('a', href=True):
                     href = link.get('href')
                     if href:
@@ -69,22 +129,6 @@ def search_glassdoor_url(company_name: str) -> Optional[str]:
                                     if url not in glassdoor_urls:
                                         glassdoor_urls.append(url)
                                         print(f"Found potential URL from search: {url}")
-                
-                # Method 2: Look for direct links in result snippets
-                for result_div in soup.find_all('div', class_=re.compile(r'g|result')):
-                    for link in result_div.find_all('a', href=True):
-                        href = link.get('href')
-                        if href and 'glassdoor.com' in href:
-                            if href.startswith('/url?q='):
-                                url = href.split('/url?q=')[1].split('&')[0]
-                                url = requests.utils.unquote(url)
-                            else:
-                                url = href
-                            
-                            if 'glassdoor.com' in url and any(pattern in url for pattern in ['/Reviews/', '/Overview/']):
-                                if url not in glassdoor_urls:
-                                    glassdoor_urls.append(url)
-                                    print(f"Found potential URL from result: {url}")
                 
                 # If we found URLs, break early
                 if glassdoor_urls:
@@ -242,6 +286,7 @@ def extract_rating_from_page(glassdoor_url: str) -> Optional[Dict[str, any]]:
 def extract_rating_from_search_snippets(company_name: str) -> Optional[Dict[str, any]]:
     """
     Try to extract rating from Google search result snippets as a fallback.
+    Uses SerpAPI if available, otherwise falls back to scraping.
     
     Args:
         company_name: Name of the company
@@ -249,6 +294,60 @@ def extract_rating_from_search_snippets(company_name: str) -> Optional[Dict[str,
     Returns:
         Dictionary with rating info if found in snippets, None otherwise
     """
+    # Try SerpAPI first
+    if SERPAPI_AVAILABLE and SERP_API_KEY:
+        try:
+            search_query = f"{company_name} glassdoor rating"
+            
+            params = {
+                "q": search_query,
+                "api_key": SERP_API_KEY,
+                "engine": "google"
+            }
+            
+            search = GoogleSearch(params)
+            results = search.get_dict()
+            
+            # Check answer box first (often contains rating)
+            if "answer_box" in results:
+                answer_box = results["answer_box"]
+                snippet = answer_box.get("snippet", "")
+                rating_match = re.search(r'(\d+\.?\d*)\s*(?:out of|/)\s*5', snippet, re.IGNORECASE)
+                if rating_match:
+                    rating = float(rating_match.group(1))
+                    review_match = re.search(r'(\d+(?:,\d+)*)\s*reviews?', snippet, re.IGNORECASE)
+                    num_reviews = None
+                    if review_match:
+                        num_reviews = int(review_match.group(1).replace(',', ''))
+                    return {
+                        'rating': rating,
+                        'num_reviews': num_reviews,
+                        'url': answer_box.get('link'),
+                        'source': 'serpapi_answer_box'
+                    }
+            
+            # Check organic results snippets
+            if "organic_results" in results:
+                for result in results["organic_results"]:
+                    snippet = result.get("snippet", "")
+                    if "glassdoor" in snippet.lower():
+                        rating_match = re.search(r'(\d+\.?\d*)\s*(?:out of|/)\s*5', snippet, re.IGNORECASE)
+                        if rating_match:
+                            rating = float(rating_match.group(1))
+                            review_match = re.search(r'(\d+(?:,\d+)*)\s*reviews?', snippet, re.IGNORECASE)
+                            num_reviews = None
+                            if review_match:
+                                num_reviews = int(review_match.group(1).replace(',', ''))
+                            return {
+                                'rating': rating,
+                                'num_reviews': num_reviews,
+                                'url': result.get('link'),
+                                'source': 'serpapi_snippet'
+                            }
+        except Exception as e:
+            print(f"SerpAPI snippet extraction failed: {e}")
+    
+    # Fallback: Web scraping
     try:
         session = requests.Session()
         headers = {
@@ -266,7 +365,6 @@ def extract_rating_from_search_snippets(company_name: str) -> Optional[Dict[str,
         soup = BeautifulSoup(response.text, 'html.parser')
         
         # Look for rating patterns in search result text
-        # Google sometimes shows "4.5 out of 5" or similar in snippets
         rating_pattern = re.compile(r'(\d+\.?\d*)\s*(?:out of|/)\s*5', re.IGNORECASE)
         
         for text_elem in soup.find_all(['span', 'div', 'p']):
@@ -308,6 +406,10 @@ def get_glassdoor_rating(company_name: str) -> Optional[Dict[str, any]]:
         >>> print(result)
         {'rating': 4.3, 'num_reviews': 15000, 'url': 'https://www.glassdoor.com/...'}
     """
+    if not SERPAPI_AVAILABLE or not SERP_API_KEY:
+        print("Note: For better results, configure SerpAPI key in config.py or set SERP_API_KEY environment variable")
+        print("Get your free API key from: https://serpapi.com/\n")
+    
     print(f"Searching for Glassdoor page for: {company_name}")
     
     # Step 1: Use web search to find Glassdoor URL

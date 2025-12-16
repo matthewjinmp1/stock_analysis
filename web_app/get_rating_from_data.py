@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
 Simple script to get Glassdoor rating for a single company from existing data.
-This reads from the local glassdoor.json file (no API calls needed).
-Usage: python get_rating_from_data.py AAPL
-       python get_rating_from_data.py MSFT
-       python get_rating_from_data.py "Apple"
+NOTE: This script is deprecated - glassdoor.json has been removed from web_app.
+The web app now uses ui_cache.db for Glassdoor data.
+
+This script is kept for reference but will not work without the JSON file.
 """
 import sys
 import os
 import json
 
-# Path to the Glassdoor data file
+# Path to the Glassdoor data file (deprecated - file removed)
 GLASSDOOR_DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'glassdoor.json')
 
 def load_glassdoor_data():

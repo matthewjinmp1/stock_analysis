@@ -20,53 +20,24 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from get_glassdoor_rating import ticker_to_company_name
 
-# Cache file path (in web_app directory)
-CACHE_FILE = os.path.join(os.path.dirname(__file__), 'grok_glassdoor_cache.json')
+# NOTE: Cache file removed - this utility script no longer uses JSON caching
+# The web app uses ui_cache.db for caching Glassdoor data
 
 
-def load_cache() -> Dict[str, Dict]:
-    """
-    Load cached results from JSON file.
-    
-    Returns:
-        Dictionary mapping company names to cached results
-    """
-    if os.path.exists(CACHE_FILE):
-        try:
-            with open(CACHE_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"Warning: Could not load cache file: {e}")
-            return {}
-    return {}
-
-
-def save_cache(cache: Dict[str, Dict]) -> None:
-    """
-    Save cache to JSON file.
-    
-    Args:
-        cache: Dictionary mapping company names to cached results
-    """
-    try:
-        with open(CACHE_FILE, 'w', encoding='utf-8') as f:
-            json.dump(cache, f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        print(f"Warning: Could not save cache file: {e}")
-
+# NOTE: Caching functionality removed - web app uses ui_cache.db for caching
+# This utility script now fetches data directly without caching
 
 def get_cached_result(company_name: str) -> Optional[Dict[str, any]]:
     """
     Get cached result for a company if available.
+    NOTE: Caching removed - always returns None. Use ui_cache.db for caching.
     
     Args:
         company_name: Name of the company
         
     Returns:
-        Cached result dictionary or None if not found
+        None (caching removed)
     """
-    cache = load_cache()
-    # Normalize company name for cache lookup (lowercase)
     key = company_name.lower().strip()
     if key in cache:
         cached_data = cache[key].copy()
@@ -134,12 +105,8 @@ def get_glassdoor_rating_with_web_search(company_name: str, ticker: str, use_cac
     """
     # Check cache first
     if use_cache:
-        cached_result = get_cached_result(company_name)
-        if cached_result:
-            print(f"Found cached result for: {company_name}")
-            print(f"(Cached at: {cached_result.get('_cached_at', 'unknown')})")
-            # Ensure ticker is set
-            cached_result['ticker'] = ticker
+        # NOTE: Caching removed - always fetch fresh data
+        cached_result = None
             cached_result['company_name'] = company_name
             return cached_result
     

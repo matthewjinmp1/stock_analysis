@@ -3,6 +3,9 @@
 Convert scores.json to SQLite database (scores.db).
 Stores each metric as a separate column in the database.
 Also calculates and stores total_score_percentage and total_score_percentile_rank.
+
+NOTE: scores.json has been removed from web_app/data. This script should be run
+with a path to scores.json from another location (e.g., AI_stock_scorer/data/scores.json).
 """
 
 import json
@@ -14,8 +17,8 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from score_calculator import calculate_total_score
 
-# Paths
-SCORES_JSON = os.path.join(os.path.dirname(__file__), 'data', 'scores.json')
+# Paths - SCORES_JSON should be provided as command line argument or updated here
+SCORES_JSON = os.path.join(os.path.dirname(__file__), 'data', 'scores.json')  # Deprecated - update path
 SCORES_DB = os.path.join(os.path.dirname(__file__), 'data', 'scores.db')
 
 # All possible metric columns (discovered from the JSON data)

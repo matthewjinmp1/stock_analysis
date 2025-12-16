@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """
 Script to rank companies by their Glassdoor ratings and save to a JSON file.
+NOTE: This script is deprecated - glassdoor.json has been removed from web_app.
+The web app now uses ui_cache.db for Glassdoor data.
+
+This script is kept for reference but will not work without the JSON file.
 """
 import json
 import os
 
-# Path to the Glassdoor data file
+# Path to the Glassdoor data file (deprecated - file removed)
 GLASSDOOR_DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'glassdoor.json')
 RANKED_OUTPUT_FILE = os.path.join(os.path.dirname(__file__), 'data', 'glassdoor_ranked.json')
 

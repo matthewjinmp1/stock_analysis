@@ -3,6 +3,9 @@
 Simple script to get short interest (short float) for a single ticker.
 Uses the existing Finviz short interest scraper logic from src/scrapers/get_short_interest.py.
 
+NOTE: This script is a utility and does not use caching. The web app uses ui_cache.db
+for caching short interest data.
+
 Usage:
     python get_short_interest.py AAPL
     python get_short_interest.py      # will prompt for ticker
@@ -11,7 +14,6 @@ Usage:
 import os
 import sys
 import shutil
-import json
 from datetime import datetime, date
 
 # Ensure project root is on path so we can import src modules
@@ -21,58 +23,15 @@ if PROJECT_ROOT not in sys.path:
 
 from src.scrapers.get_short_interest import scrape_ticker_short_interest
 
-# Cache file for web app short-interest lookups
-CACHE_FILE = os.path.join(os.path.dirname(__file__), "data", "short_interest_cache.json")
 
-
-def load_cache() -> dict:
-    """Load cached short-interest results from JSON file."""
-    if os.path.exists(CACHE_FILE):
-        try:
-            with open(CACHE_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"Warning: Could not load cache file {CACHE_FILE}: {e}")
-            return {}
-    return {}
-
-
-def save_cache(cache: dict) -> None:
-    """Save cached short-interest results to JSON file."""
-    os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
-    try:
-        with open(CACHE_FILE, "w", encoding="utf-8") as f:
-            json.dump(cache, f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        print(f"Warning: Could not save cache file {CACHE_FILE}: {e}")
-
-
-def get_cached_result(ticker: str) -> dict | None:
-    """Return cached result for ticker if available."""
-    cache = load_cache()
-    key = ticker.strip().upper()
-    if key in cache:
-        cached = cache[key].copy()
-        cached["_cached"] = True
-        cached["_cached_at"] = cached.get("_cached_at", "unknown")
-        return cached
-    return None
-
-
-def cache_result(ticker: str, result: dict) -> None:
-    """Store result in cache for ticker."""
-    cache = load_cache()
-    key = ticker.strip().upper()
-    entry = {k: v for k, v in result.items() if not k.startswith("_")}
-    entry["_cached_at"] = datetime.now().isoformat()
-    cache[key] = entry
-    save_cache(cache)
+# NOTE: Caching functionality removed - web app uses ui_cache.db for caching
+# This utility script now fetches data directly without caching
 
 
 def get_short_interest_for_ticker(ticker: str):
     """
-    Get short interest for a single ticker using existing scraper logic, with caching.
-    Automatically refreshes cached data if it's not from today.
+    Get short interest for a single ticker using existing scraper logic.
+    NOTE: No caching - web app uses ui_cache.db for caching.
     
     Args:
         ticker: Stock ticker symbol
@@ -82,39 +41,7 @@ def get_short_interest_for_ticker(ticker: str):
     """
     ticker = ticker.strip().upper()
 
-    # Check cache first
-    cached = get_cached_result(ticker)
-    should_refetch = False
-    
-    if cached:
-        # Check if the scraped_at date is today
-        scraped_at_str = cached.get('scraped_at')
-        if scraped_at_str:
-            try:
-                # Parse ISO format date: "2025-12-15T14:04:00.421697"
-                scraped_at = datetime.fromisoformat(scraped_at_str).date()
-                today = date.today()
-                if scraped_at != today:
-                    should_refetch = True
-                    print(f"Cached data for {ticker} is from {scraped_at}, refreshing...")
-            except (ValueError, AttributeError):
-                # If date parsing fails, refetch to be safe
-                should_refetch = True
-                print(f"Could not parse date for cached {ticker}, refreshing...")
-        else:
-            # No date, refetch
-            should_refetch = True
-            print(f"No date found for cached {ticker}, refreshing...")
-    else:
-        # Not in cache, need to fetch
-        should_refetch = True
-    
-    # If we have fresh cached data (from today), return it
-    if cached and not should_refetch:
-        print(f"Found cached short interest for {ticker} (cached at {cached.get('_cached_at', 'unknown')})")
-        return cached
-
-    # Fetch new data (either not cached or needs refresh)
+    # Fetch data directly (no caching in this utility script)
     # Ensure we run with project root as CWD so any relative paths inside the scraper
     # (if added later) will still work correctly.
     prev_cwd = os.getcwd()
@@ -125,9 +52,7 @@ def get_short_interest_for_ticker(ticker: str):
         os.chdir(prev_cwd)
 
     if result:
-        # Replace old cache entry with new data
-        cache_result(ticker, result)
-        print(f"Fetched and cached short interest for {ticker}")
+        print(f"Fetched short interest for {ticker}")
 
     return result
 
@@ -161,8 +86,6 @@ def process_ticker(ticker: str) -> bool:
             print(f"Note: {note}")
     if scraped_at:
         print(f"Scraped At: {scraped_at}")
-    if result.get("_cached"):
-        print(f"(Cached result from {result.get('_cached_at', 'unknown')})")
 
     print("=" * 80)
 

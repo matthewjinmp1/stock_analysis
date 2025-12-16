@@ -23,6 +23,33 @@ from src.scrapers.glassdoor_scraper import get_company_name_from_ticker
 # Import score calculator for weights and definitions
 from web_app.score_calculator import SCORE_WEIGHTS, SCORE_DEFINITIONS
 
+# Display names for metrics (explicit, no "Score" suffix)
+METRIC_DISPLAY_NAMES = {
+    'moat_score': 'Economic Moat',
+    'barriers_score': 'Barrier to Entry',
+    'disruption_risk': 'Disruption Risk',
+    'switching_cost': 'Switching Cost',
+    'brand_strength': 'Brand Strength',
+    'competition_intensity': 'Competition Intensity',
+    'network_effect': 'Network Effect',
+    'product_differentiation': 'Product Differentiation',
+    'innovativeness_score': 'Innovation Capability',
+    'growth_opportunity': 'Growth Opportunity',
+    'riskiness_score': 'Business Risk',
+    'pricing_power': 'Pricing Power',
+    'ambition_score': 'Growth Ambition',
+    'bargaining_power_of_customers': 'Customer Bargaining Power',
+    'bargaining_power_of_suppliers': 'Supplier Bargaining Power',
+    'product_quality_score': 'Product Quality',
+    'culture_employee_satisfaction_score': 'Employee Satisfaction',
+    'trailblazer_score': 'Market Leadership',
+    'management_quality_score': 'Management Quality',
+    'ai_knowledge_score': 'AI Capability',
+    'size_well_known_score': 'Market Recognition',
+    'ethical_healthy_environmental_score': 'ESG & Ethics',
+    'long_term_orientation_score': 'Long Term Focus',
+}
+
 app = Flask(__name__)
 
 # Initialize database on startup
@@ -176,8 +203,8 @@ def metrics_page(ticker):
             
             total_score += contribution
             
-            # Format metric name for display
-            display_name = score_key.replace('_', ' ').title()
+            # Format metric name for display (use explicit name if available)
+            display_name = METRIC_DISPLAY_NAMES.get(score_key, score_key.replace('_', ' ').title())
             
             metrics_detail.append({
                 'key': score_key,

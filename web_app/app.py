@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simple Flask web application to search for stock data by ticker symbol or company name.
+Simple Flask web application to search for stock data by ticker symbol.
 Uses unified cache database to store and retrieve all UI data.
 """
 from flask import Flask, render_template, jsonify, request
@@ -8,7 +8,6 @@ import json
 import os
 import sys
 import sqlite3
-import difflib
 
 # Ensure project root is on path so we can import modules
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -30,17 +29,15 @@ app = Flask(__name__)
 init_database()
 
 def find_best_match(query: str) -> tuple:
-    """Find best matching ticker for a query (ticker or company name).
+    """Find exact ticker match for a query.
     
     Args:
-        query: User search query (ticker or company name)
+        query: User search query (must be exact ticker symbol)
         
     Returns:
-        tuple: (ticker, match_type) where match_type is 'ticker' or 'company_name'
+        tuple: (ticker, match_type) where match_type is 'ticker' or None if not found
     """
     query_upper = query.strip().upper()
-    query_lower = query.strip().lower()
-    query_words = query_lower.split()
     
     # Get all cached data to search through
     cache_db_path = os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db')
@@ -50,64 +47,17 @@ def find_best_match(query: str) -> tuple:
     try:
         conn = sqlite3.connect(cache_db_path)
         cursor = conn.cursor()
-        cursor.execute('SELECT ticker, company_name FROM ui_cache')
-        all_companies = cursor.fetchall()
+        cursor.execute('SELECT ticker FROM ui_cache WHERE ticker = ?', (query_upper,))
+        result = cursor.fetchone()
         conn.close()
+        
+        if result:
+            return result[0], 'ticker'
+        else:
+            return None, None
     except Exception as e:
         print(f"Error querying cache for matching: {e}")
         return None, None
-    
-    # If no companies cached yet, fall back to treating the query as a ticker guess
-    if not all_companies:
-        return query_upper, 'ticker_guess'
-    
-    # 1. Try exact ticker match
-    for ticker, company_name in all_companies:
-        if ticker and ticker.upper() == query_upper:
-            return ticker, 'ticker'
-    
-    # 2. Try exact word matches in company name (all query words must match)
-    exact_word_matches = []
-    for ticker, company_name in all_companies:
-        if not company_name:
-            continue
-        company_words = company_name.lower().split()
-        # Check if all query words match as complete words in company name
-        if all(any(qw == cw for cw in company_words) for qw in query_words):
-            exact_word_matches.append((ticker, company_name))
-    
-    if exact_word_matches:
-        # Return first exact word match
-        return exact_word_matches[0][0], 'company_name'
-    
-    # 3. Try substring matches in company name
-    substring_matches = []
-    for ticker, company_name in all_companies:
-        if not company_name:
-            continue
-        if query_lower in company_name.lower():
-            substring_matches.append((ticker, company_name))
-    
-    if substring_matches:
-        # Return first substring match
-        return substring_matches[0][0], 'company_name'
-    
-    # 4. Try fuzzy matching on company names
-    best_match = None
-    best_ratio = 0.0
-    for ticker, company_name in all_companies:
-        if not company_name:
-            continue
-        ratio = difflib.SequenceMatcher(None, query_lower, company_name.lower()).ratio()
-        if ratio > best_ratio and ratio > 0.6:  # Threshold for fuzzy match
-            best_ratio = ratio
-            best_match = ticker
-    
-    if best_match:
-        return best_match, 'company_name'
-    
-    # If no match found, fall back to treating the query as a ticker guess
-    return query_upper, 'ticker_guess'
 
 @app.route('/')
 def index():
@@ -116,9 +66,10 @@ def index():
 
 @app.route('/api/search/<query>')
 def search_ticker(query):
-    """API endpoint to search for stock data by ticker symbol or company name.
+    """API endpoint to search for stock data by exact ticker symbol.
     
     Uses unified cache database. If data is missing, fetches and caches it.
+    Only exact ticker matches are supported for speed and unambiguity.
     """
     # Find best matching ticker (handles both ticker and company name queries)
     ticker, match_type = find_best_match(query)
@@ -127,7 +78,7 @@ def search_ticker(query):
         return jsonify({
             'success': False,
             'query': query,
-            'message': f'No match found for "{query}". Please try a ticker symbol or company name.'
+            'message': f'No exact ticker match found for "{query}". Please enter an exact ticker symbol (e.g., AAPL).'
         }), 404
     
     try:

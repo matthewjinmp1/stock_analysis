@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Add percentile rank column to scores.db and calculate percentile ranks
+Add percentile rank column to ai_scores.db and calculate percentile ranks
 for all companies based on their total_score_percentage.
 """
 
@@ -8,7 +8,7 @@ import sqlite3
 import os
 
 # Paths
-SCORES_DB = os.path.join(os.path.dirname(__file__), 'data', 'scores.db')
+SCORES_DB = os.path.join(os.path.dirname(__file__), 'data', 'ai_scores.db')
 
 def calculate_percentile_rank(score, all_scores):
     """Calculate percentile rank of a score among all scores.

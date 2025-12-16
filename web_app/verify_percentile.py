@@ -4,7 +4,7 @@
 import sqlite3
 import os
 
-SCORES_DB = os.path.join(os.path.dirname(__file__), 'data', 'scores.db')
+SCORES_DB = os.path.join(os.path.dirname(__file__), 'data', 'ai_scores.db')
 
 conn = sqlite3.connect(SCORES_DB)
 cursor = conn.cursor()

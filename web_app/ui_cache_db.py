@@ -444,7 +444,7 @@ def fetch_and_cache_all_data(ticker: str, silent: bool = False) -> Optional[Dict
     
     This function:
     1. Gets company name from ticker
-    2. Fetches score data from scores.db (if available)
+    2. Fetches score data from ai_scores.db (if available)
     3. Fetches short interest data
     4. Fetches adjusted PE ratio from QuickFS (if not in cache)
     5. Stores everything in the unified cache
@@ -473,11 +473,11 @@ def fetch_and_cache_all_data(ticker: str, silent: bool = False) -> Optional[Dict
         if not silent:
             print(f"  Company: {company_name}")
     
-    # 2. Get score data from scores.db (if it exists)
-    scores_db_path = os.path.join(os.path.dirname(__file__), 'data', 'scores.db')
+    # 2. Get score data from ai_scores.db (if it exists)
+    scores_db_path = os.path.join(os.path.dirname(__file__), 'data', 'ai_scores.db')
     if os.path.exists(scores_db_path):
         if not silent:
-            print(f"  Loading scores from scores.db...")
+            print(f"  Loading scores from ai_scores.db...")
         try:
             conn = sqlite3.connect(scores_db_path)
             cursor = conn.cursor()

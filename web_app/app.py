@@ -31,33 +31,35 @@ init_database()
 def find_best_match(query: str) -> tuple:
     """Find exact ticker match for a query.
     
+    First checks cache for perfect match. If not in cache, returns the ticker
+    anyway so it can be fetched (company name will be looked up from ticker files).
+    
     Args:
         query: User search query (must be exact ticker symbol)
         
     Returns:
-        tuple: (ticker, match_type) where match_type is 'ticker' or None if not found
+        tuple: (ticker, match_type) where match_type is 'ticker' or 'ticker_not_cached'
     """
     query_upper = query.strip().upper()
     
-    # Get all cached data to search through
+    # First, check cache for perfect match
     cache_db_path = os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db')
-    if not os.path.exists(cache_db_path):
-        return None, None
+    if os.path.exists(cache_db_path):
+        try:
+            conn = sqlite3.connect(cache_db_path)
+            cursor = conn.cursor()
+            cursor.execute('SELECT ticker FROM ui_cache WHERE ticker = ?', (query_upper,))
+            result = cursor.fetchone()
+            conn.close()
+            
+            if result:
+                return result[0], 'ticker'
+        except Exception as e:
+            print(f"Error querying cache for matching: {e}")
     
-    try:
-        conn = sqlite3.connect(cache_db_path)
-        cursor = conn.cursor()
-        cursor.execute('SELECT ticker FROM ui_cache WHERE ticker = ?', (query_upper,))
-        result = cursor.fetchone()
-        conn.close()
-        
-        if result:
-            return result[0], 'ticker'
-        else:
-            return None, None
-    except Exception as e:
-        print(f"Error querying cache for matching: {e}")
-        return None, None
+    # If not in cache, still return the ticker so we can fetch it
+    # The company name will be looked up from ticker files during fetch
+    return query_upper, 'ticker_not_cached'
 
 @app.route('/')
 def index():
@@ -71,14 +73,14 @@ def search_ticker(query):
     Uses unified cache database. If data is missing, fetches and caches it.
     Only exact ticker matches are supported for speed and unambiguity.
     """
-    # Find best matching ticker (handles both ticker and company name queries)
+    # Find ticker (checks cache first, but returns ticker even if not cached)
     ticker, match_type = find_best_match(query)
     
     if not ticker:
         return jsonify({
             'success': False,
             'query': query,
-            'message': f'No exact ticker match found for "{query}". Please enter an exact ticker symbol (e.g., AAPL).'
+            'message': f'Invalid ticker format for "{query}". Please enter a valid ticker symbol (e.g., AAPL).'
         }), 404
     
     try:

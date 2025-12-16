@@ -106,7 +106,7 @@ def get_all_data(ticker: str) -> Optional[Dict]:
             print(f"  Error fetching data for {ticker_upper}: {e}")
         return None
 
-def calculate_adjusted_pe_ratio(quarterly: Dict) -> Optional[float]:
+def calculate_adjusted_pe_ratio(quarterly: Dict, verbose: bool = True) -> Optional[float]:
     """
     Calculate Adjusted PE Ratio = EV / Adjusted Operating Income (after tax)
     
@@ -119,6 +119,10 @@ def calculate_adjusted_pe_ratio(quarterly: Dict) -> Optional[float]:
     6. Apply tax rate to adjusted operating income
     7. Adjusted PE = EV / adjusted operating income (after tax)
     
+    Args:
+        quarterly: Dictionary containing quarterly financial data
+        verbose: If True, print all calculation components
+    
     Returns:
         Adjusted PE ratio or None if calculation not possible
     """
@@ -129,8 +133,10 @@ def calculate_adjusted_pe_ratio(quarterly: Dict) -> Optional[float]:
     operating_income = quarterly.get("operating_income", [])
     # Try both DA fields
     da = quarterly.get("cfo_da", [])
+    da_field_name = "cfo_da"
     if not da or (isinstance(da, list) and len(da) == 0):
         da = quarterly.get("da_income_statement_supplemental", [])
+        da_field_name = "da_income_statement_supplemental"
     capex = quarterly.get("capex", [])
     enterprise_value = quarterly.get("enterprise_value", [])
     income_tax = quarterly.get("income_tax", [])
@@ -159,18 +165,33 @@ def calculate_adjusted_pe_ratio(quarterly: Dict) -> Optional[float]:
         ttm_capex = 0.0
         valid_ttm = True
         
+        # Store individual quarter values for display
+        oi_quarters = []
+        da_quarters = []
+        capex_quarters = []
+        
         for k in range(max(0, j - 3), j + 1):
             if k < len(operating_income) and operating_income[k] is not None:
-                ttm_oi += float(operating_income[k])
+                oi_val = float(operating_income[k])
+                ttm_oi += oi_val
+                oi_quarters.append(oi_val)
             else:
                 valid_ttm = False
                 break
             
             if k < len(da) and da[k] is not None:
-                ttm_da += float(da[k])
+                da_val = float(da[k])
+                ttm_da += da_val
+                da_quarters.append(da_val)
+            else:
+                da_quarters.append(0.0)
             
             if k < len(capex) and capex[k] is not None:
-                ttm_capex += float(capex[k])
+                capex_val = float(capex[k])
+                ttm_capex += capex_val
+                capex_quarters.append(capex_val)
+            else:
+                capex_quarters.append(0.0)
         
         if not valid_ttm:
             continue
@@ -182,8 +203,11 @@ def calculate_adjusted_pe_ratio(quarterly: Dict) -> Optional[float]:
         if abs_da > abs_capex:
             adjustment = ttm_da - ttm_capex
             adjusted_oi = ttm_oi + adjustment
+            adjustment_applied = True
         else:
+            adjustment = 0.0
             adjusted_oi = ttm_oi
+            adjustment_applied = False
         
         # Step 5: Calculate 5-year median tax rate (last 20 quarters)
         tax_rates = []
@@ -202,9 +226,11 @@ def calculate_adjusted_pe_ratio(quarterly: Dict) -> Optional[float]:
         if not tax_rates:
             # If no valid tax rates, use a default (e.g., 0.21 for US corporate tax)
             median_tax_rate = 0.21
+            tax_rate_source = "default (21%)"
         else:
             # Calculate median tax rate
             median_tax_rate = statistics.median(tax_rates)
+            tax_rate_source = f"5-year median from {len(tax_rates)} valid quarters"
         
         # Step 6: Apply tax rate to adjusted operating income
         adjusted_oi_after_tax = adjusted_oi * (1 - median_tax_rate)
@@ -212,6 +238,60 @@ def calculate_adjusted_pe_ratio(quarterly: Dict) -> Optional[float]:
         # Step 7: Calculate Adjusted PE = EV / adjusted operating income (after tax)
         if adjusted_oi_after_tax != 0:
             adjusted_pe = ev / adjusted_oi_after_tax
+            
+            # Print all components if verbose
+            if verbose:
+                print("\n" + "="*80)
+                print("ADJUSTED PE RATIO CALCULATION COMPONENTS")
+                print("="*80)
+                print(f"\n1. TTM Operating Income (sum of last 4 quarters):")
+                for idx, val in enumerate(oi_quarters, 1):
+                    print(f"   Quarter {idx}: ${val:,.0f}")
+                print(f"   Total TTM Operating Income: ${ttm_oi:,.0f}")
+                
+                print(f"\n2. TTM Depreciation & Amortization (from {da_field_name}):")
+                for idx, val in enumerate(da_quarters, 1):
+                    print(f"   Quarter {idx}: ${val:,.0f}")
+                print(f"   Total TTM DA: ${ttm_da:,.0f}")
+                
+                print(f"\n3. TTM Capital Expenditures (Capex):")
+                for idx, val in enumerate(capex_quarters, 1):
+                    print(f"   Quarter {idx}: ${val:,.0f}")
+                print(f"   Total TTM Capex: ${ttm_capex:,.0f}")
+                
+                print(f"\n4. Adjustment Calculation:")
+                print(f"   |DA| = ${abs_da:,.0f}")
+                print(f"   |Capex| = ${abs_capex:,.0f}")
+                if adjustment_applied:
+                    print(f"   |DA| > |Capex|: YES")
+                    print(f"   Adjustment = DA - Capex = ${ttm_da:,.0f} - ${ttm_capex:,.0f} = ${adjustment:,.0f}")
+                    print(f"   Adjusted Operating Income = TTM OI + Adjustment")
+                    print(f"   Adjusted Operating Income = ${ttm_oi:,.0f} + ${adjustment:,.0f} = ${adjusted_oi:,.0f}")
+                else:
+                    print(f"   |DA| > |Capex|: NO")
+                    print(f"   No adjustment applied")
+                    print(f"   Adjusted Operating Income = TTM OI = ${adjusted_oi:,.0f}")
+                
+                print(f"\n5. Tax Rate Calculation:")
+                print(f"   Source: {tax_rate_source}")
+                print(f"   Median Tax Rate: {median_tax_rate:.4f} ({median_tax_rate*100:.2f}%)")
+                
+                print(f"\n6. Adjusted Operating Income After Tax:")
+                print(f"   Adjusted OI: ${adjusted_oi:,.0f}")
+                print(f"   Tax Rate: {median_tax_rate:.4f}")
+                print(f"   After Tax = ${adjusted_oi:,.0f} × (1 - {median_tax_rate:.4f})")
+                print(f"   After Tax = ${adjusted_oi:,.0f} × {1 - median_tax_rate:.4f}")
+                print(f"   Adjusted OI After Tax: ${adjusted_oi_after_tax:,.0f}")
+                
+                print(f"\n7. Enterprise Value (EV):")
+                print(f"   EV: ${ev:,.0f}")
+                
+                print(f"\n8. Adjusted PE Ratio:")
+                print(f"   Adjusted PE = EV / Adjusted OI After Tax")
+                print(f"   Adjusted PE = ${ev:,.0f} / ${adjusted_oi_after_tax:,.0f}")
+                print(f"   Adjusted PE Ratio: {adjusted_pe:.2f}")
+                print("="*80 + "\n")
+            
             return adjusted_pe
     
     return None
@@ -261,7 +341,7 @@ def display_data(data: Dict):
         print()
         
         # Calculate and display Adjusted PE Ratio
-        adjusted_pe = calculate_adjusted_pe_ratio(quarterly)
+        adjusted_pe = calculate_adjusted_pe_ratio(quarterly, verbose=True)
         if adjusted_pe is not None:
             print("CALCULATED METRICS:")
             print(f"  Adjusted PE Ratio: {adjusted_pe:.2f}")

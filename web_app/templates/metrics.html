@@ -242,12 +242,12 @@
                             {% endif %}
                         </td>
                         <td class="score-cell">
-                            <span class="score-badge {% if metric.raw_score >= 7 %}score-high{% elif metric.raw_score >= 4 %}score-medium{% else %}score-low{% endif %}">
+                            <span class="score-badge {% if metric.is_reverse %}{% if metric.raw_score >= 7 %}score-low{% elif metric.raw_score >= 4 %}score-medium{% else %}score-high{% endif %}{% else %}{% if metric.raw_score >= 7 %}score-high{% elif metric.raw_score >= 4 %}score-medium{% else %}score-low{% endif %}{% endif %}">
                                 {{ "%.1f"|format(metric.raw_score) }}/10
                             </span>
                         </td>
                         <td class="score-cell">
-                            <span class="score-badge {% if metric.adjusted_score >= 7 %}score-high{% elif metric.adjusted_score >= 4 %}score-medium{% else %}score-low{% endif %}">
+                            <span class="score-badge {% if metric.is_reverse %}{% if metric.adjusted_score >= 7 %}score-low{% elif metric.adjusted_score >= 4 %}score-medium{% else %}score-high{% endif %}{% else %}{% if metric.adjusted_score >= 7 %}score-high{% elif metric.adjusted_score >= 4 %}score-medium{% else %}score-low{% endif %}{% endif %}">
                                 {{ "%.1f"|format(metric.adjusted_score) }}/10
                             </span>
                         </td>

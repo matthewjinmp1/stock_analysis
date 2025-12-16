@@ -306,12 +306,12 @@
                     </div>
 
                     <div class="rating-details">
-                        ${totalScorePercentage !== null ? `
+                        ${totalScorePercentileRank !== null ? `
                         <div class="detail-item">
                             <div class="detail-label">Total Score</div>
                             <div class="detail-value">
                                 <a href="/metrics/${ticker}" class="score-link">
-                                    ${totalScorePercentage.toFixed(1)}%${totalScorePercentileRank !== null ? ` (${totalScorePercentileRank}th percentile)` : ''}
+                                    ${totalScorePercentileRank}th percentile
                                 </a>
                             </div>
                         </div>

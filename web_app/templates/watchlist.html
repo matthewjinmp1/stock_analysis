@@ -127,6 +127,38 @@
             letter-spacing: 0.5px;
             border-bottom: 1px solid rgba(125, 211, 252, 0.3);
             text-shadow: 0 0 6px rgba(125, 211, 252, 0.3);
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .watchlist-table th:hover {
+            background: linear-gradient(135deg, rgba(125, 211, 252, 0.3) 0%, rgba(196, 181, 253, 0.3) 100%);
+        }
+
+        .watchlist-table th.sortable {
+            padding-right: 25px;
+        }
+
+        .watchlist-table th.sortable::after {
+            content: '↕';
+            position: absolute;
+            right: 8px;
+            opacity: 0.5;
+            font-size: 0.8em;
+        }
+
+        .watchlist-table th.sort-asc::after {
+            content: '↑';
+            opacity: 1;
+            color: #c4b5fd;
+        }
+
+        .watchlist-table th.sort-desc::after {
+            content: '↓';
+            opacity: 1;
+            color: #c4b5fd;
         }
 
         .watchlist-table th:first-child {
@@ -404,6 +436,133 @@
     </div>
 
     <script>
+        let watchlistData = [];
+        let sortColumn = null;
+        let sortDirection = 'asc';
+
+        function sortWatchlist(column) {
+            // Toggle direction if clicking the same column
+            if (sortColumn === column) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = column;
+                sortDirection = 'asc';
+            }
+            
+            // Sort the data
+            watchlistData.sort((a, b) => {
+                let aVal, bVal;
+                
+                switch(column) {
+                    case 'ticker':
+                        aVal = a.ticker || '';
+                        bVal = b.ticker || '';
+                        return sortDirection === 'asc' 
+                            ? aVal.localeCompare(bVal)
+                            : bVal.localeCompare(aVal);
+                    
+                    case 'company_name':
+                        aVal = (a.company_name || a.ticker || '').toLowerCase();
+                        bVal = (b.company_name || b.ticker || '').toLowerCase();
+                        return sortDirection === 'asc' 
+                            ? aVal.localeCompare(bVal)
+                            : bVal.localeCompare(aVal);
+                    
+                    case 'total_score':
+                        aVal = a.total_score_percentile_rank !== null ? a.total_score_percentile_rank : -1;
+                        bVal = b.total_score_percentile_rank !== null ? b.total_score_percentile_rank : -1;
+                        return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+                    
+                    case 'financial_score':
+                        aVal = a.financial_total_percentile !== null ? a.financial_total_percentile : -1;
+                        bVal = b.financial_total_percentile !== null ? b.financial_total_percentile : -1;
+                        return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+                    
+                    case 'short_float':
+                        aVal = a.short_float !== null && a.short_float !== 'N/A' ? parseFloat(a.short_float) : -1;
+                        bVal = b.short_float !== null && b.short_float !== 'N/A' ? parseFloat(b.short_float) : -1;
+                        return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+                    
+                    default:
+                        return 0;
+                }
+            });
+            
+            renderWatchlist();
+        }
+
+        function renderWatchlist() {
+            const contentDiv = document.getElementById('watchlist-content');
+            
+            if (watchlistData.length === 0) {
+                contentDiv.innerHTML = `
+                    <div class="empty-state">
+                        <p>Your watchlist is empty</p>
+                        <p style="font-size: 1em; opacity: 0.7;">Search for a ticker and add it to your watchlist to see it here.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Get sort class for headers
+            const getSortClass = (col) => {
+                if (sortColumn === col) {
+                    return sortDirection === 'asc' ? 'sortable sort-asc' : 'sortable sort-desc';
+                }
+                return 'sortable';
+            };
+
+            let tableHTML = `
+                <table class="watchlist-table">
+                    <thead>
+                        <tr>
+                            <th class="${getSortClass('ticker')}" onclick="sortWatchlist('ticker')">Ticker</th>
+                            <th class="${getSortClass('company_name')}" onclick="sortWatchlist('company_name')">Company Name</th>
+                            <th class="${getSortClass('total_score')}" onclick="sortWatchlist('total_score')">Total Score</th>
+                            <th class="${getSortClass('financial_score')}" onclick="sortWatchlist('financial_score')">Financial Score</th>
+                            <th class="${getSortClass('short_float')}" onclick="sortWatchlist('short_float')">Short Float</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            watchlistData.forEach(item => {
+                const totalScore = item.total_score_percentile_rank !== null 
+                    ? `<a href="/metrics/${item.ticker}" class="score-link">${item.total_score_percentile_rank}th percentile</a>`
+                    : 'N/A';
+                
+                const financialScore = item.financial_total_percentile !== null
+                    ? `<a href="/financial/${item.ticker}" class="score-link">${Math.round(item.financial_total_percentile)}th percentile</a>`
+                    : 'N/A';
+                
+                const shortFloat = item.short_float || 'N/A';
+                const companyName = item.company_name || item.ticker;
+
+                tableHTML += `
+                    <tr>
+                        <td><a href="/?q=${item.ticker}" class="ticker-link">${item.ticker}</a></td>
+                        <td>${companyName}</td>
+                        <td>${totalScore}</td>
+                        <td>${financialScore}</td>
+                        <td>${shortFloat}</td>
+                        <td>
+                            <button class="remove-button" onclick="removeFromWatchlist('${item.ticker}')">
+                                Remove
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += `
+                    </tbody>
+                </table>
+            `;
+
+            contentDiv.innerHTML = tableHTML;
+        }
+
         function loadWatchlist() {
             fetch('/api/watchlist')
                 .then(response => response.json())
@@ -419,67 +578,14 @@
                         return;
                     }
 
-                    const watchlist = data.watchlist || [];
+                    watchlistData = data.watchlist || [];
                     
-                    if (watchlist.length === 0) {
-                        contentDiv.innerHTML = `
-                            <div class="empty-state">
-                                <p>Your watchlist is empty</p>
-                                <p style="font-size: 1em; opacity: 0.7;">Search for a ticker and add it to your watchlist to see it here.</p>
-                            </div>
-                        `;
-                        return;
+                    // Apply current sort if any
+                    if (sortColumn) {
+                        sortWatchlist(sortColumn);
+                    } else {
+                        renderWatchlist();
                     }
-
-                    let tableHTML = `
-                        <table class="watchlist-table">
-                            <thead>
-                                <tr>
-                                    <th>Ticker</th>
-                                    <th>Company Name</th>
-                                    <th>Total Score</th>
-                                    <th>Financial Score</th>
-                                    <th>Short Float</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                    `;
-
-                    watchlist.forEach(item => {
-                        const totalScore = item.total_score_percentile_rank !== null 
-                            ? `<a href="/metrics/${item.ticker}" class="score-link">${item.total_score_percentile_rank}th percentile</a>`
-                            : 'N/A';
-                        
-                        const financialScore = item.financial_total_percentile !== null
-                            ? `<a href="/financial/${item.ticker}" class="score-link">${Math.round(item.financial_total_percentile)}th percentile</a>`
-                            : 'N/A';
-                        
-                        const shortFloat = item.short_float || 'N/A';
-                        const companyName = item.company_name || item.ticker;
-
-                        tableHTML += `
-                            <tr>
-                                <td><a href="/?q=${item.ticker}" class="ticker-link">${item.ticker}</a></td>
-                                <td>${companyName}</td>
-                                <td>${totalScore}</td>
-                                <td>${financialScore}</td>
-                                <td>${shortFloat}</td>
-                                <td>
-                                    <button class="remove-button" onclick="removeFromWatchlist('${item.ticker}')">
-                                        Remove
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
-                    });
-
-                    tableHTML += `
-                            </tbody>
-                        </table>
-                    `;
-
-                    contentDiv.innerHTML = tableHTML;
                 })
                 .catch(err => {
                     console.error('Error:', err);

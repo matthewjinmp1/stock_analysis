@@ -274,9 +274,6 @@
 
             // Encode the query for URL
             const encodedQuery = encodeURIComponent(query);
-
-            // Clear any previous errors/results before fetching
-            document.getElementById('results').innerHTML = '';
             
             // Fetch data
             fetch(`/api/search/${encodedQuery}`)

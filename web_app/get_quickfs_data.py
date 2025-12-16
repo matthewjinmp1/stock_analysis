@@ -22,6 +22,14 @@ import statistics
 from quickfs import QuickFS
 from typing import Optional, Dict, List
 
+# Try to import yfinance for current stock price
+try:
+    import yfinance as yf
+    YFINANCE_AVAILABLE = True
+except ImportError:
+    YFINANCE_AVAILABLE = False
+    print("Warning: yfinance not available. Install with: pip install yfinance")
+
 # Add project root to path to find config.py
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
@@ -112,7 +120,94 @@ def get_all_data(ticker: str) -> Optional[Dict]:
             print(f"  Error fetching data for {ticker_upper}: {e}")
         return None
 
-def calculate_adjusted_pe_ratio(quarterly: Dict, verbose: bool = True) -> Optional[float]:
+def get_updated_enterprise_value(ticker: str, quarterly: Dict, quickfs_ev: float, quickfs_market_cap: float, verbose: bool = True) -> Optional[float]:
+    """
+    Calculate updated Enterprise Value using current stock price from yfinance.
+    
+    Steps:
+    1. Get most recent share count from QuickFS
+    2. Get current stock price from yfinance
+    3. Calculate updated market cap = current price × share count
+    4. Calculate EV difference = QuickFS EV - QuickFS Market Cap
+    5. Updated EV = Updated Market Cap + EV Difference
+    
+    Args:
+        ticker: Stock ticker symbol
+        quarterly: Dictionary containing quarterly financial data
+        quickfs_ev: Enterprise value from QuickFS
+        quickfs_market_cap: Market cap from QuickFS
+        verbose: If True, print calculation details
+    
+    Returns:
+        Updated enterprise value or None if calculation not possible
+    """
+    if not YFINANCE_AVAILABLE:
+        if verbose:
+            print("Warning: yfinance not available, using QuickFS EV as-is")
+        return quickfs_ev
+    
+    # Get most recent share count from QuickFS
+    shares_diluted = quarterly.get("shares_diluted", [])
+    if not shares_diluted or not isinstance(shares_diluted, list) or len(shares_diluted) == 0:
+        if verbose:
+            print("Warning: No share count data available, using QuickFS EV as-is")
+        return quickfs_ev
+    
+    # Get the most recent share count (last element)
+    most_recent_shares = None
+    for i in range(len(shares_diluted) - 1, -1, -1):
+        if shares_diluted[i] is not None and shares_diluted[i] > 0:
+            most_recent_shares = float(shares_diluted[i])
+            break
+    
+    if most_recent_shares is None or most_recent_shares <= 0:
+        if verbose:
+            print("Warning: Invalid share count, using QuickFS EV as-is")
+        return quickfs_ev
+    
+    # Get current stock price from yfinance
+    try:
+        stock = yf.Ticker(ticker)
+        current_data = stock.history(period="1d")
+        if current_data.empty:
+            # Try to get current info
+            info = stock.info
+            current_price = info.get('currentPrice') or info.get('regularMarketPrice') or info.get('previousClose')
+        else:
+            current_price = float(current_data['Close'].iloc[-1])
+        
+        if current_price is None or current_price <= 0:
+            if verbose:
+                print("Warning: Could not get current price from yfinance, using QuickFS EV as-is")
+            return quickfs_ev
+    except Exception as e:
+        if verbose:
+            print(f"Warning: Error fetching current price from yfinance: {e}, using QuickFS EV as-is")
+        return quickfs_ev
+    
+    # Calculate updated market cap
+    updated_market_cap = current_price * most_recent_shares
+    
+    # Calculate EV difference (this represents debt, cash, etc.)
+    ev_difference = quickfs_ev - quickfs_market_cap
+    
+    # Calculate updated EV
+    updated_ev = updated_market_cap + ev_difference
+    
+    if verbose:
+        print(f"\n   Enterprise Value Update:")
+        print(f"   Most Recent Share Count (from QuickFS): {most_recent_shares:,.0f}")
+        print(f"   Current Stock Price (from yfinance): ${current_price:.2f}")
+        print(f"   Updated Market Cap = ${current_price:.2f} × {most_recent_shares:,.0f} = ${updated_market_cap:,.0f}")
+        print(f"   QuickFS Market Cap: ${quickfs_market_cap:,.0f}")
+        print(f"   QuickFS EV: ${quickfs_ev:,.0f}")
+        print(f"   EV Difference (EV - Market Cap): ${ev_difference:,.0f}")
+        print(f"   Updated EV = Updated Market Cap + EV Difference")
+        print(f"   Updated EV = ${updated_market_cap:,.0f} + ${ev_difference:,.0f} = ${updated_ev:,.0f}")
+    
+    return updated_ev
+
+def calculate_adjusted_pe_ratio(quarterly: Dict, ticker: str = None, verbose: bool = True) -> Optional[float]:
     """
     Calculate Adjusted PE Ratio = EV / Adjusted Operating Income (after tax)
     
@@ -127,6 +222,7 @@ def calculate_adjusted_pe_ratio(quarterly: Dict, verbose: bool = True) -> Option
     
     Args:
         quarterly: Dictionary containing quarterly financial data
+        ticker: Stock ticker symbol (required for yfinance price lookup)
         verbose: If True, print all calculation components
     
     Returns:
@@ -145,11 +241,12 @@ def calculate_adjusted_pe_ratio(quarterly: Dict, verbose: bool = True) -> Option
         da_field_name = "da_income_statement_supplemental"
     capex = quarterly.get("capex", [])
     enterprise_value = quarterly.get("enterprise_value", [])
+    market_cap = quarterly.get("market_cap", [])
     income_tax = quarterly.get("income_tax", [])
     pretax_income = quarterly.get("pretax_income", [])
     
     # Validate data types and minimum length
-    if not all(isinstance(arr, list) for arr in [operating_income, da, capex, enterprise_value, income_tax, pretax_income]):
+    if not all(isinstance(arr, list) for arr in [operating_income, da, capex, enterprise_value, market_cap, income_tax, pretax_income]):
         return None
     
     # Need at least 4 quarters for TTM and 20 quarters for 5-year median tax rate
@@ -159,11 +256,22 @@ def calculate_adjusted_pe_ratio(quarterly: Dict, verbose: bool = True) -> Option
     
     # Find the most recent position where we have enough data
     for j in range(len(operating_income) - 1, min_quarters - 1, -1):
-        # Get EV from most recent quarter
+        # Get EV and Market Cap from most recent quarter
         if j >= len(enterprise_value) or enterprise_value[j] is None or enterprise_value[j] == 0:
             continue
         
-        ev = enterprise_value[j]
+        quickfs_ev = enterprise_value[j]
+        quickfs_market_cap = None
+        if j < len(market_cap) and market_cap[j] is not None:
+            quickfs_market_cap = market_cap[j]
+        
+        # Get updated EV using current price from yfinance
+        if ticker and quickfs_market_cap is not None:
+            ev = get_updated_enterprise_value(ticker, quarterly, quickfs_ev, quickfs_market_cap, verbose=verbose)
+            if ev is None:
+                ev = quickfs_ev  # Fallback to QuickFS EV if update fails
+        else:
+            ev = quickfs_ev  # Use QuickFS EV if ticker or market cap not available
         
         # Calculate TTM operating income (sum of last 4 quarters)
         ttm_oi = 0.0
@@ -290,7 +398,11 @@ def calculate_adjusted_pe_ratio(quarterly: Dict, verbose: bool = True) -> Option
                 print(f"   Adjusted OI After Tax: ${adjusted_oi_after_tax:,.0f}")
                 
                 print(f"\n7. Enterprise Value (EV):")
-                print(f"   EV: ${ev:,.0f}")
+                if ticker and quickfs_market_cap is not None and ev != quickfs_ev:
+                    print(f"   QuickFS EV: ${quickfs_ev:,.0f}")
+                    print(f"   Updated EV (using current price): ${ev:,.0f}")
+                else:
+                    print(f"   EV (from QuickFS): ${ev:,.0f}")
                 
                 print(f"\n8. Adjusted PE Ratio:")
                 print(f"   Adjusted PE = EV / Adjusted OI After Tax")
@@ -347,7 +459,8 @@ def display_data(data: Dict):
         print()
         
         # Calculate and display Adjusted PE Ratio
-        adjusted_pe = calculate_adjusted_pe_ratio(quarterly, verbose=True)
+        ticker_symbol = data.get("symbol", "")
+        adjusted_pe = calculate_adjusted_pe_ratio(quarterly, ticker=ticker_symbol, verbose=True)
         if adjusted_pe is not None:
             print("CALCULATED METRICS:")
             print(f"  Adjusted PE Ratio: {adjusted_pe:.2f}")

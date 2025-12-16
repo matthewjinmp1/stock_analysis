@@ -22,6 +22,11 @@ import statistics
 from quickfs import QuickFS
 from typing import Optional, Dict, List
 
+# Add project root to path to find config.py
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 # Try to import config, fallback to environment variable
 try:
     from config import QUICKFS_API_KEY
@@ -32,6 +37,7 @@ except ImportError:
     if not API_KEY:
         print("Error: QuickFS API key not found.")
         print("Please set QUICKFS_API_KEY environment variable or create config.py with QUICKFS_API_KEY")
+        print(f"Looking for config.py at: {os.path.join(PROJECT_ROOT, 'config.py')}")
         sys.exit(1)
 
 def format_symbol(ticker: str) -> str:

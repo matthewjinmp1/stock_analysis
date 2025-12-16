@@ -200,12 +200,12 @@
             <div class="summary">
                 <div class="summary-item">
                     <div class="summary-label">Financial Score</div>
-                    <div class="summary-value">{{ "%.1f"|format(total_percentile) }}th percentile</div>
+                    <div class="summary-value">{{ "%.1f"|format(total_percentile|float) }}th percentile</div>
                 </div>
                 {% if total_rank %}
                 <div class="summary-item">
                     <div class="summary-label">Rank</div>
-                    <div class="summary-value">{{ "{:,}"|format(total_rank) }}</div>
+                    <div class="summary-value">{{ total_rank|int|string }}</div>
                 </div>
                 {% endif %}
             </div>
@@ -232,9 +232,9 @@
                         <td class="value-cell">
                             {% if metric.value is not none %}
                                 {% if metric.value >= 1 or metric.value <= -1 %}
-                                    {{ "%.2f"|format(metric.value) }}
+                                    {{ "%.2f"|format(metric.value|float) }}
                                 {% else %}
-                                    {{ "%.4f"|format(metric.value) }}
+                                    {{ "%.4f"|format(metric.value|float) }}
                                 {% endif %}
                             {% else %}
                                 N/A
@@ -242,7 +242,7 @@
                         </td>
                         <td class="rank-cell">
                             {% if metric.rank is not none %}
-                                {{ "{:,}"|format(metric.rank) }}
+                                {{ metric.rank|int|string if metric.rank is not none else 'N/A' }}
                             {% else %}
                                 N/A
                             {% endif %}
@@ -257,7 +257,7 @@
                                     {% set pct_class = 'percentile-low' %}
                                 {% endif %}
                                 <span class="percentile-badge {{ pct_class }}">
-                                    {{ "%.1f"|format(metric.percentile) }}th
+                                    {{ "%.1f"|format(metric.percentile|float) }}th
                                 </span>
                             {% else %}
                                 N/A

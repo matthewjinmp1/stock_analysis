@@ -56,16 +56,8 @@ def cache_result(company_name: str, result: Dict[str, any]) -> None:
         company_name: Name of the company
         result: Result dictionary to cache
     """
-    cache = load_cache()
-    # Normalize company name for cache lookup (lowercase)
-    key = company_name.lower().strip()
-    
-    # Create a copy without internal flags for caching
-    cache_entry = {k: v for k, v in result.items() if not k.startswith('_')}
-    cache_entry['_cached_at'] = datetime.now().isoformat()
-    
-    cache[key] = cache_entry
-    save_cache(cache)
+    # NOTE: Caching removed - web app uses ui_cache.db for caching
+    pass
 
 
 def check_api_availability():
@@ -103,12 +95,10 @@ def get_glassdoor_rating_with_web_search(company_name: str, ticker: str, use_cac
     Returns:
         Dictionary with rating information or None if error
     """
-    # Check cache first
+    # Check cache first (disabled)
     if use_cache:
         # NOTE: Caching removed - always fetch fresh data
         cached_result = None
-            cached_result['company_name'] = company_name
-            return cached_result
     
     try:
         from xai_sdk import Client

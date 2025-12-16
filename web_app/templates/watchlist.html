@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watchlist</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 15px;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: background 0.3s;
+        }
+
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .watchlist-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .watchlist-table th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .watchlist-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .watchlist-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .ticker-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .ticker-link:hover {
+            text-decoration: underline;
+        }
+
+        .score-link {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .score-link:hover {
+            text-decoration: underline;
+        }
+
+        .remove-button {
+            padding: 6px 12px;
+            font-size: 0.9em;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .remove-button:hover {
+            background: #c82333;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state p {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 Watchlist</h1>
+            <p>Your saved tickers with basic stats</p>
+            <a href="/" class="back-link">← Back to Search</a>
+        </div>
+
+        <div class="content">
+            <div id="watchlist-content">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading watchlist...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function loadWatchlist() {
+            fetch('/api/watchlist')
+                .then(response => response.json())
+                .then(data => {
+                    const contentDiv = document.getElementById('watchlist-content');
+                    
+                    if (!data.success) {
+                        contentDiv.innerHTML = `
+                            <div class="empty-state">
+                                <p>Error loading watchlist: ${data.message || 'Unknown error'}</p>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    const watchlist = data.watchlist || [];
+                    
+                    if (watchlist.length === 0) {
+                        contentDiv.innerHTML = `
+                            <div class="empty-state">
+                                <p>Your watchlist is empty</p>
+                                <p style="font-size: 1em; opacity: 0.7;">Search for a ticker and add it to your watchlist to see it here.</p>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    let tableHTML = `
+                        <table class="watchlist-table">
+                            <thead>
+                                <tr>
+                                    <th>Ticker</th>
+                                    <th>Company Name</th>
+                                    <th>Total Score</th>
+                                    <th>Financial Score</th>
+                                    <th>Short Float</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+
+                    watchlist.forEach(item => {
+                        const totalScore = item.total_score_percentile_rank !== null 
+                            ? `<a href="/metrics/${item.ticker}" class="score-link">${item.total_score_percentile_rank}th percentile</a>`
+                            : 'N/A';
+                        
+                        const financialScore = item.financial_total_percentile !== null
+                            ? `<a href="/financial/${item.ticker}" class="score-link">${Math.round(item.financial_total_percentile)}th percentile</a>`
+                            : 'N/A';
+                        
+                        const shortFloat = item.short_float || 'N/A';
+                        const companyName = item.company_name || item.ticker;
+
+                        tableHTML += `
+                            <tr>
+                                <td><a href="/?q=${item.ticker}" class="ticker-link">${item.ticker}</a></td>
+                                <td>${companyName}</td>
+                                <td>${totalScore}</td>
+                                <td>${financialScore}</td>
+                                <td>${shortFloat}</td>
+                                <td>
+                                    <button class="remove-button" onclick="removeFromWatchlist('${item.ticker}')">
+                                        Remove
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    tableHTML += `
+                            </tbody>
+                        </table>
+                    `;
+
+                    contentDiv.innerHTML = tableHTML;
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    document.getElementById('watchlist-content').innerHTML = `
+                        <div class="empty-state">
+                            <p>Error loading watchlist. Please try again.</p>
+                        </div>
+                    `;
+                });
+        }
+
+        function removeFromWatchlist(ticker) {
+            if (!confirm(`Remove ${ticker} from watchlist?`)) {
+                return;
+            }
+
+            fetch(`/api/watchlist/remove/${ticker}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadWatchlist();
+                    } else {
+                        alert(data.message || 'Error removing from watchlist');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    alert('Error removing from watchlist. Please try again.');
+                });
+        }
+
+        // Load watchlist on page load
+        loadWatchlist();
+    </script>
+</body>
+</html>

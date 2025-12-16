@@ -135,6 +135,42 @@
             border-radius: 8px;
         }
 
+        .watchlist-button {
+            padding: 8px 16px;
+            font-size: 0.9em;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s, transform 0.2s;
+            margin-left: 10px;
+        }
+
+        .watchlist-button:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+
+        .watchlist-button:active {
+            transform: translateY(0);
+        }
+
+        .watchlist-button.remove {
+            background: #dc3545;
+        }
+
+        .watchlist-button.remove:hover {
+            background: #c82333;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
 
         .rating-details {
             display: grid;
@@ -217,6 +253,7 @@
         <div class="header">
             <h1>📊 Short Interest Lookup</h1>
             <p>Search for short interest (short float) by ticker symbol</p>
+            <a href="/watchlist" style="color: white; text-decoration: underline; margin-top: 10px; display: inline-block;">View Watchlist</a>
         </div>
 
         <div class="search-section">
@@ -280,7 +317,7 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        displayResult(data.ticker, data.data, data.query, 1.0);
+                        displayResult(data.ticker, data.data, data.query, 1.0, data.in_watchlist || false);
                     } else {
                         showError(data.message || `No data found for "${query}"`);
                     }
@@ -291,7 +328,7 @@
                 });
         }
 
-        function displayResult(ticker, data, originalQuery, matchScore) {
+        function displayResult(ticker, data, originalQuery, matchScore, inWatchlist) {
             // Clear any previous errors
             const resultsDiv = document.getElementById('results');
             resultsDiv.innerHTML = '';
@@ -301,12 +338,21 @@
             const totalScorePercentileRank = data.total_score_percentile_rank !== undefined ? data.total_score_percentile_rank : null;
             const financialTotalPercentile = data.financial_total_percentile !== undefined ? data.financial_total_percentile : null;
             const companyName = data.company_name || null;
+            const isInWatchlist = inWatchlist || false;
+
+            const watchlistButtonText = isInWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist';
+            const watchlistButtonClass = isInWatchlist ? 'watchlist-button remove' : 'watchlist-button';
 
             const resultHTML = `
                 <div class="result-card">
                     <div class="result-header">
                         <div class="company-name">${companyName || ticker}</div>
-                        <div class="ticker">${ticker}</div>
+                        <div class="header-actions">
+                            <div class="ticker">${ticker}</div>
+                            <button class="${watchlistButtonClass}" onclick="toggleWatchlist('${ticker}', ${!isInWatchlist})">
+                                ${watchlistButtonText}
+                            </button>
+                        </div>
                     </div>
 
                     <div class="rating-details">
@@ -346,6 +392,29 @@
             `;
 
             resultsDiv.innerHTML = resultHTML;
+        }
+
+        function toggleWatchlist(ticker, add) {
+            const endpoint = add ? `/api/watchlist/add/${ticker}` : `/api/watchlist/remove/${ticker}`;
+            const method = 'POST';
+            
+            fetch(endpoint, { method: method })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Reload the current search result to update watchlist status
+                        const query = document.getElementById('tickerInput').value.trim();
+                        if (query) {
+                            searchTicker();
+                        }
+                    } else {
+                        alert(data.message || 'Error updating watchlist');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    alert('Error updating watchlist. Please try again.');
+                });
         }
 
         function showError(message) {

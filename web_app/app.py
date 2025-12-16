@@ -26,6 +26,12 @@ from web_app.financial_scores_db import get_financial_scores
 # Import financial scorer metrics
 from web_app.financial_scorer import METRICS
 
+# Import watchlist database
+from web_app.watchlist_db import (
+    add_to_watchlist, remove_from_watchlist, 
+    is_in_watchlist, get_watchlist, init_watchlist_database
+)
+
 # Import score calculator for weights and definitions
 from web_app.score_calculator import SCORE_WEIGHTS, SCORE_DEFINITIONS
 
@@ -58,8 +64,9 @@ METRIC_DISPLAY_NAMES = {
 
 app = Flask(__name__)
 
-# Initialize database on startup
+# Initialize databases on startup
 init_database()
+init_watchlist_database()
 
 def find_best_match(query: str) -> tuple:
     """Find exact ticker match for a query.
@@ -144,12 +151,16 @@ def search_ticker(query):
             response_data['financial_total_percentile'] = financial_scores.get('total_percentile')
             response_data['financial_total_rank'] = financial_scores.get('total_rank')
         
+        # Check if ticker is in watchlist
+        in_watchlist = is_in_watchlist(ticker)
+        
         return jsonify({
             'success': True,
             'ticker': ticker,
             'query': query,
             'match_type': match_type,
-            'data': response_data
+            'data': response_data,
+            'in_watchlist': in_watchlist
         })
     except Exception as e:
         # If fetching fails, return error
@@ -321,6 +332,96 @@ def list_all():
         })
     except Exception as e:
         print(f"Error listing tickers: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/watchlist')
+def watchlist_page():
+    """Serve the watchlist page."""
+    return render_template('watchlist.html')
+
+@app.route('/api/watchlist', methods=['GET'])
+def get_watchlist_api():
+    """Get all tickers in watchlist with their data."""
+    try:
+        tickers = get_watchlist()
+        watchlist_data = []
+        
+        for ticker in tickers:
+            # Get data from cache
+            data = get_complete_data(ticker)
+            financial_scores = get_financial_scores(ticker)
+            
+            if data:
+                watchlist_data.append({
+                    'ticker': ticker,
+                    'company_name': data.get('company_name'),
+                    'short_float': data.get('short_float'),
+                    'total_score_percentile_rank': data.get('total_score_percentile_rank'),
+                    'financial_total_percentile': financial_scores.get('total_percentile') if financial_scores else None,
+                })
+            else:
+                # Include ticker even if no data available
+                watchlist_data.append({
+                    'ticker': ticker,
+                    'company_name': None,
+                    'short_float': None,
+                    'total_score_percentile_rank': None,
+                    'financial_total_percentile': None,
+                })
+        
+        return jsonify({
+            'success': True,
+            'watchlist': watchlist_data
+        })
+    except Exception as e:
+        print(f"Error getting watchlist: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/watchlist/add/<ticker>', methods=['POST'])
+def add_to_watchlist_api(ticker):
+    """Add a ticker to the watchlist."""
+    try:
+        added = add_to_watchlist(ticker)
+        if added:
+            return jsonify({
+                'success': True,
+                'message': f'{ticker} added to watchlist'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'{ticker} is already in watchlist'
+            }), 400
+    except Exception as e:
+        print(f"Error adding to watchlist: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/watchlist/remove/<ticker>', methods=['POST'])
+def remove_from_watchlist_api(ticker):
+    """Remove a ticker from the watchlist."""
+    try:
+        removed = remove_from_watchlist(ticker)
+        if removed:
+            return jsonify({
+                'success': True,
+                'message': f'{ticker} removed from watchlist'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'{ticker} not found in watchlist'
+            }), 404
+    except Exception as e:
+        print(f"Error removing from watchlist: {e}")
         return jsonify({
             'success': False,
             'message': str(e)

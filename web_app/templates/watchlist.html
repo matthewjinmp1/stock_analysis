@@ -535,11 +535,11 @@
 
             watchlistData.forEach(item => {
                 const totalScore = item.total_score_percentile_rank !== null 
-                    ? `<a href="/metrics/${item.ticker}" class="score-link">${item.total_score_percentile_rank}th percentile</a>`
+                    ? `<a href="/metrics/${item.ticker}" class="score-link">${item.total_score_percentile_rank}%</a>`
                     : 'N/A';
                 
                 const financialScore = item.financial_total_percentile !== null
-                    ? `<a href="/financial/${item.ticker}" class="score-link">${Math.round(item.financial_total_percentile)}th percentile</a>`
+                    ? `<a href="/financial/${item.ticker}" class="score-link">${Math.round(item.financial_total_percentile)}%</a>`
                     : 'N/A';
                 
                 const adjustedPeRatio = item.adjusted_pe_ratio !== null && item.adjusted_pe_ratio !== undefined

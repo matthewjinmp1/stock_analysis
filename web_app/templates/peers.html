@@ -221,10 +221,10 @@
                                     <td><a href="/?q=${mainTicker.ticker}" class="ticker-link">${mainTicker.ticker}</a></td>
                                     <td>${mainTicker.company_name || mainTicker.ticker}</td>
                                     <td>${mainTicker.total_score_percentile_rank !== null 
-                                        ? `<a href="/metrics/${mainTicker.ticker}" class="score-link">${mainTicker.total_score_percentile_rank}th percentile</a>`
+                                        ? `<a href="/metrics/${mainTicker.ticker}" class="score-link">${mainTicker.total_score_percentile_rank}%</a>`
                                         : 'N/A'}</td>
                                     <td>${mainTicker.financial_total_percentile !== null
-                                        ? `<a href="/financial/${mainTicker.ticker}" class="score-link">${Math.round(mainTicker.financial_total_percentile)}th percentile</a>`
+                                        ? `<a href="/financial/${mainTicker.ticker}" class="score-link">${Math.round(mainTicker.financial_total_percentile)}%</a>`
                                         : 'N/A'}</td>
                                     <td>${mainTicker.adjusted_pe_ratio !== null && mainTicker.adjusted_pe_ratio !== undefined
                                         ? mainTicker.adjusted_pe_ratio.toFixed(2)
@@ -239,10 +239,10 @@
                                 <td><a href="/?q=${peer.ticker}" class="ticker-link">${peer.ticker}</a></td>
                                 <td>${peer.company_name || peer.ticker}</td>
                                 <td>${peer.total_score_percentile_rank !== null 
-                                    ? `<a href="/metrics/${peer.ticker}" class="score-link">${peer.total_score_percentile_rank}th percentile</a>`
+                                    ? `<a href="/metrics/${peer.ticker}" class="score-link">${peer.total_score_percentile_rank}%</a>`
                                     : 'N/A'}</td>
                                 <td>${peer.financial_total_percentile !== null
-                                    ? `<a href="/financial/${peer.ticker}" class="score-link">${Math.round(peer.financial_total_percentile)}th percentile</a>`
+                                    ? `<a href="/financial/${peer.ticker}" class="score-link">${Math.round(peer.financial_total_percentile)}%</a>`
                                     : 'N/A'}</td>
                                 <td>${peer.adjusted_pe_ratio !== null && peer.adjusted_pe_ratio !== undefined
                                     ? peer.adjusted_pe_ratio.toFixed(2)

@@ -9,6 +9,7 @@ import json
 import os
 import time
 import threading
+import sqlite3
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dotenv import load_dotenv
 import requests
@@ -44,7 +45,8 @@ except ImportError:
 def get_company_name_from_ticker(ticker):
     """
     Get company name from ticker symbol.
-    First checks ticker_definitions.json, then falls back to yfinance.
+    First checks ticker_definitions.json, then tickers.db.
+    Does not use yfinance.
     
     Args:
         ticker: Stock ticker symbol (e.g., 'AAPL')
@@ -65,16 +67,38 @@ def get_company_name_from_ticker(ticker):
     except Exception as e:
         print(f"Warning: Could not read ticker_definitions.json: {e}")
     
-    # Fall back to yfinance
+    # Check tickers.db
     try:
-        import yfinance as yf
-        stock = yf.Ticker(ticker_upper)
-        info = stock.info
-        company_name = info.get('longName') or info.get('shortName') or info.get('name')
-        if company_name:
-            return company_name
+        # Try multiple possible paths for tickers.db
+        # Get project root (assuming this file is in src/scrapers/)
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))
+        
+        possible_paths = [
+            os.path.join(project_root, 'web_app', 'data', 'tickers.db'),
+            os.path.join(project_root, 'data', 'tickers.db'),
+            os.path.join('web_app', 'data', 'tickers.db'),
+            os.path.join('data', 'tickers.db'),
+        ]
+        
+        tickers_db_path = None
+        for path in possible_paths:
+            abs_path = os.path.abspath(path)
+            if os.path.exists(abs_path):
+                tickers_db_path = abs_path
+                break
+        
+        if tickers_db_path:
+            conn = sqlite3.connect(tickers_db_path)
+            cursor = conn.cursor()
+            cursor.execute('SELECT company_name FROM tickers WHERE ticker = ?', (ticker_upper,))
+            result = cursor.fetchone()
+            conn.close()
+            
+            if result:
+                return result[0]
     except Exception as e:
-        print(f"Warning: Could not get company name from yfinance: {e}")
+        print(f"Warning: Could not get company name from tickers.db: {e}")
     
     return None
 

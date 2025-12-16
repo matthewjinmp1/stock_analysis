@@ -44,7 +44,7 @@ METRIC_DISPLAY_NAMES = {
     'culture_employee_satisfaction_score': 'Employee Satisfaction',
     'trailblazer_score': 'Market Leadership',
     'management_quality_score': 'Management Quality',
-    'ai_knowledge_score': 'AI Capability',
+    'ai_knowledge_score': 'AI Scoring Confidence',
     'size_well_known_score': 'Market Recognition',
     'ethical_healthy_environmental_score': 'ESG & Ethics',
     'long_term_orientation_score': 'Long Term Focus',

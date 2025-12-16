@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adjusted PE Breakdown - {{ ticker }}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0a0a0a;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(0, 200, 220, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(200, 0, 200, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(120, 0, 200, 0.03) 0%, transparent 50%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #7dd3fc;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: #0d0d0d;
+            border-radius: 20px;
+            border: 1px solid rgba(125, 211, 252, 0.3);
+            box-shadow: 0 0 15px rgba(125, 211, 252, 0.15), 0 0 30px rgba(125, 211, 252, 0.05), inset 0 0 15px rgba(125, 211, 252, 0.03);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0a1a 100%);
+            color: #7dd3fc;
+            padding: 32px;
+            text-align: center;
+            border-bottom: 1px solid rgba(125, 211, 252, 0.3);
+        }
+        .header h1 {
+            font-size: 2.1em;
+            margin-bottom: 6px;
+            color: #a5d8ff;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 12px;
+            color: #a5d8ff;
+            text-decoration: none;
+            padding: 8px 16px;
+            background: rgba(125, 211, 252, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(125, 211, 252, 0.4);
+            transition: all 0.3s;
+        }
+        .back-link:hover { background: rgba(125, 211, 252, 0.2); transform: translateX(-2px); }
+        .content { padding: 32px; }
+        .card {
+            background: #0a0a0a;
+            border: 1px solid rgba(125, 211, 252, 0.25);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .card h2 { margin-bottom: 12px; color: #c4b5fd; }
+        .value { font-size: 1.6em; color: #a5d8ff; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; border-bottom: 1px solid rgba(125, 211, 252, 0.1); text-align: left; }
+        th { background: rgba(125, 211, 252, 0.08); color: #a5d8ff; }
+        tr:hover { background: rgba(125, 211, 252, 0.05); }
+        .label { color: rgba(125, 211, 252, 0.8); }
+        .muted { color: rgba(125, 211, 252, 0.6); font-size: 0.95em; }
+        .error { color: #f87171; text-align: center; padding: 20px; }
+        .loading { text-align: center; padding: 20px; color: rgba(125, 211, 252, 0.7); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Adjusted PE Breakdown</h1>
+            <p>{{ ticker }}</p>
+            <a href="/" class="back-link">← Back to Search</a>
+        </div>
+        <div class="content" id="content">
+            <div class="loading">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        const ticker = '{{ ticker }}';
+
+        function fmt(value, decimals = 2) {
+            if (value === null || value === undefined) return 'N/A';
+            const num = Number(value);
+            if (Number.isNaN(num)) return 'N/A';
+            return num.toFixed(decimals);
+        }
+
+        function fmtPercent(value, decimals = 2) {
+            if (value === null || value === undefined) return 'N/A';
+            return (value * 100).toFixed(decimals) + '%';
+        }
+
+        function render(data) {
+            const contentDiv = document.getElementById('content');
+            const ratio = data.adjusted_pe_ratio;
+            const b = data.breakdown || {};
+
+            const fields = [
+                { label: 'TTM Operating Income', value: fmt(b.ttm_operating_income) },
+                { label: 'TTM Depreciation & Amortization (DA)', value: fmt(b.ttm_da) },
+                { label: 'TTM Capex', value: fmt(b.ttm_capex) },
+                { label: 'Adjustment (|DA| - |Capex| if > 0)', value: fmt(b.adjustment) },
+                { label: 'Adjusted Operating Income', value: fmt(b.adjusted_operating_income) },
+                { label: 'Median Tax Rate (5yr)', value: fmtPercent(b.median_tax_rate, 2) },
+                { label: 'Adjusted OI After Tax', value: fmt(b.adjusted_oi_after_tax) },
+                { label: 'QuickFS EV (latest)', value: fmt(b.quickfs_ev) },
+                { label: 'QuickFS Market Cap (latest)', value: fmt(b.quickfs_market_cap) },
+                { label: 'Updated EV (with current price)', value: fmt(b.updated_ev) },
+                { label: 'Share Count (latest QuickFS)', value: fmt(b.share_count, 0) },
+                { label: 'Current Price (yfinance)', value: fmt(b.current_price) },
+                { label: 'EV Difference (EV - Market Cap)', value: fmt(b.ev_difference) },
+                { label: 'Updated Market Cap', value: fmt(b.updated_market_cap) },
+            ];
+
+            contentDiv.innerHTML = `
+                <div class="card">
+                    <h2>Adjusted PE Ratio</h2>
+                    <div class="value">${ratio !== null && ratio !== undefined ? fmt(ratio) : 'N/A'}</div>
+                    <div class="muted">Click any ticker to recalculate from QuickFS/yfinance if data is missing.</div>
+                </div>
+                <div class="card">
+                    <h2>TTM Components</h2>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Item</th><th>Value</th></tr></thead>
+                            <tbody>
+                                ${fields.map(f => `<tr><td class="label">${f.label}</td><td>${f.value}</td></tr>`).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        fetch(`/api/adjusted_pe/${ticker}`)
+            .then(r => r.json())
+            .then(res => {
+                const contentDiv = document.getElementById('content');
+                if (!res.success) {
+                    contentDiv.innerHTML = `<div class="error">${res.message || 'Adjusted PE data not available'}</div>`;
+                    return;
+                }
+                render(res);
+            })
+            .catch(err => {
+                document.getElementById('content').innerHTML = `<div class="error">Error: ${err.message}</div>`;
+            });
+    </script>
+</body>
+</html>

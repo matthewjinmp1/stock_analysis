@@ -8,7 +8,7 @@ import sqlite3
 import os
 import sys
 from datetime import datetime, date
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 
 # Ensure project root is on path
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -19,6 +19,11 @@ if PROJECT_ROOT not in sys.path:
 from src.scrapers.glassdoor_scraper import get_company_name_from_ticker
 from src.scrapers.get_short_interest import scrape_ticker_short_interest
 from web_app.score_calculator import calculate_total_score, SCORE_DEFINITIONS
+from web_app.adjusted_pe_db import (
+    init_adjusted_pe_db,
+    upsert_adjusted_pe,
+    get_adjusted_pe,
+)
 
 # Import QuickFS for adjusted PE ratio calculation
 try:
@@ -120,6 +125,9 @@ def init_database():
     
     conn.commit()
     conn.close()
+    
+    # Ensure adjusted PE database exists
+    init_adjusted_pe_db()
 
 
 def get_cached_data(ticker: str) -> Optional[Dict[str, Any]]:
@@ -221,7 +229,13 @@ def update_cache(ticker: str, data: Dict[str, Any]) -> bool:
         return False
 
 
-def get_updated_enterprise_value(ticker: str, quarterly: Dict, quickfs_ev: float, quickfs_market_cap: float) -> Optional[float]:
+def get_updated_enterprise_value(
+    ticker: str,
+    quarterly: Dict,
+    quickfs_ev: float,
+    quickfs_market_cap: float,
+    return_details: bool = False,
+) -> Optional[float]:
     """
     Calculate updated Enterprise Value using current stock price from yfinance.
     Same logic as in web_app/get_quickfs_data.py
@@ -230,12 +244,20 @@ def get_updated_enterprise_value(ticker: str, quarterly: Dict, quickfs_ev: float
         Updated enterprise value or None if calculation not possible
     """
     if not YFINANCE_AVAILABLE:
-        return quickfs_ev
+        return (
+            (quickfs_ev, None, None, None, None, quickfs_market_cap)
+            if return_details
+            else quickfs_ev
+        )
     
     # Get most recent share count from QuickFS
     shares_diluted = quarterly.get("shares_diluted", [])
     if not shares_diluted or not isinstance(shares_diluted, list) or len(shares_diluted) == 0:
-        return quickfs_ev
+        return (
+            (quickfs_ev, None, None, None, None, quickfs_market_cap)
+            if return_details
+            else quickfs_ev
+        )
     
     # Get the most recent share count (last element)
     most_recent_shares = None
@@ -245,7 +267,11 @@ def get_updated_enterprise_value(ticker: str, quarterly: Dict, quickfs_ev: float
             break
     
     if most_recent_shares is None or most_recent_shares <= 0:
-        return quickfs_ev
+        return (
+            (quickfs_ev, None, None, None, None, quickfs_market_cap)
+            if return_details
+            else quickfs_ev
+        )
     
     # Get current stock price from yfinance
     try:
@@ -259,9 +285,17 @@ def get_updated_enterprise_value(ticker: str, quarterly: Dict, quickfs_ev: float
             current_price = float(current_data['Close'].iloc[-1])
         
         if current_price is None or current_price <= 0:
-            return quickfs_ev
+            return (
+                (quickfs_ev, most_recent_shares, None, None, None, quickfs_market_cap)
+                if return_details
+                else quickfs_ev
+            )
     except Exception:
-        return quickfs_ev
+        return (
+            (quickfs_ev, most_recent_shares, None, None, None, quickfs_market_cap)
+            if return_details
+            else quickfs_ev
+        )
     
     # Calculate updated market cap
     updated_market_cap = current_price * most_recent_shares
@@ -272,22 +306,33 @@ def get_updated_enterprise_value(ticker: str, quarterly: Dict, quickfs_ev: float
     # Calculate updated EV
     updated_ev = updated_market_cap + ev_difference
     
+    if return_details:
+        return (
+            updated_ev,
+            most_recent_shares,
+            current_price,
+            ev_difference,
+            updated_market_cap,
+            quickfs_market_cap,
+        )
     return updated_ev
 
-def calculate_adjusted_pe_from_quickfs(quarterly: Dict, ticker: str = None) -> Optional[float]:
+def calculate_adjusted_pe_with_components(
+    quarterly: Dict, ticker: str = None
+) -> Tuple[Optional[float], Optional[Dict[str, Any]]]:
     """
-    Calculate Adjusted PE Ratio from QuickFS quarterly data.
-    Same logic as in web_app/get_quickfs_data.py
+    Calculate Adjusted PE Ratio and TTM components from QuickFS quarterly data.
+    Same logic as in web_app/get_quickfs_data.py, but returns breakdown.
     
     Args:
         quarterly: Dictionary containing quarterly financial data
         ticker: Stock ticker symbol (for yfinance price lookup)
     
     Returns:
-        Adjusted PE ratio or None if calculation not possible
+        (Adjusted PE ratio, breakdown dict) or (None, None) if calculation not possible
     """
     if not quarterly or not QUICKFS_AVAILABLE:
-        return None
+        return None, None
     
     # Get required data arrays
     operating_income = quarterly.get("operating_income", [])
@@ -302,13 +347,16 @@ def calculate_adjusted_pe_from_quickfs(quarterly: Dict, ticker: str = None) -> O
     pretax_income = quarterly.get("pretax_income", [])
     
     # Validate data types and minimum length
-    if not all(isinstance(arr, list) for arr in [operating_income, da, capex, enterprise_value, market_cap, income_tax, pretax_income]):
-        return None
+    if not all(
+        isinstance(arr, list)
+        for arr in [operating_income, da, capex, enterprise_value, market_cap, income_tax, pretax_income]
+    ):
+        return None, None
     
     # Need at least 4 quarters for TTM and 20 quarters for 5-year median tax rate
     min_quarters = max(4, 20)
     if len(operating_income) < min_quarters:
-        return None
+        return None, None
     
     # Find the most recent position where we have enough data
     for j in range(len(operating_income) - 1, min_quarters - 1, -1):
@@ -322,12 +370,19 @@ def calculate_adjusted_pe_from_quickfs(quarterly: Dict, ticker: str = None) -> O
             quickfs_market_cap = market_cap[j]
         
         # Get updated EV using current price from yfinance
+        ev = quickfs_ev
+        share_count = None
+        current_price = None
+        ev_difference = None
+        updated_market_cap = None
         if ticker and quickfs_market_cap is not None:
-            ev = get_updated_enterprise_value(ticker, quarterly, quickfs_ev, quickfs_market_cap)
-            if ev is None:
-                ev = quickfs_ev  # Fallback to QuickFS EV if update fails
-        else:
-            ev = quickfs_ev  # Use QuickFS EV if ticker or market cap not available
+            ev_details = get_updated_enterprise_value(
+                ticker, quarterly, quickfs_ev, quickfs_market_cap, return_details=True
+            )
+            if isinstance(ev_details, tuple):
+                ev, share_count, current_price, ev_difference, updated_market_cap, quickfs_market_cap = ev_details
+            else:
+                ev = ev_details if ev_details is not None else quickfs_ev
         
         # Calculate TTM operating income (sum of last 4 quarters)
         ttm_oi = 0.0
@@ -360,6 +415,7 @@ def calculate_adjusted_pe_from_quickfs(quarterly: Dict, ticker: str = None) -> O
             adjustment = abs_da - abs_capex
             adjusted_oi = ttm_oi + adjustment
         else:
+            adjustment = 0.0
             adjusted_oi = ttm_oi
         
         # Step 5: Calculate 5-year median tax rate (last 20 quarters)
@@ -389,22 +445,44 @@ def calculate_adjusted_pe_from_quickfs(quarterly: Dict, ticker: str = None) -> O
         # Step 7: Calculate Adjusted PE = EV / adjusted operating income (after tax)
         if adjusted_oi_after_tax != 0:
             adjusted_pe = ev / adjusted_oi_after_tax
-            return adjusted_pe
+            breakdown = {
+                "ttm_operating_income": ttm_oi,
+                "ttm_da": ttm_da,
+                "ttm_capex": ttm_capex,
+                "adjustment": adjustment,
+                "adjusted_operating_income": adjusted_oi,
+                "median_tax_rate": median_tax_rate,
+                "adjusted_oi_after_tax": adjusted_oi_after_tax,
+                "quickfs_ev": quickfs_ev,
+                "quickfs_market_cap": quickfs_market_cap,
+                "updated_ev": ev,
+                "share_count": share_count,
+                "current_price": current_price,
+                "ev_difference": ev_difference,
+                "updated_market_cap": updated_market_cap,
+            }
+            return adjusted_pe, breakdown
     
-    return None
+    return None, None
 
-def fetch_adjusted_pe_ratio(ticker: str) -> Optional[float]:
+
+def calculate_adjusted_pe_from_quickfs(quarterly: Dict, ticker: str = None) -> Optional[float]:
+    """Backwards-compatible wrapper returning only the ratio."""
+    ratio, _ = calculate_adjusted_pe_with_components(quarterly, ticker=ticker)
+    return ratio
+
+def fetch_adjusted_pe_ratio_and_breakdown(ticker: str) -> Tuple[Optional[float], Optional[Dict[str, Any]]]:
     """
-    Fetch adjusted PE ratio from QuickFS API.
+    Fetch adjusted PE ratio and breakdown from QuickFS API.
     
     Args:
         ticker: Stock ticker symbol
         
     Returns:
-        Adjusted PE ratio or None if not available
+        (Adjusted PE ratio, breakdown dict) or (None, None)
     """
     if not QUICKFS_AVAILABLE:
-        return None
+        return None, None
     
     try:
         # Try to import API key
@@ -433,11 +511,22 @@ def fetch_adjusted_pe_ratio(ticker: str) -> Optional[float]:
             return None
         
         # Calculate adjusted PE ratio (pass ticker for yfinance price lookup)
-        return calculate_adjusted_pe_from_quickfs(quarterly, ticker=ticker)
+        ratio, breakdown = calculate_adjusted_pe_with_components(quarterly, ticker=ticker)
+        
+        if ratio is not None and breakdown is not None:
+            timestamp = datetime.now().isoformat()
+            upsert_adjusted_pe(ticker, breakdown, ratio, timestamp)
+        return ratio, breakdown
         
     except Exception as e:
         print(f"Error fetching adjusted PE ratio for {ticker}: {e}")
-        return None
+        return None, None
+
+
+def fetch_adjusted_pe_ratio(ticker: str) -> Optional[float]:
+    """Backwards-compatible helper returning only the ratio."""
+    ratio, _ = fetch_adjusted_pe_ratio_and_breakdown(ticker)
+    return ratio
 
 def fetch_and_cache_all_data(ticker: str, silent: bool = False) -> Optional[Dict[str, Any]]:
     """Fetch all data for a ticker and cache it in the database.
@@ -517,7 +606,7 @@ def fetch_and_cache_all_data(ticker: str, silent: bool = False) -> Optional[Dict
     if not cached or cached.get('adjusted_pe_ratio') is None:
         if not silent:
             print(f"  Fetching adjusted PE ratio from QuickFS...")
-        adjusted_pe = fetch_adjusted_pe_ratio(ticker)
+        adjusted_pe, _ = fetch_adjusted_pe_ratio_and_breakdown(ticker)
         if adjusted_pe is not None:
             cache_data['adjusted_pe_ratio'] = adjusted_pe
             if not silent:
@@ -627,7 +716,7 @@ def get_complete_data(ticker: str) -> Optional[Dict[str, Any]]:
         
         # Adjusted PE ratio
         if missing_adjusted_pe:
-            adjusted_pe = fetch_adjusted_pe_ratio(ticker)
+            adjusted_pe, _ = fetch_adjusted_pe_ratio_and_breakdown(ticker)
             if adjusted_pe is not None:
                 update_data['adjusted_pe_ratio'] = adjusted_pe
         

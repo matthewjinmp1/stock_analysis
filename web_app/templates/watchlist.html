@@ -543,7 +543,7 @@
                     : 'N/A';
                 
                 const adjustedPeRatio = item.adjusted_pe_ratio !== null && item.adjusted_pe_ratio !== undefined
-                    ? item.adjusted_pe_ratio.toFixed(2)
+                    ? `<a href="/adjusted_pe/${item.ticker}" class="score-link">${item.adjusted_pe_ratio.toFixed(2)}</a>`
                     : 'N/A';
                 
                 const shortFloat = item.short_float || 'N/A';

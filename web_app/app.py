@@ -15,7 +15,12 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 # Import unified cache database manager
-from web_app.ui_cache_db import get_complete_data, init_database, get_cached_data
+from web_app.ui_cache_db import (
+    get_complete_data,
+    init_database,
+    get_cached_data,
+    fetch_adjusted_pe_ratio_and_breakdown,
+)
 
 # Import company name lookup function
 from src.scrapers.glassdoor_scraper import get_company_name_from_ticker
@@ -34,6 +39,9 @@ from web_app.watchlist_db import (
 
 # Import peer database
 from web_app.peer_db import get_peers_for_ticker, init_peers_database
+
+# Import adjusted PE storage
+from web_app.adjusted_pe_db import get_adjusted_pe, init_adjusted_pe_db
 
 # Import score calculator for weights and definitions
 from web_app.score_calculator import SCORE_WEIGHTS, SCORE_DEFINITIONS
@@ -71,6 +79,7 @@ app = Flask(__name__)
 init_database()
 init_watchlist_database()
 init_peers_database()
+init_adjusted_pe_db()
 
 def find_best_match(query: str) -> tuple:
     """Find exact ticker match for a query.
@@ -353,6 +362,12 @@ def peers_page(ticker):
     ticker = ticker.strip().upper()
     return render_template('peers.html', ticker=ticker)
 
+@app.route('/adjusted_pe/<ticker>')
+def adjusted_pe_page(ticker):
+    """Display adjusted PE breakdown page for a ticker."""
+    ticker = ticker.strip().upper()
+    return render_template('adjusted_pe.html', ticker=ticker)
+
 @app.route('/api/watchlist', methods=['GET'])
 def get_watchlist_api():
     """Get all tickers in watchlist with their data."""
@@ -486,6 +501,43 @@ def get_peers_api(ticker):
         })
     except Exception as e:
         print(f"Error getting peers for {ticker}: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/adjusted_pe/<ticker>', methods=['GET'])
+def get_adjusted_pe_api(ticker):
+    """Get adjusted PE ratio and breakdown for a ticker."""
+    try:
+        ticker = ticker.strip().upper()
+        
+        # Try cache in adjusted_pe.db first
+        stored = get_adjusted_pe(ticker)
+        ratio = stored.get('adjusted_pe_ratio') if stored else None
+        
+        if not stored or ratio is None:
+            # Compute and persist if missing
+            ratio, breakdown = fetch_adjusted_pe_ratio_and_breakdown(ticker)
+        else:
+            breakdown = stored
+        
+        if ratio is None or breakdown is None:
+            return jsonify({
+                'success': False,
+                'message': f'Adjusted PE data not available for {ticker}'
+            }), 404
+        
+        breakdown['ticker'] = ticker
+        return jsonify({
+            'success': True,
+            'adjusted_pe_ratio': ratio,
+            'breakdown': breakdown
+        })
+    except Exception as e:
+        print(f"Error getting adjusted PE for {ticker}: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({

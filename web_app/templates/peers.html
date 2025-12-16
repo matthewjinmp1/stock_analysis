@@ -227,7 +227,7 @@
                                         ? `<a href="/financial/${mainTicker.ticker}" class="score-link">${Math.round(mainTicker.financial_total_percentile)}%</a>`
                                         : 'N/A'}</td>
                                     <td>${mainTicker.adjusted_pe_ratio !== null && mainTicker.adjusted_pe_ratio !== undefined
-                                        ? mainTicker.adjusted_pe_ratio.toFixed(2)
+                                        ? `<a href="/adjusted_pe/${mainTicker.ticker}" class="score-link">${mainTicker.adjusted_pe_ratio.toFixed(2)}</a>`
                                         : 'N/A'}</td>
                                     <td>${mainTicker.short_float || 'N/A'}</td>
                                 </tr>
@@ -245,7 +245,7 @@
                                     ? `<a href="/financial/${peer.ticker}" class="score-link">${Math.round(peer.financial_total_percentile)}%</a>`
                                     : 'N/A'}</td>
                                 <td>${peer.adjusted_pe_ratio !== null && peer.adjusted_pe_ratio !== undefined
-                                    ? peer.adjusted_pe_ratio.toFixed(2)
+                                    ? `<a href="/adjusted_pe/${peer.ticker}" class="score-link">${peer.adjusted_pe_ratio.toFixed(2)}</a>`
                                     : 'N/A'}</td>
                                 <td>${peer.short_float || 'N/A'}</td>
                             </tr>

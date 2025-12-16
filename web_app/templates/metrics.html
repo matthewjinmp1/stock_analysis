@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Metrics - {{ ticker }}</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
         * {
             margin: 0;
             padding: 0;
@@ -12,10 +14,15 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0a0a0a;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(0, 200, 220, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(200, 0, 200, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(120, 0, 200, 0.03) 0%, transparent 50%);
             min-height: 100vh;
             padding: 20px;
+            color: #7dd3fc;
         }
 
         .container {
@@ -24,43 +31,47 @@
         }
 
         .header {
-            background: white;
-            border-radius: 12px;
+            background: rgba(13, 13, 13, 0.8);
+            border-radius: 15px;
             padding: 30px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(125, 211, 252, 0.3);
+            box-shadow: 0 0 15px rgba(125, 211, 252, 0.15);
         }
 
         .header h1 {
             font-size: 2em;
-            color: #333;
+            color: #a5d8ff;
             margin-bottom: 10px;
+            text-shadow: 0 0 8px rgba(125, 211, 252, 0.3);
         }
 
         .header .ticker {
             font-size: 1.2em;
-            color: #666;
+            color: #c4b5fd;
             margin-bottom: 20px;
+            text-shadow: 0 0 6px rgba(196, 181, 253, 0.3);
         }
 
         .back-link {
             display: inline-block;
-            color: white;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
+            color: #a5d8ff;
+            background: rgba(125, 211, 252, 0.1);
             text-decoration: none;
             margin-bottom: 20px;
             padding: 10px 20px;
             border-radius: 8px;
             font-weight: 600;
             font-size: 1em;
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(125, 211, 252, 0.4);
             transition: all 0.3s ease;
+            box-shadow: 0 0 8px rgba(125, 211, 252, 0.2);
         }
 
         .back-link:hover {
-            background: rgba(255, 255, 255, 0.3);
-            border-color: rgba(255, 255, 255, 0.5);
+            background: rgba(125, 211, 252, 0.2);
+            border-color: rgba(125, 211, 252, 0.6);
+            box-shadow: 0 0 12px rgba(125, 211, 252, 0.3);
             transform: translateX(-3px);
         }
 
@@ -72,28 +83,32 @@
 
         .summary-item {
             flex: 1;
-            background: #f8f9fa;
+            background: rgba(10, 10, 10, 0.6);
             padding: 15px;
             border-radius: 8px;
+            border: 1px solid rgba(125, 211, 252, 0.2);
+            box-shadow: 0 0 8px rgba(125, 211, 252, 0.1);
         }
 
         .summary-label {
             font-size: 0.9em;
-            color: #666;
+            color: rgba(125, 211, 252, 0.7);
             margin-bottom: 5px;
         }
 
         .summary-value {
             font-size: 1.5em;
             font-weight: bold;
-            color: #333;
+            color: #a5d8ff;
+            text-shadow: 0 0 6px rgba(125, 211, 252, 0.3);
         }
 
         .metrics-table {
-            background: white;
-            border-radius: 12px;
+            background: rgba(13, 13, 13, 0.8);
+            border-radius: 15px;
             overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(125, 211, 252, 0.3);
+            box-shadow: 0 0 15px rgba(125, 211, 252, 0.15);
         }
 
         table {
@@ -102,28 +117,32 @@
         }
 
         thead {
-            background: #667eea;
-            color: white;
+            background: linear-gradient(135deg, rgba(125, 211, 252, 0.2) 0%, rgba(196, 181, 253, 0.2) 100%);
+            color: #a5d8ff;
         }
 
         th {
             padding: 15px;
             text-align: left;
             font-weight: 600;
+            border-bottom: 1px solid rgba(125, 211, 252, 0.3);
+            text-shadow: 0 0 6px rgba(125, 211, 252, 0.3);
         }
 
         td {
             padding: 12px 15px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid rgba(125, 211, 252, 0.1);
+            color: #a5d8ff;
+            background: rgba(10, 10, 10, 0.6);
         }
 
         tbody tr:hover {
-            background: #f8f9fa;
+            background: rgba(125, 211, 252, 0.05);
         }
 
         .metric-name {
             font-weight: 500;
-            color: #333;
+            color: #a5d8ff;
         }
 
         .score-cell {
@@ -139,54 +158,62 @@
         }
 
         .score-high {
-            background: #d4edda;
-            color: #155724;
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.4);
+            box-shadow: 0 0 8px rgba(34, 197, 94, 0.2);
         }
 
         .score-medium {
-            background: #fff3cd;
-            color: #856404;
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.4);
+            box-shadow: 0 0 8px rgba(251, 191, 36, 0.2);
         }
 
         .score-low {
-            background: #f8d7da;
-            color: #721c24;
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
         }
 
         .weight-cell {
             text-align: center;
-            color: #666;
+            color: rgba(125, 211, 252, 0.7);
         }
 
         .contribution-cell {
             text-align: right;
             font-weight: 600;
-            color: #333;
+            color: #a5d8ff;
         }
 
         .percentage-cell {
             text-align: right;
-            color: #666;
+            color: rgba(125, 211, 252, 0.7);
             font-size: 0.9em;
         }
 
         .reverse-badge {
             display: inline-block;
-            background: #e9ecef;
-            color: #495057;
+            background: rgba(196, 181, 253, 0.2);
+            color: #c4b5fd;
             padding: 2px 8px;
             border-radius: 4px;
             font-size: 0.75em;
             margin-left: 8px;
+            border: 1px solid rgba(196, 181, 253, 0.4);
         }
 
         .error-message {
-            background: white;
+            background: rgba(239, 68, 68, 0.1);
             border-radius: 12px;
             padding: 30px;
             text-align: center;
-            color: #721c24;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
         }
     </style>
 </head>

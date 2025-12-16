@@ -483,6 +483,11 @@
                         bVal = b.short_float !== null && b.short_float !== 'N/A' ? parseFloat(b.short_float) : -1;
                         return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
                     
+                    case 'adjusted_pe_ratio':
+                        aVal = a.adjusted_pe_ratio !== null && a.adjusted_pe_ratio !== undefined ? a.adjusted_pe_ratio : Infinity;
+                        bVal = b.adjusted_pe_ratio !== null && b.adjusted_pe_ratio !== undefined ? b.adjusted_pe_ratio : Infinity;
+                        return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+                    
                     default:
                         return 0;
                 }
@@ -520,6 +525,7 @@
                             <th class="${getSortClass('company_name')}" onclick="sortWatchlist('company_name')">Company Name</th>
                             <th class="${getSortClass('total_score')}" onclick="sortWatchlist('total_score')">Total Score</th>
                             <th class="${getSortClass('financial_score')}" onclick="sortWatchlist('financial_score')">Financial Score</th>
+                            <th class="${getSortClass('adjusted_pe_ratio')}" onclick="sortWatchlist('adjusted_pe_ratio')">Adjusted PE Ratio</th>
                             <th class="${getSortClass('short_float')}" onclick="sortWatchlist('short_float')">Short Float</th>
                             <th>Actions</th>
                         </tr>
@@ -536,6 +542,10 @@
                     ? `<a href="/financial/${item.ticker}" class="score-link">${Math.round(item.financial_total_percentile)}th percentile</a>`
                     : 'N/A';
                 
+                const adjustedPeRatio = item.adjusted_pe_ratio !== null && item.adjusted_pe_ratio !== undefined
+                    ? item.adjusted_pe_ratio.toFixed(2)
+                    : 'N/A';
+                
                 const shortFloat = item.short_float || 'N/A';
                 const companyName = item.company_name || item.ticker;
 
@@ -545,6 +555,7 @@
                         <td>${companyName}</td>
                         <td>${totalScore}</td>
                         <td>${financialScore}</td>
+                        <td>${adjustedPeRatio}</td>
                         <td>${shortFloat}</td>
                         <td>
                             <button class="remove-button" onclick="removeFromWatchlist('${item.ticker}')">

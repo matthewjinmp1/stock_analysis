@@ -362,6 +362,7 @@ def get_watchlist_api():
                     'short_float': data.get('short_float'),
                     'total_score_percentile_rank': data.get('total_score_percentile_rank'),
                     'financial_total_percentile': financial_scores.get('total_percentile') if financial_scores else None,
+                    'adjusted_pe_ratio': data.get('adjusted_pe_ratio'),
                 })
             else:
                 # Include ticker even if no data available
@@ -371,6 +372,7 @@ def get_watchlist_api():
                     'short_float': None,
                     'total_score_percentile_rank': None,
                     'financial_total_percentile': None,
+                    'adjusted_pe_ratio': None,
                 })
         
         return jsonify({

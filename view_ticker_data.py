@@ -48,7 +48,7 @@ def find_ticker_data(ticker: str):
                         print(f"\n{'='*80}")
                         print("RAW DATA:")
                         print(f"{'='*80}\n")
-                        print(json.dumps(data, indent=2, ensure_ascii=False))
+                        print(json.dumps(data, ensure_ascii=False))
                         print(f"\n{'='*80}")
                         return data
                         

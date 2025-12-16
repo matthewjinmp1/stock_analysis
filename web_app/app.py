@@ -33,7 +33,7 @@ from web_app.watchlist_db import (
 )
 
 # Import peer database
-from web_app.peer_db import get_peers_for_ticker, load_peers
+from web_app.peer_db import get_peers_for_ticker, init_peers_database
 
 # Import score calculator for weights and definitions
 from web_app.score_calculator import SCORE_WEIGHTS, SCORE_DEFINITIONS
@@ -70,6 +70,7 @@ app = Flask(__name__)
 # Initialize databases on startup
 init_database()
 init_watchlist_database()
+init_peers_database()
 
 def find_best_match(query: str) -> tuple:
     """Find exact ticker match for a query.

@@ -14,8 +14,9 @@ Or run without arguments for interactive mode:
 import json
 import os
 import sys
+import statistics
 from quickfs import QuickFS
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
 # Try to import config, fallback to environment variable
 try:
@@ -101,6 +102,116 @@ def get_all_data(ticker: str) -> Optional[Dict]:
             print(f"  Error fetching data for {ticker_upper}: {e}")
         return None
 
+def calculate_adjusted_pe_ratio(quarterly: Dict) -> Optional[float]:
+    """
+    Calculate Adjusted PE Ratio = EV / Adjusted Operating Income (after tax)
+    
+    Steps:
+    1. Get TTM operating income (sum of last 4 quarters)
+    2. Get TTM depreciation and amortization (DA)
+    3. Get TTM capex
+    4. If |DA| > |capex|, add back (DA - capex) to operating income
+    5. Calculate 5-year median tax rate from income_tax / pretax_income
+    6. Apply tax rate to adjusted operating income
+    7. Adjusted PE = EV / adjusted operating income (after tax)
+    
+    Returns:
+        Adjusted PE ratio or None if calculation not possible
+    """
+    if not quarterly:
+        return None
+    
+    # Get required data arrays
+    operating_income = quarterly.get("operating_income", [])
+    # Try both DA fields
+    da = quarterly.get("cfo_da", [])
+    if not da or (isinstance(da, list) and len(da) == 0):
+        da = quarterly.get("da_income_statement_supplemental", [])
+    capex = quarterly.get("capex", [])
+    enterprise_value = quarterly.get("enterprise_value", [])
+    income_tax = quarterly.get("income_tax", [])
+    pretax_income = quarterly.get("pretax_income", [])
+    
+    # Validate data types and minimum length
+    if not all(isinstance(arr, list) for arr in [operating_income, da, capex, enterprise_value, income_tax, pretax_income]):
+        return None
+    
+    # Need at least 4 quarters for TTM and 20 quarters for 5-year median tax rate
+    min_quarters = max(4, 20)
+    if len(operating_income) < min_quarters:
+        return None
+    
+    # Find the most recent position where we have enough data
+    for j in range(len(operating_income) - 1, min_quarters - 1, -1):
+        # Get EV from most recent quarter
+        if j >= len(enterprise_value) or enterprise_value[j] is None or enterprise_value[j] == 0:
+            continue
+        
+        ev = enterprise_value[j]
+        
+        # Calculate TTM operating income (sum of last 4 quarters)
+        ttm_oi = 0.0
+        ttm_da = 0.0
+        ttm_capex = 0.0
+        valid_ttm = True
+        
+        for k in range(max(0, j - 3), j + 1):
+            if k < len(operating_income) and operating_income[k] is not None:
+                ttm_oi += float(operating_income[k])
+            else:
+                valid_ttm = False
+                break
+            
+            if k < len(da) and da[k] is not None:
+                ttm_da += float(da[k])
+            
+            if k < len(capex) and capex[k] is not None:
+                ttm_capex += float(capex[k])
+        
+        if not valid_ttm:
+            continue
+        
+        # Step 4: If |DA| > |capex|, add back (DA - capex) to operating income
+        abs_da = abs(ttm_da)
+        abs_capex = abs(ttm_capex)
+        
+        if abs_da > abs_capex:
+            adjustment = ttm_da - ttm_capex
+            adjusted_oi = ttm_oi + adjustment
+        else:
+            adjusted_oi = ttm_oi
+        
+        # Step 5: Calculate 5-year median tax rate (last 20 quarters)
+        tax_rates = []
+        for k in range(max(0, j - 19), j + 1):
+            if k < len(income_tax) and k < len(pretax_income):
+                tax = income_tax[k] if income_tax[k] is not None else None
+                pretax = pretax_income[k] if pretax_income[k] is not None else None
+                
+                if tax is not None and pretax is not None and pretax != 0:
+                    # Tax rate = income_tax / pretax_income
+                    # Note: income_tax is often negative (tax benefit), so we use absolute value
+                    tax_rate = abs(tax) / abs(pretax) if pretax != 0 else None
+                    if tax_rate is not None and 0 <= tax_rate <= 1:  # Valid tax rate between 0 and 1
+                        tax_rates.append(tax_rate)
+        
+        if not tax_rates:
+            # If no valid tax rates, use a default (e.g., 0.21 for US corporate tax)
+            median_tax_rate = 0.21
+        else:
+            # Calculate median tax rate
+            median_tax_rate = statistics.median(tax_rates)
+        
+        # Step 6: Apply tax rate to adjusted operating income
+        adjusted_oi_after_tax = adjusted_oi * (1 - median_tax_rate)
+        
+        # Step 7: Calculate Adjusted PE = EV / adjusted operating income (after tax)
+        if adjusted_oi_after_tax != 0:
+            adjusted_pe = ev / adjusted_oi_after_tax
+            return adjusted_pe
+    
+    return None
+
 def display_data(data: Dict):
     """Display the financial data in a readable format."""
     if not data:
@@ -144,6 +255,18 @@ def display_data(data: Dict):
                     print(f"    {metric}: {preview} ... ({len(values)} total quarters)")
         
         print()
+        
+        # Calculate and display Adjusted PE Ratio
+        adjusted_pe = calculate_adjusted_pe_ratio(quarterly)
+        if adjusted_pe is not None:
+            print("CALCULATED METRICS:")
+            print(f"  Adjusted PE Ratio: {adjusted_pe:.2f}")
+            print(f"    (EV / Adjusted Operating Income after tax)")
+            print()
+        else:
+            print("CALCULATED METRICS:")
+            print(f"  Adjusted PE Ratio: Not calculable (insufficient data)")
+            print()
     
     # Display annual data summary
     annual = data.get("financials", {}).get("annual", {})

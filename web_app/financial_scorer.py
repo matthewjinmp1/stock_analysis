@@ -423,124 +423,6 @@ def _calc_net_debt_to_ttm_operating_income(stock_data: Dict) -> Optional[Tuple[s
                 return (symbol, company_name, worst_value, period_dates[j])
     return None
 
-def _calc_adjusted_pe_ratio(stock_data: Dict) -> Optional[Tuple[str, str, float, str]]:
-    """
-    Calculate Adjusted PE Ratio = EV / Adjusted Operating Income (after tax)
-    
-    Steps:
-    1. Get TTM operating income (sum of last 4 quarters)
-    2. Get TTM depreciation and amortization (DA)
-    3. Get TTM capex
-    4. If |DA| > |capex|, add back (DA - capex) to operating income
-    5. Calculate 5-year median tax rate from income_tax / pretax_income
-    6. Apply tax rate to adjusted operating income
-    7. Adjusted PE = EV / adjusted operating income (after tax)
-    
-    Lower is better (reverse score)
-    """
-    if not stock_data or "data" not in stock_data:
-        return None
-    
-    symbol = stock_data.get("symbol")
-    company_name = stock_data.get("company_name", symbol)
-    data = stock_data.get("data", {})
-    period_dates = _get_period_dates(data)
-    if not period_dates or not isinstance(period_dates, list) or len(period_dates) < 4:
-        return None
-    
-    operating_income = data.get("operating_income", [])
-    # Try both DA fields
-    da = data.get("cfo_da", [])
-    if not da or (isinstance(da, list) and len(da) == 0):
-        da = data.get("da_income_statement_supplemental", [])
-    capex = data.get("capex", [])
-    enterprise_value = data.get("enterprise_value", [])
-    income_tax = data.get("income_tax", [])
-    pretax_income = data.get("pretax_income", [])
-    
-    if not isinstance(operating_income, list) or not isinstance(da, list) or \
-       not isinstance(capex, list) or not isinstance(enterprise_value, list) or \
-       not isinstance(income_tax, list) or not isinstance(pretax_income, list):
-        return None
-    
-    # Need at least 4 quarters for TTM and 20 quarters for 5-year median tax rate
-    if len(period_dates) < 20:
-        return None
-    
-    # Find the most recent position where we have enough data
-    for j in range(len(period_dates) - 1, 3, -1):
-        if j < len(enterprise_value) and enterprise_value[j] is not None and enterprise_value[j] != 0:
-            # Get EV from most recent quarter
-            ev = enterprise_value[j]
-            
-            # Calculate TTM operating income (sum of last 4 quarters)
-            ttm_oi = 0.0
-            ttm_da = 0.0
-            ttm_capex = 0.0
-            valid_ttm = True
-            
-            for k in range(max(0, j - 3), j + 1):
-                if k < len(operating_income) and operating_income[k] is not None:
-                    ttm_oi += float(operating_income[k])
-                else:
-                    valid_ttm = False
-                    break
-                
-                if k < len(da) and da[k] is not None:
-                    ttm_da += float(da[k])
-                
-                if k < len(capex) and capex[k] is not None:
-                    ttm_capex += float(capex[k])
-            
-            if not valid_ttm:
-                continue
-            
-            # Step 4: If |DA| > |capex|, add back (DA - capex) to operating income
-            abs_da = abs(ttm_da)
-            abs_capex = abs(ttm_capex)
-            
-            if abs_da > abs_capex:
-                adjustment = ttm_da - ttm_capex
-                adjusted_oi = ttm_oi + adjustment
-            else:
-                adjusted_oi = ttm_oi
-            
-            # Step 5: Calculate 5-year median tax rate (last 20 quarters)
-            tax_rates = []
-            for k in range(max(0, j - 19), j + 1):
-                if k < len(income_tax) and k < len(pretax_income):
-                    tax = income_tax[k] if income_tax[k] is not None else None
-                    pretax = pretax_income[k] if pretax_income[k] is not None else None
-                    
-                    if tax is not None and pretax is not None and pretax != 0:
-                        # Tax rate = income_tax / pretax_income
-                        # Note: income_tax is often negative (tax benefit), so we use absolute value
-                        tax_rate = abs(tax) / abs(pretax) if pretax != 0 else None
-                        if tax_rate is not None and 0 <= tax_rate <= 1:  # Valid tax rate between 0 and 1
-                            tax_rates.append(tax_rate)
-            
-            if not tax_rates:
-                # If no valid tax rates, use a default (e.g., 0.21 for US corporate tax)
-                median_tax_rate = 0.21
-            else:
-                # Calculate median tax rate
-                sorted_rates = sorted(tax_rates)
-                n = len(sorted_rates)
-                if n % 2 == 0:
-                    median_tax_rate = (sorted_rates[n//2 - 1] + sorted_rates[n//2]) / 2
-                else:
-                    median_tax_rate = sorted_rates[n//2]
-            
-            # Step 6: Apply tax rate to adjusted operating income
-            adjusted_oi_after_tax = adjusted_oi * (1 - median_tax_rate)
-            
-            # Step 7: Calculate Adjusted PE = EV / adjusted operating income (after tax)
-            if adjusted_oi_after_tax != 0:
-                adjusted_pe = ev / adjusted_oi_after_tax
-                return (symbol, company_name, adjusted_pe, period_dates[j])
-    
-    return None
-
 # ============================================================================
 # METRIC REGISTRY - ADD NEW METRICS HERE
 # ============================================================================
@@ -608,14 +490,6 @@ METRICS: List[MetricConfig] = [
         description="Net Debt to TTM Operating Income = Net Debt / (Sum of Operating Income for last 4 quarters). Lower is better. Edge cases: negative net debt set to 0, negative operating income set to 1000, both negative set to 0.",
         calculator=_calc_net_debt_to_ttm_operating_income,
         sort_descending=False,  # Lower debt is better
-        include_in_total=True
-    ),
-    MetricConfig(
-        key="adjusted_pe_ratio",
-        display_name="Adjusted PE Ratio",
-        description="Adjusted PE Ratio = EV / Adjusted Operating Income (after tax). Adjusted OI = TTM OI + (DA - Capex) if |DA| > |Capex|, then apply 5-year median tax rate. Lower is better.",
-        calculator=_calc_adjusted_pe_ratio,
-        sort_descending=False,  # Lower PE is better
         include_in_total=True
     ),
 ]

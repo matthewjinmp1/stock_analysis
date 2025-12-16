@@ -297,6 +297,9 @@
             const totalScorePercentage = data.total_score_percentage !== undefined ? data.total_score_percentage : null;
             const totalScorePercentileRank = data.total_score_percentile_rank !== undefined ? data.total_score_percentile_rank : null;
             const companyName = data.company_name || null;
+            const glassdoorRating = data.glassdoor_rating !== undefined ? data.glassdoor_rating : null;
+            const glassdoorNumReviews = data.glassdoor_num_reviews !== undefined ? data.glassdoor_num_reviews : null;
+            const glassdoorUrl = data.glassdoor_url || null;
 
             const resultHTML = `
                 <div class="result-card">
@@ -320,6 +323,15 @@
                         <div class="detail-item">
                             <div class="detail-label">Moat Score</div>
                             <div class="detail-value">${moatScore}/10</div>
+                        </div>
+                        ` : ''}
+                        ${glassdoorRating !== null ? `
+                        <div class="detail-item">
+                            <div class="detail-label">Glassdoor Rating</div>
+                            <div class="detail-value">
+                                ${glassdoorRating.toFixed(1)}/5.0${glassdoorNumReviews !== null ? ` (${glassdoorNumReviews.toLocaleString()} reviews)` : ''}
+                                ${glassdoorUrl ? ` <a href="${glassdoorUrl}" target="_blank" style="color: #667eea; text-decoration: none; margin-left: 5px;">🔗</a>` : ''}
+                            </div>
                         </div>
                         ` : ''}
                         ${shortFloat !== null ? `

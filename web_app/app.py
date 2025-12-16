@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 """
-Simple Flask web application to search for short interest by ticker symbol.
+Simple Flask web application to search for stock data by ticker symbol or company name.
+Uses unified cache database to store and retrieve all UI data.
 """
 from flask import Flask, render_template, jsonify, request
 import json
 import os
 import sys
 import sqlite3
+import difflib
 
 # Ensure project root is on path so we can import modules
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-# Import short interest fetching function
-from web_app.get_short_interest import get_short_interest_for_ticker
+# Import unified cache database manager
+from web_app.ui_cache_db import get_complete_data, init_database, get_cached_data
 
 # Import company name lookup function
 from src.scrapers.glassdoor_scraper import get_company_name_from_ticker
@@ -24,66 +26,86 @@ from web_app.score_calculator import SCORE_WEIGHTS, SCORE_DEFINITIONS
 
 app = Flask(__name__)
 
-# Path to the short interest cache file
-SHORT_INTEREST_FILE = os.path.join(os.path.dirname(__file__), 'data', 'short_interest_cache.json')
-# Path to the scores database
-SCORES_DB = os.path.join(os.path.dirname(__file__), 'data', 'scores.db')
+# Initialize database on startup
+init_database()
 
-def get_score_for_ticker(ticker: str):
-    """Get score data for a ticker from the database.
-
+def find_best_match(query: str) -> tuple:
+    """Find best matching ticker for a query (ticker or company name).
+    
     Args:
-        ticker: Stock ticker symbol (uppercase)
+        query: User search query (ticker or company name)
         
     Returns:
-        dict: Score data for the ticker, or None if not found
+        tuple: (ticker, match_type) where match_type is 'ticker' or 'company_name'
     """
-    if not os.path.exists(SCORES_DB):
-        return None
+    query_upper = query.strip().upper()
+    query_lower = query.strip().lower()
+    query_words = query_lower.split()
+    
+    # Get all cached data to search through
+    cache_db_path = os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db')
+    if not os.path.exists(cache_db_path):
+        return None, None
     
     try:
-        conn = sqlite3.connect(SCORES_DB)
+        conn = sqlite3.connect(cache_db_path)
         cursor = conn.cursor()
-        
-        # Get all columns (ticker + all metrics + calculated scores)
-        cursor.execute('SELECT * FROM scores WHERE ticker = ?', (ticker.upper(),))
-        row = cursor.fetchone()
-        
-        if not row:
-            conn.close()
-            return None
-        
-        # Get column names
-        column_names = [description[0] for description in cursor.description]
-        
-        # Build dictionary from row data
-        score_data = {}
-        for i, value in enumerate(row):
-            if column_names[i] != 'ticker' and value is not None:
-                score_data[column_names[i]] = value
-        
+        cursor.execute('SELECT ticker, company_name FROM ui_cache')
+        all_companies = cursor.fetchall()
         conn.close()
-        return score_data if score_data else None
     except Exception as e:
-        print(f"Error querying scores database: {e}")
-        return None
-
-def load_short_interest_data():
-    """Load short interest data from cache JSON file.
-
-    Returns:
-        dict mapping ticker -> short interest info dict
-    """
-    try:
-        with open(SHORT_INTEREST_FILE, 'r') as f:
-            data = json.load(f)
-            # Cache file format: {"AAPL": {...}, "MSFT": {...}, ...}
-            # Already a flat dict, so return it directly
-            return data
-    except FileNotFoundError:
-        return {}
-    except json.JSONDecodeError:
-        return {}
+        print(f"Error querying cache for matching: {e}")
+        return None, None
+    
+    if not all_companies:
+        return None, None
+    
+    # 1. Try exact ticker match
+    for ticker, company_name in all_companies:
+        if ticker and ticker.upper() == query_upper:
+            return ticker, 'ticker'
+    
+    # 2. Try exact word matches in company name (all query words must match)
+    exact_word_matches = []
+    for ticker, company_name in all_companies:
+        if not company_name:
+            continue
+        company_words = company_name.lower().split()
+        # Check if all query words match as complete words in company name
+        if all(any(qw == cw for cw in company_words) for qw in query_words):
+            exact_word_matches.append((ticker, company_name))
+    
+    if exact_word_matches:
+        # Return first exact word match
+        return exact_word_matches[0][0], 'company_name'
+    
+    # 3. Try substring matches in company name
+    substring_matches = []
+    for ticker, company_name in all_companies:
+        if not company_name:
+            continue
+        if query_lower in company_name.lower():
+            substring_matches.append((ticker, company_name))
+    
+    if substring_matches:
+        # Return first substring match
+        return substring_matches[0][0], 'company_name'
+    
+    # 4. Try fuzzy matching on company names
+    best_match = None
+    best_ratio = 0.0
+    for ticker, company_name in all_companies:
+        if not company_name:
+            continue
+        ratio = difflib.SequenceMatcher(None, query_lower, company_name.lower()).ratio()
+        if ratio > best_ratio and ratio > 0.6:  # Threshold for fuzzy match
+            best_ratio = ratio
+            best_match = ticker
+    
+    if best_match:
+        return best_match, 'company_name'
+    
+    return None, None
 
 @app.route('/')
 def index():
@@ -92,75 +114,90 @@ def index():
 
 @app.route('/api/search/<query>')
 def search_ticker(query):
-    """API endpoint to search for short interest by ticker symbol.
+    """API endpoint to search for stock data by ticker symbol or company name.
     
-    get_short_interest_for_ticker handles all caching and date checking logic.
-    Also includes score data from scores.db if available.
+    Uses unified cache database. If data is missing, fetches and caches it.
     """
-    ticker = query.strip().upper()
+    # Find best matching ticker (handles both ticker and company name queries)
+    ticker, match_type = find_best_match(query)
     
-    # Get company name from ticker
-    company_name = get_company_name_from_ticker(ticker)
-    
-    # Get score data from database
-    score_data = get_score_for_ticker(ticker)
-    
-    try:
-        # get_short_interest_for_ticker handles cache checking and refreshing
-        si_result = get_short_interest_for_ticker(ticker)
-        
-        if si_result:
-            # Build response data
-            response_data = {
-                'ticker': ticker,
-                'company_name': company_name,
-                'short_float': si_result.get('short_float'),
-            }
-            
-            # Add score data if available
-            if score_data:
-                response_data['moat_score'] = score_data.get('moat_score')
-                
-                # Get pre-calculated total score percentage and percentile rank from database
-                response_data['total_score_percentage'] = score_data.get('total_score_percentage')
-                response_data['total_score_percentile_rank'] = score_data.get('total_score_percentile_rank')
-            
-            return jsonify({
-                'success': True,
-                'ticker': ticker,
-                'query': query,
-                'data': response_data
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'query': query,
-                'message': f'No short interest data found for "{ticker}". Please check that the ticker is valid.'
-            }), 404
-    except Exception as e:
-        # If fetching fails, return error
-        print(f"Warning: Could not fetch short interest for {ticker}: {e}")
+    if not ticker:
         return jsonify({
             'success': False,
             'query': query,
-            'message': f'Could not fetch short interest for "{ticker}". Please check that the ticker is valid.'
+            'message': f'No match found for "{query}". Please try a ticker symbol or company name.'
         }), 404
+    
+    try:
+        # Get complete data from unified cache (fetches if missing)
+        data = get_complete_data(ticker)
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'query': query,
+                'message': f'Could not fetch data for "{ticker}". Please check that the ticker is valid.'
+            }), 404
+        
+        # Build response data from unified cache
+        response_data = {
+            'ticker': ticker,
+            'company_name': data.get('company_name'),
+            'short_float': data.get('short_float'),
+            'moat_score': data.get('moat_score'),
+            'total_score_percentage': data.get('total_score_percentage'),
+            'total_score_percentile_rank': data.get('total_score_percentile_rank'),
+            'glassdoor_rating': data.get('glassdoor_rating'),
+            'glassdoor_num_reviews': data.get('glassdoor_num_reviews'),
+            'glassdoor_url': data.get('glassdoor_url'),
+        }
+        
+        return jsonify({
+            'success': True,
+            'ticker': ticker,
+            'query': query,
+            'match_type': match_type,
+            'data': response_data
+        })
+    except Exception as e:
+        # If fetching fails, return error
+        print(f"Error fetching data for {ticker}: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'query': query,
+            'message': f'Error fetching data for "{ticker}": {str(e)}'
+        }), 500
 
 @app.route('/metrics/<ticker>')
 def metrics_page(ticker):
     """Display all metric scores for a ticker."""
     ticker = ticker.strip().upper()
     
-    # Get company name
-    company_name = get_company_name_from_ticker(ticker)
+    # Get complete data from unified cache
+    data = get_complete_data(ticker)
     
-    # Get all score data from database
-    score_data = get_score_for_ticker(ticker)
-    
-    if not score_data:
+    if not data:
         return render_template('metrics.html', 
                              ticker=ticker,
-                             company_name=company_name,
+                             company_name=None,
+                             error="No data found for this ticker.")
+    
+    # Extract score data from unified cache
+    score_data = {}
+    for key in data.keys():
+        # Include all metric columns and calculated scores
+        if key not in ['ticker', 'company_name', 'last_updated', 'short_float', 
+                       'short_interest_scraped_at', 'glassdoor_rating', 
+                       'glassdoor_num_reviews', 'glassdoor_url', 'glassdoor_snippet', 
+                       'glassdoor_fetched_at']:
+            score_data[key] = data[key]
+    
+    if not score_data or not any(score_data.values()):
+        return render_template('metrics.html', 
+                             ticker=ticker,
+                             company_name=data.get('company_name'),
                              error="No score data found for this ticker.")
     
     # Calculate contribution of each metric to total score
@@ -214,7 +251,7 @@ def metrics_page(ticker):
     
     return render_template('metrics.html',
                          ticker=ticker,
-                         company_name=company_name,
+                         company_name=data.get('company_name'),
                          metrics=metrics_detail,
                          total_score_percentage=total_score_percentage,
                          total_score_percentile_rank=total_score_percentile_rank,
@@ -222,14 +259,33 @@ def metrics_page(ticker):
 
 @app.route('/api/list')
 def list_all():
-    """API endpoint to list all available tickers with cached short interest."""
-    short_interest = load_short_interest_data()
-    tickers = sorted(short_interest.keys())
-    return jsonify({
-        'success': True,
-        'count': len(tickers),
-        'tickers': tickers
-    })
+    """API endpoint to list all available tickers in the unified cache."""
+    cache_db_path = os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db')
+    if not os.path.exists(cache_db_path):
+        return jsonify({
+            'success': True,
+            'count': 0,
+            'tickers': []
+        })
+    
+    try:
+        conn = sqlite3.connect(cache_db_path)
+        cursor = conn.cursor()
+        cursor.execute('SELECT ticker FROM ui_cache ORDER BY ticker')
+        rows = cursor.fetchall()
+        conn.close()
+        tickers = [row[0] for row in rows]
+        return jsonify({
+            'success': True,
+            'count': len(tickers),
+            'tickers': tickers
+        })
+    except Exception as e:
+        print(f"Error listing tickers: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

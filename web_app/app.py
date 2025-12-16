@@ -149,9 +149,6 @@ def search_ticker(query):
             'moat_score': data.get('moat_score'),
             'total_score_percentage': data.get('total_score_percentage'),
             'total_score_percentile_rank': data.get('total_score_percentile_rank'),
-            'glassdoor_rating': data.get('glassdoor_rating'),
-            'glassdoor_num_reviews': data.get('glassdoor_num_reviews'),
-            'glassdoor_url': data.get('glassdoor_url'),
         }
         
         return jsonify({
@@ -191,9 +188,7 @@ def metrics_page(ticker):
     for key in data.keys():
         # Include all metric columns and calculated scores
         if key not in ['ticker', 'company_name', 'last_updated', 'short_float', 
-                       'short_interest_scraped_at', 'glassdoor_rating', 
-                       'glassdoor_num_reviews', 'glassdoor_url', 'glassdoor_snippet', 
-                       'glassdoor_fetched_at']:
+                       'short_interest_scraped_at']:
             score_data[key] = data[key]
     
     if not score_data or not any(score_data.values()):

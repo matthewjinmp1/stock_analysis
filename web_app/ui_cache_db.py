@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Unified database cache for all UI data.
-Stores company name, scores, short interest, and Glassdoor ratings.
+Stores company name, scores, and short interest.
 """
 
 import sqlite3
@@ -16,7 +16,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 # Import data fetching functions
-from src.scrapers.glassdoor_scraper import get_company_name_from_ticker, get_glassdoor_rating_with_direct_grok
+from src.scrapers.glassdoor_scraper import get_company_name_from_ticker
 from src.scrapers.get_short_interest import scrape_ticker_short_interest
 from web_app.score_calculator import calculate_total_score, SCORE_DEFINITIONS
 
@@ -77,13 +77,6 @@ def init_database():
     # Add short interest data
     columns.append('short_float TEXT')
     columns.append('short_interest_scraped_at TEXT')
-    
-    # Add Glassdoor data
-    columns.append('glassdoor_rating REAL')
-    columns.append('glassdoor_num_reviews INTEGER')
-    columns.append('glassdoor_url TEXT')
-    columns.append('glassdoor_snippet TEXT')
-    columns.append('glassdoor_fetched_at TEXT')
     
     # Create table
     create_table_sql = f'''
@@ -206,8 +199,7 @@ def fetch_and_cache_all_data(ticker: str, silent: bool = False) -> Optional[Dict
     1. Gets company name from ticker
     2. Fetches score data from scores.db (if available)
     3. Fetches short interest data
-    4. Fetches Glassdoor rating
-    5. Stores everything in the unified cache
+    4. Stores everything in the unified cache
     
     Args:
         ticker: Stock ticker symbol
@@ -272,25 +264,7 @@ def fetch_and_cache_all_data(ticker: str, silent: bool = False) -> Optional[Dict
         if not silent:
             print(f"  Warning: Could not fetch short interest: {e}")
     
-    # 4. Fetch Glassdoor rating
-    if company_name:
-        if not silent:
-            print(f"  Fetching Glassdoor rating...")
-        try:
-            glassdoor_data = get_glassdoor_rating_with_direct_grok(company_name, ticker, silent=True)
-            if glassdoor_data:
-                cache_data['glassdoor_rating'] = glassdoor_data.get('rating')
-                cache_data['glassdoor_num_reviews'] = glassdoor_data.get('num_reviews')
-                cache_data['glassdoor_url'] = glassdoor_data.get('url')
-                cache_data['glassdoor_snippet'] = glassdoor_data.get('snippet')
-                cache_data['glassdoor_fetched_at'] = datetime.now().isoformat()
-                if not silent:
-                    print(f"  Glassdoor rating: {glassdoor_data.get('rating')}")
-        except Exception as e:
-            if not silent:
-                print(f"  Warning: Could not fetch Glassdoor rating: {e}")
-    
-    # 5. Store in cache
+    # 4. Store in cache
     if cache_data:
         update_cache(ticker, cache_data)
         if not silent:
@@ -366,10 +340,9 @@ def get_complete_data(ticker: str) -> Optional[Dict[str, Any]]:
     # Check if we're missing essential data
     missing_company = not cached.get('company_name')
     missing_scores = not any(cached.get(col) for col in METRIC_COLUMNS)
-    missing_glassdoor = cached.get('glassdoor_rating') is None
     
     # If we need to refresh or are missing data, fetch
-    if needs_si_refresh or missing_company or missing_glassdoor:
+    if needs_si_refresh or missing_company:
         # Fetch only what's missing
         update_data = {}
         
@@ -391,21 +364,6 @@ def get_complete_data(ticker: str) -> Optional[Dict[str, Any]]:
                     update_data['short_interest_scraped_at'] = si_result.get('scraped_at')
             except Exception as e:
                 print(f"Warning: Could not refresh short interest: {e}")
-        
-        # Glassdoor rating
-        if missing_glassdoor:
-            company_name = cached.get('company_name') or update_data.get('company_name')
-            if company_name:
-                try:
-                    glassdoor_data = get_glassdoor_rating_with_direct_grok(company_name, ticker, silent=True)
-                    if glassdoor_data:
-                        update_data['glassdoor_rating'] = glassdoor_data.get('rating')
-                        update_data['glassdoor_num_reviews'] = glassdoor_data.get('num_reviews')
-                        update_data['glassdoor_url'] = glassdoor_data.get('url')
-                        update_data['glassdoor_snippet'] = glassdoor_data.get('snippet')
-                        update_data['glassdoor_fetched_at'] = datetime.now().isoformat()
-                except Exception as e:
-                    print(f"Warning: Could not fetch Glassdoor rating: {e}")
         
         # Update cache with new data
         if update_data:

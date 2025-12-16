@@ -111,8 +111,9 @@ def search_ticker(query):
             if score_data:
                 response_data['moat_score'] = score_data.get('moat_score')
                 
-                # Get pre-calculated total score percentage from database
+                # Get pre-calculated total score percentage and percentile rank from database
                 response_data['total_score_percentage'] = score_data.get('total_score_percentage')
+                response_data['total_score_percentile_rank'] = score_data.get('total_score_percentile_rank')
             
             return jsonify({
                 'success': True,

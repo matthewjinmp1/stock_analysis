@@ -284,6 +284,7 @@
             const shortFloat = data.short_float || null;
             const moatScore = data.moat_score || null;
             const totalScorePercentage = data.total_score_percentage !== undefined ? data.total_score_percentage : null;
+            const totalScorePercentileRank = data.total_score_percentile_rank !== undefined ? data.total_score_percentile_rank : null;
 
             const resultHTML = `
                 <div class="result-card">
@@ -296,7 +297,7 @@
                         ${totalScorePercentage !== null ? `
                         <div class="detail-item">
                             <div class="detail-label">Total Score</div>
-                            <div class="detail-value">${totalScorePercentage.toFixed(1)}%</div>
+                            <div class="detail-value">${totalScorePercentage.toFixed(1)}%${totalScorePercentileRank !== null ? ` (${totalScorePercentileRank}th percentile)` : ''}</div>
                         </div>
                         ` : ''}
                         ${moatScore !== null ? `

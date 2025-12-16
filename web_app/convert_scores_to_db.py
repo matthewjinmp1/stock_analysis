@@ -2,7 +2,7 @@
 """
 Convert scores.json to SQLite database (scores.db).
 Stores each metric as a separate column in the database.
-Also calculates and stores total_score, max_score, and total_score_percentage.
+Also calculates and stores total_score_percentage and total_score_percentile_rank.
 """
 
 import json
@@ -76,8 +76,9 @@ def convert_json_to_db():
     columns_sql = ['ticker TEXT PRIMARY KEY']
     for metric in METRIC_COLUMNS:
         columns_sql.append(f'{metric} TEXT')
-    # Add calculated score percentage column
+    # Add calculated score percentage and percentile rank columns
     columns_sql.append('total_score_percentage REAL')
+    columns_sql.append('total_score_percentile_rank INTEGER')
     
     create_table_sql = f'''
         CREATE TABLE scores (
@@ -92,15 +93,19 @@ def convert_json_to_db():
     # Insert data
     print("Inserting data into database...")
     inserted = 0
+    score_percentages = []  # Store all percentages for percentile calculation
+    
     for ticker, scores in companies.items():
         # Calculate total score percentage
         _, _, percentage = calculate_total_score(scores)
+        score_percentages.append((ticker.upper(), percentage))
         
         # Build INSERT statement with all columns including calculated percentage
+        # Note: percentile rank will be calculated after all inserts
         placeholders = ['?'] * (len(METRIC_COLUMNS) + 2)  # +1 for ticker, +1 for percentage
         insert_sql = f'''
-            INSERT INTO scores (ticker, {', '.join(METRIC_COLUMNS)}, total_score_percentage)
-            VALUES ({', '.join(placeholders)})
+            INSERT INTO scores (ticker, {', '.join(METRIC_COLUMNS)}, total_score_percentage, total_score_percentile_rank)
+            VALUES ({', '.join(placeholders)}, NULL)
         '''
         
         # Build values tuple: ticker first, then each metric value, then percentage
@@ -115,6 +120,30 @@ def convert_json_to_db():
             inserted += 1
         except Exception as e:
             print(f"Error inserting {ticker}: {e}")
+    
+    # Calculate percentile ranks for all companies
+    print("Calculating percentile ranks...")
+    if len(score_percentages) > 0:
+        # Extract all percentages for percentile calculation
+        all_percentages = [pct for _, pct in score_percentages if pct is not None]
+        
+        if len(all_percentages) > 0:
+            def calculate_percentile_rank(score, all_scores):
+                """Calculate percentile rank of a score among all scores."""
+                if not all_scores or len(all_scores) == 0:
+                    return None
+                scores_less_or_equal = sum(1 for s in all_scores if s <= score)
+                percentile = int((scores_less_or_equal / len(all_scores)) * 100)
+                return percentile
+            
+            # Update percentile rank for each company
+            for ticker, percentage in score_percentages:
+                if percentage is not None:
+                    percentile_rank = calculate_percentile_rank(percentage, all_percentages)
+                    cursor.execute(
+                        'UPDATE scores SET total_score_percentile_rank = ? WHERE ticker = ?',
+                        (percentile_rank, ticker)
+                    )
     
     # Commit and close
     conn.commit()

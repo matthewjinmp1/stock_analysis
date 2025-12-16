@@ -373,14 +373,13 @@ def scrape_revenue_data(ticker: str) -> Optional[Dict]:
         traceback.print_exc()
         return None
 
-def main():
-    """Main function."""
-    if len(sys.argv) < 2:
-        print("Usage: python scrape_quickfs_revenue.py <TICKER>")
-        print("Example: python scrape_quickfs_revenue.py AAPL")
-        sys.exit(1)
+def process_ticker(ticker: str):
+    """Process a single ticker and display results."""
+    ticker = ticker.strip().upper()
     
-    ticker = sys.argv[1].strip().upper()
+    if not ticker:
+        print("Error: Empty ticker provided")
+        return
     
     print(f"\n{'='*80}")
     print(f"Scraping revenue data for {ticker} from quickfs.net")
@@ -422,7 +421,6 @@ def main():
             print("  4. API requires authentication/API key")
             print(f"\nCheck the debug HTML file: quickfs_{ticker}_debug.html")
             print(f"{'='*80}\n")
-            sys.exit(1)
     else:
         print(f"\n{'='*80}")
         print("REVENUE DATA NOT FOUND")
@@ -435,7 +433,73 @@ def main():
         print("  3. Revenue data is in a different format")
         print(f"\nCheck the debug HTML file: quickfs_{ticker}_debug.html")
         print(f"{'='*80}\n")
-        sys.exit(1)
+
+def main():
+    """Main function with interactive loop."""
+    print(f"\n{'='*80}")
+    print("QuickFS Revenue Scraper")
+    print(f"{'='*80}")
+    print("Enter ticker symbols to scrape revenue data.")
+    print("Commands:")
+    print("  - Enter a ticker to scrape (e.g., AAPL, TSLA)")
+    print("  - Type 'quit' or 'exit' to exit")
+    print("  - Type 'help' for more information")
+    print(f"{'='*80}\n")
+    
+    # Check if ticker provided as command line argument
+    if len(sys.argv) >= 2:
+        ticker = sys.argv[1].strip().upper()
+        if ticker in ['QUIT', 'EXIT', 'HELP']:
+            # Treat as command, fall through to interactive mode
+            pass
+        else:
+            # Process the ticker and exit
+            process_ticker(ticker)
+            return
+    
+    # Interactive loop
+    while True:
+        try:
+            user_input = input("\nEnter ticker (or 'quit' to exit): ").strip()
+            
+            if not user_input:
+                continue
+            
+            user_input_upper = user_input.upper()
+            
+            # Handle commands
+            if user_input_upper in ['QUIT', 'EXIT', 'Q']:
+                print("\nExiting...")
+                break
+            elif user_input_upper in ['HELP', 'H']:
+                print("\n" + "="*80)
+                print("HELP")
+                print("="*80)
+                print("Enter a stock ticker symbol to scrape revenue data from quickfs.net")
+                print("\nExamples:")
+                print("  AAPL  - Apple Inc.")
+                print("  TSLA  - Tesla Inc.")
+                print("  MSFT  - Microsoft Corporation")
+                print("\nCommands:")
+                print("  quit, exit, q  - Exit the program")
+                print("  help, h        - Show this help message")
+                print("="*80)
+                continue
+            
+            # Process the ticker
+            process_ticker(user_input)
+            
+        except KeyboardInterrupt:
+            print("\n\nExiting...")
+            break
+        except EOFError:
+            print("\n\nExiting...")
+            break
+        except Exception as e:
+            print(f"\nError: {e}")
+            import traceback
+            traceback.print_exc()
+            continue
 
 if __name__ == '__main__':
     main()

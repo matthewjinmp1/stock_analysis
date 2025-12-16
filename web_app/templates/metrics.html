@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metrics - {{ ticker }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .header .ticker {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: #667eea;
+            text-decoration: none;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .summary {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .summary-item {
+            flex: 1;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .summary-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .summary-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .metrics-table {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #667eea;
+            color: white;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .metric-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .score-cell {
+            text-align: center;
+        }
+
+        .score-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .score-high {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .score-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .score-low {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .weight-cell {
+            text-align: center;
+            color: #666;
+        }
+
+        .contribution-cell {
+            text-align: right;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .percentage-cell {
+            text-align: right;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .reverse-badge {
+            display: inline-block;
+            background: #e9ecef;
+            color: #495057;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            margin-left: 8px;
+        }
+
+        .error-message {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            color: #721c24;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Search</a>
+        
+        {% if error %}
+        <div class="error-message">
+            <h2>Error</h2>
+            <p>{{ error }}</p>
+        </div>
+        {% else %}
+        <div class="header">
+            <h1>{{ company_name or ticker }}</h1>
+            <div class="ticker">{{ ticker }}</div>
+            
+            {% if total_score_percentage %}
+            <div class="summary">
+                <div class="summary-item">
+                    <div class="summary-label">Total Score</div>
+                    <div class="summary-value">{{ "%.1f"|format(total_score_percentage) }}%</div>
+                </div>
+                {% if total_score_percentile_rank %}
+                <div class="summary-item">
+                    <div class="summary-label">Percentile Rank</div>
+                    <div class="summary-value">{{ total_score_percentile_rank }}th</div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="metrics-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th class="score-cell">Raw Score</th>
+                        <th class="score-cell">Adjusted Score</th>
+                        <th class="weight-cell">Weight</th>
+                        <th class="contribution-cell">Contribution</th>
+                        <th class="percentage-cell">% of Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for metric in metrics %}
+                    <tr>
+                        <td class="metric-name">
+                            {{ metric.name }}
+                            {% if metric.is_reverse %}
+                            <span class="reverse-badge">Reverse</span>
+                            {% endif %}
+                        </td>
+                        <td class="score-cell">
+                            <span class="score-badge {% if metric.raw_score >= 7 %}score-high{% elif metric.raw_score >= 4 %}score-medium{% else %}score-low{% endif %}">
+                                {{ "%.1f"|format(metric.raw_score) }}/10
+                            </span>
+                        </td>
+                        <td class="score-cell">
+                            <span class="score-badge {% if metric.adjusted_score >= 7 %}score-high{% elif metric.adjusted_score >= 4 %}score-medium{% else %}score-low{% endif %}">
+                                {{ "%.1f"|format(metric.adjusted_score) }}/10
+                            </span>
+                        </td>
+                        <td class="weight-cell">{{ "%.2f"|format(metric.weight) }}</td>
+                        <td class="contribution-cell">{{ "%.2f"|format(metric.contribution) }}</td>
+                        <td class="percentage-cell">{{ "%.2f"|format(metric.percentage) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
+

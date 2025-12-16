@@ -161,6 +161,17 @@
             color: #333;
         }
 
+        .score-link {
+            color: inherit;
+            text-decoration: underline;
+            cursor: pointer;
+            transition: color 0.2s, opacity 0.2s;
+        }
+
+        .score-link:hover {
+            color: #667eea;
+            opacity: 0.8;
+        }
 
         .error {
             background: #fee;
@@ -298,7 +309,11 @@
                         ${totalScorePercentage !== null ? `
                         <div class="detail-item">
                             <div class="detail-label">Total Score</div>
-                            <div class="detail-value">${totalScorePercentage.toFixed(1)}%${totalScorePercentileRank !== null ? ` (${totalScorePercentileRank}th percentile)` : ''}</div>
+                            <div class="detail-value">
+                                <a href="/metrics/${ticker}" class="score-link">
+                                    ${totalScorePercentage.toFixed(1)}%${totalScorePercentileRank !== null ? ` (${totalScorePercentileRank}th percentile)` : ''}
+                                </a>
+                            </div>
                         </div>
                         ` : ''}
                         ${moatScore !== null ? `

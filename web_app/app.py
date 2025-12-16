@@ -19,6 +19,9 @@ from web_app.get_short_interest import get_short_interest_for_ticker
 # Import company name lookup function
 from src.scrapers.glassdoor_scraper import get_company_name_from_ticker
 
+# Import score calculator for weights and definitions
+from web_app.score_calculator import SCORE_WEIGHTS, SCORE_DEFINITIONS
+
 app = Flask(__name__)
 
 # Path to the short interest cache file
@@ -142,6 +145,80 @@ def search_ticker(query):
             'query': query,
             'message': f'Could not fetch short interest for "{ticker}". Please check that the ticker is valid.'
         }), 404
+
+@app.route('/metrics/<ticker>')
+def metrics_page(ticker):
+    """Display all metric scores for a ticker."""
+    ticker = ticker.strip().upper()
+    
+    # Get company name
+    company_name = get_company_name_from_ticker(ticker)
+    
+    # Get all score data from database
+    score_data = get_score_for_ticker(ticker)
+    
+    if not score_data:
+        return render_template('metrics.html', 
+                             ticker=ticker,
+                             company_name=company_name,
+                             error="No score data found for this ticker.")
+    
+    # Calculate contribution of each metric to total score
+    metrics_detail = []
+    total_score = 0.0
+    max_score = sum(SCORE_WEIGHTS.get(key, 1.0) for key in SCORE_DEFINITIONS) * 10
+    
+    for score_key in SCORE_DEFINITIONS:
+        score_def = SCORE_DEFINITIONS[score_key]
+        weight = SCORE_WEIGHTS.get(score_key, 1.0)
+        
+        try:
+            score_value_str = score_data.get(score_key)
+            if score_value_str is None:
+                continue
+                
+            score_value = float(score_value_str)
+            
+            # For reverse scores, invert to get "goodness" value
+            if score_def['is_reverse']:
+                adjusted_value = 10 - score_value
+                contribution = adjusted_value * weight
+            else:
+                adjusted_value = score_value
+                contribution = score_value * weight
+            
+            total_score += contribution
+            
+            # Format metric name for display
+            display_name = score_key.replace('_', ' ').title()
+            
+            metrics_detail.append({
+                'key': score_key,
+                'name': display_name,
+                'raw_score': score_value,
+                'adjusted_score': adjusted_value,
+                'weight': weight,
+                'contribution': contribution,
+                'is_reverse': score_def['is_reverse'],
+                'percentage': (contribution / max_score) * 100 if max_score > 0 else 0
+            })
+        except (ValueError, TypeError):
+            continue
+    
+    # Sort by contribution (descending)
+    metrics_detail.sort(key=lambda x: x['contribution'], reverse=True)
+    
+    # Get total score percentage
+    total_score_percentage = score_data.get('total_score_percentage')
+    total_score_percentile_rank = score_data.get('total_score_percentile_rank')
+    
+    return render_template('metrics.html',
+                         ticker=ticker,
+                         company_name=company_name,
+                         metrics=metrics_detail,
+                         total_score_percentage=total_score_percentage,
+                         total_score_percentile_rank=total_score_percentile_rank,
+                         max_score=max_score)
 
 @app.route('/api/list')
 def list_all():

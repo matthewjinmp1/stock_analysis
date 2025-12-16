@@ -26,30 +26,126 @@ def init_database():
     conn = sqlite3.connect(FINANCIAL_SCORES_DB)
     cursor = conn.cursor()
     
-    # Build column definitions
-    columns = [
-        'ticker TEXT PRIMARY KEY',
-        'company_name TEXT',
-        'exchange TEXT',
-        'period TEXT',
-        'market_cap REAL',
-        'total_percentile REAL',
-        'total_rank INTEGER',
-    ]
+    # Check if table exists
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='financial_scores'")
+    table_exists = cursor.fetchone() is not None
     
-    # Add all metric columns (value, rank, percentile for each)
-    for metric in METRICS:
-        columns.append(f'{metric.key} REAL')  # Metric value
-        columns.append(f'{metric.key}_rank INTEGER')  # Rank
-        columns.append(f'{metric.key}_percentile REAL')  # Percentile
-    
-    # Create table
-    create_table_sql = f'''
-        CREATE TABLE IF NOT EXISTS financial_scores (
-            {', '.join(columns)}
-        )
-    '''
-    cursor.execute(create_table_sql)
+    if table_exists:
+        # Get existing columns
+        cursor.execute("PRAGMA table_info(financial_scores)")
+        existing_columns = {row[1] for row in cursor.fetchall()}
+        
+        # Build required columns
+        required_columns = {
+            'ticker', 'company_name', 'exchange', 'period', 'market_cap', 
+            'total_percentile', 'total_rank'
+        }
+        
+        # Add all metric columns
+        for metric in METRICS:
+            required_columns.add(metric.key)
+            required_columns.add(f'{metric.key}_rank')
+            required_columns.add(f'{metric.key}_percentile')
+        
+        # Find missing columns
+        missing_columns = required_columns - existing_columns
+        
+        if missing_columns:
+            print(f"Adding {len(missing_columns)} missing columns to financial_scores table...")
+            # SQLite doesn't support adding multiple columns easily, so we'll recreate the table
+            # This is safer than trying to ALTER TABLE for each missing column
+            cursor.execute("SELECT * FROM financial_scores LIMIT 1")
+            old_columns = [description[0] for description in cursor.description]
+            
+            # Get all existing data
+            cursor.execute("SELECT * FROM financial_scores")
+            existing_data = cursor.fetchall()
+            
+            # Drop old table
+            cursor.execute("DROP TABLE financial_scores")
+            
+            # Build new column definitions
+            columns = [
+                'ticker TEXT PRIMARY KEY',
+                'company_name TEXT',
+                'exchange TEXT',
+                'period TEXT',
+                'market_cap REAL',
+                'total_percentile REAL',
+                'total_rank INTEGER',
+            ]
+            
+            # Add all metric columns (value, rank, percentile for each)
+            for metric in METRICS:
+                columns.append(f'{metric.key} REAL')  # Metric value
+                columns.append(f'{metric.key}_rank INTEGER')  # Rank
+                columns.append(f'{metric.key}_percentile REAL')  # Percentile
+            
+            # Create new table
+            create_table_sql = f'''
+                CREATE TABLE financial_scores (
+                    {', '.join(columns)}
+                )
+            '''
+            cursor.execute(create_table_sql)
+            
+            # Reinsert existing data (only columns that exist in both old and new)
+            if existing_data:
+                new_columns = ['ticker', 'company_name', 'exchange', 'period', 'market_cap', 
+                              'total_percentile', 'total_rank']
+                for metric in METRICS:
+                    new_columns.append(metric.key)
+                    new_columns.append(f'{metric.key}_rank')
+                    new_columns.append(f'{metric.key}_percentile')
+                
+                # Find common columns
+                common_columns = [col for col in new_columns if col in old_columns]
+                
+                if common_columns:
+                    placeholders = ', '.join(['?' for _ in common_columns])
+                    insert_sql = f'''
+                        INSERT INTO financial_scores ({', '.join(common_columns)})
+                        VALUES ({placeholders})
+                    '''
+                    
+                    # Map old data to new structure
+                    old_col_indices = {col: old_columns.index(col) for col in common_columns if col in old_columns}
+                    
+                    for row in existing_data:
+                        values = [row[old_col_indices[col]] if col in old_col_indices else None 
+                                 for col in common_columns]
+                        cursor.execute(insert_sql, values)
+            
+            print(f"Table recreated with new schema. Preserved {len(existing_data)} existing records.")
+        else:
+            # Table exists and has all required columns
+            pass
+    else:
+        # Table doesn't exist, create it
+        # Build column definitions
+        columns = [
+            'ticker TEXT PRIMARY KEY',
+            'company_name TEXT',
+            'exchange TEXT',
+            'period TEXT',
+            'market_cap REAL',
+            'total_percentile REAL',
+            'total_rank INTEGER',
+        ]
+        
+        # Add all metric columns (value, rank, percentile for each)
+        for metric in METRICS:
+            columns.append(f'{metric.key} REAL')  # Metric value
+            columns.append(f'{metric.key}_rank INTEGER')  # Rank
+            columns.append(f'{metric.key}_percentile REAL')  # Percentile
+        
+        # Create table
+        create_table_sql = f'''
+            CREATE TABLE financial_scores (
+                {', '.join(columns)}
+            )
+        '''
+        cursor.execute(create_table_sql)
     
     # Create indexes
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_ticker ON financial_scores(ticker)')

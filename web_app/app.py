@@ -16,6 +16,9 @@ if PROJECT_ROOT not in sys.path:
 # Import short interest fetching function
 from web_app.get_short_interest import get_short_interest_for_ticker
 
+# Import company name lookup function
+from src.scrapers.glassdoor_scraper import get_company_name_from_ticker
+
 app = Flask(__name__)
 
 # Path to the short interest cache file
@@ -93,6 +96,9 @@ def search_ticker(query):
     """
     ticker = query.strip().upper()
     
+    # Get company name from ticker
+    company_name = get_company_name_from_ticker(ticker)
+    
     # Get score data from database
     score_data = get_score_for_ticker(ticker)
     
@@ -104,6 +110,7 @@ def search_ticker(query):
             # Build response data
             response_data = {
                 'ticker': ticker,
+                'company_name': company_name,
                 'short_float': si_result.get('short_float'),
             }
             

@@ -285,12 +285,13 @@
             const moatScore = data.moat_score || null;
             const totalScorePercentage = data.total_score_percentage !== undefined ? data.total_score_percentage : null;
             const totalScorePercentileRank = data.total_score_percentile_rank !== undefined ? data.total_score_percentile_rank : null;
+            const companyName = data.company_name || null;
 
             const resultHTML = `
                 <div class="result-card">
                     <div class="result-header">
-                        <div class="company-name">${ticker}</div>
-                        <div class="ticker">Ticker</div>
+                        <div class="company-name">${companyName || ticker}</div>
+                        <div class="ticker">${ticker}</div>
                     </div>
 
                     <div class="rating-details">

@@ -385,8 +385,26 @@ def get_watchlist_api():
 
 @app.route('/api/watchlist/add/<ticker>', methods=['POST'])
 def add_to_watchlist_api(ticker):
-    """Add a ticker to the watchlist."""
+    """Add a ticker to the watchlist. Validates that the ticker exists and has data."""
     try:
+        ticker = ticker.strip().upper()
+        
+        # Validate that the ticker exists and has data
+        data = get_complete_data(ticker)
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': f'Ticker "{ticker}" not found or has no data. Please check that the ticker is valid.'
+            }), 404
+        
+        # Check if ticker is already in watchlist
+        if is_in_watchlist(ticker):
+            return jsonify({
+                'success': False,
+                'message': f'{ticker} is already in watchlist'
+            }), 400
+        
+        # Add to watchlist
         added = add_to_watchlist(ticker)
         if added:
             return jsonify({
@@ -396,8 +414,8 @@ def add_to_watchlist_api(ticker):
         else:
             return jsonify({
                 'success': False,
-                'message': f'{ticker} is already in watchlist'
-            }), 400
+                'message': f'Failed to add {ticker} to watchlist'
+            }), 500
     except Exception as e:
         print(f"Error adding to watchlist: {e}")
         return jsonify({

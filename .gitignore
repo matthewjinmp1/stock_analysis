@@ -48,6 +48,11 @@ dist/
 # But keep config.example.py (it's a Python file, not JSON)
 !config.example.py
 
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
 # Image files - exclude all image formats
 *.png
 *.jpg

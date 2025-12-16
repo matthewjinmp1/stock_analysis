@@ -77,15 +77,19 @@ def get_company_name_from_ticker(ticker):
         possible_paths = [
             os.path.join(project_root, 'web_app', 'data', 'tickers.db'),
             os.path.join(project_root, 'data', 'tickers.db'),
-            os.path.join('web_app', 'data', 'tickers.db'),
-            os.path.join('data', 'tickers.db'),
         ]
+        
+        # Also try relative paths from current working directory
+        cwd = os.getcwd()
+        possible_paths.extend([
+            os.path.join(cwd, 'web_app', 'data', 'tickers.db'),
+            os.path.join(cwd, 'data', 'tickers.db'),
+        ])
         
         tickers_db_path = None
         for path in possible_paths:
-            abs_path = os.path.abspath(path)
-            if os.path.exists(abs_path):
-                tickers_db_path = abs_path
+            if os.path.exists(path):
+                tickers_db_path = path
                 break
         
         if tickers_db_path:

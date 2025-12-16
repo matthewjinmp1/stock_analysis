@@ -492,10 +492,6 @@
         }
 
         function removeFromWatchlist(ticker) {
-            if (!confirm(`Remove ${ticker} from watchlist?`)) {
-                return;
-            }
-
             fetch(`/api/watchlist/remove/${ticker}`, { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {

@@ -32,6 +32,9 @@ from web_app.watchlist_db import (
     is_in_watchlist, get_watchlist, init_watchlist_database
 )
 
+# Import peer database
+from web_app.peer_db import get_peers_for_ticker, load_peers
+
 # Import score calculator for weights and definitions
 from web_app.score_calculator import SCORE_WEIGHTS, SCORE_DEFINITIONS
 
@@ -343,6 +346,12 @@ def watchlist_page():
     """Serve the watchlist page."""
     return render_template('watchlist.html')
 
+@app.route('/peers/<ticker>')
+def peers_page(ticker):
+    """Display peer comparison page for a ticker."""
+    ticker = ticker.strip().upper()
+    return render_template('peers.html', ticker=ticker)
+
 @app.route('/api/watchlist', methods=['GET'])
 def get_watchlist_api():
     """Get all tickers in watchlist with their data."""
@@ -421,6 +430,63 @@ def add_to_watchlist_api(ticker):
             }), 500
     except Exception as e:
         print(f"Error adding to watchlist: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/peers/<ticker>', methods=['GET'])
+def get_peers_api(ticker):
+    """Get peer data for a ticker with their stats."""
+    try:
+        ticker = ticker.strip().upper()
+        
+        # Get peer tickers
+        peer_tickers = get_peers_for_ticker(ticker)
+        
+        if not peer_tickers:
+            return jsonify({
+                'success': False,
+                'message': f'No peers found for {ticker}'
+            }), 404
+        
+        # Get data for the main ticker
+        main_ticker_data = get_complete_data(ticker)
+        main_financial_scores = get_financial_scores(ticker)
+        
+        main_data = {
+            'ticker': ticker,
+            'company_name': main_ticker_data.get('company_name') if main_ticker_data else None,
+            'total_score_percentile_rank': main_ticker_data.get('total_score_percentile_rank') if main_ticker_data else None,
+            'financial_total_percentile': main_financial_scores.get('total_percentile') if main_financial_scores else None,
+            'adjusted_pe_ratio': main_ticker_data.get('adjusted_pe_ratio') if main_ticker_data else None,
+            'short_float': main_ticker_data.get('short_float') if main_ticker_data else None,
+        }
+        
+        # Get data for all peers
+        peers_data = []
+        for peer_ticker in peer_tickers:
+            peer_data = get_complete_data(peer_ticker)
+            peer_financial_scores = get_financial_scores(peer_ticker)
+            
+            peers_data.append({
+                'ticker': peer_ticker,
+                'company_name': peer_data.get('company_name') if peer_data else None,
+                'total_score_percentile_rank': peer_data.get('total_score_percentile_rank') if peer_data else None,
+                'financial_total_percentile': peer_financial_scores.get('total_percentile') if peer_financial_scores else None,
+                'adjusted_pe_ratio': peer_data.get('adjusted_pe_ratio') if peer_data else None,
+                'short_float': peer_data.get('short_float') if peer_data else None,
+            })
+        
+        return jsonify({
+            'success': True,
+            'main_ticker': main_data,
+            'peers': peers_data
+        })
+    except Exception as e:
+        print(f"Error getting peers for {ticker}: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': str(e)

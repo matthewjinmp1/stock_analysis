@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peer Comparison - {{ ticker }}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0a0a0a;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(0, 200, 220, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(200, 0, 200, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(120, 0, 200, 0.03) 0%, transparent 50%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #7dd3fc;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: #0d0d0d;
+            border-radius: 20px;
+            border: 1px solid rgba(125, 211, 252, 0.3);
+            box-shadow: 
+                0 0 15px rgba(125, 211, 252, 0.15),
+                0 0 30px rgba(125, 211, 252, 0.05),
+                inset 0 0 15px rgba(125, 211, 252, 0.03);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0a1a 100%);
+            color: #7dd3fc;
+            padding: 40px;
+            text-align: center;
+            border-bottom: 1px solid rgba(125, 211, 252, 0.3);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 
+                0 0 8px rgba(125, 211, 252, 0.4),
+                0 0 15px rgba(125, 211, 252, 0.2);
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #a5d8ff;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 15px;
+            color: #a5d8ff;
+            text-decoration: none;
+            padding: 10px 20px;
+            background: rgba(125, 211, 252, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(125, 211, 252, 0.4);
+            transition: all 0.3s;
+        }
+
+        .back-link:hover {
+            background: rgba(125, 211, 252, 0.2);
+            transform: translateX(-3px);
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: rgba(125, 211, 252, 0.7);
+        }
+
+        .spinner {
+            border: 4px solid rgba(125, 211, 252, 0.2);
+            border-top: 4px solid rgba(125, 211, 252, 0.8);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: #0a0a0a;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .comparison-table th {
+            background: rgba(125, 211, 252, 0.1);
+            color: #a5d8ff;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid rgba(125, 211, 252, 0.3);
+        }
+
+        .comparison-table td {
+            padding: 15px;
+            border-bottom: 1px solid rgba(125, 211, 252, 0.1);
+        }
+
+        .comparison-table tr:hover {
+            background: rgba(125, 211, 252, 0.05);
+        }
+
+        .main-ticker-row {
+            background: rgba(196, 181, 253, 0.15) !important;
+            font-weight: 600;
+        }
+
+        .ticker-link {
+            color: #c4b5fd;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .ticker-link:hover {
+            text-decoration: underline;
+        }
+
+        .score-link {
+            color: #c4b5fd;
+            text-decoration: none;
+        }
+
+        .score-link:hover {
+            text-decoration: underline;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: rgba(125, 211, 252, 0.7);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Peer Comparison</h1>
+            <p>Comparing {{ ticker }} with its peers</p>
+            <a href="/" class="back-link">← Back to Search</a>
+        </div>
+        <div class="content">
+            <div id="peer-content">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading peer data...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ticker = '{{ ticker }}';
+
+        function loadPeerData() {
+            fetch(`/api/peers/${ticker}`)
+                .then(response => response.json())
+                .then(data => {
+                    const contentDiv = document.getElementById('peer-content');
+                    
+                    if (!data.success) {
+                        contentDiv.innerHTML = `
+                            <div class="empty-state">
+                                <p>${data.message || 'Error loading peer data'}</p>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    const mainTicker = data.main_ticker;
+                    const peers = data.peers || [];
+
+                    if (peers.length === 0) {
+                        contentDiv.innerHTML = `
+                            <div class="empty-state">
+                                <p>No peers found for ${ticker}</p>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    let tableHTML = `
+                        <table class="comparison-table">
+                            <thead>
+                                <tr>
+                                    <th>Ticker</th>
+                                    <th>Company Name</th>
+                                    <th>Total Score</th>
+                                    <th>Financial Score</th>
+                                    <th>Adjusted PE Ratio</th>
+                                    <th>Short Float</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="main-ticker-row">
+                                    <td><a href="/?q=${mainTicker.ticker}" class="ticker-link">${mainTicker.ticker}</a></td>
+                                    <td>${mainTicker.company_name || mainTicker.ticker}</td>
+                                    <td>${mainTicker.total_score_percentile_rank !== null 
+                                        ? `<a href="/metrics/${mainTicker.ticker}" class="score-link">${mainTicker.total_score_percentile_rank}th percentile</a>`
+                                        : 'N/A'}</td>
+                                    <td>${mainTicker.financial_total_percentile !== null
+                                        ? `<a href="/financial/${mainTicker.ticker}" class="score-link">${Math.round(mainTicker.financial_total_percentile)}th percentile</a>`
+                                        : 'N/A'}</td>
+                                    <td>${mainTicker.adjusted_pe_ratio !== null && mainTicker.adjusted_pe_ratio !== undefined
+                                        ? mainTicker.adjusted_pe_ratio.toFixed(2)
+                                        : 'N/A'}</td>
+                                    <td>${mainTicker.short_float || 'N/A'}</td>
+                                </tr>
+                    `;
+
+                    peers.forEach(peer => {
+                        tableHTML += `
+                            <tr>
+                                <td><a href="/?q=${peer.ticker}" class="ticker-link">${peer.ticker}</a></td>
+                                <td>${peer.company_name || peer.ticker}</td>
+                                <td>${peer.total_score_percentile_rank !== null 
+                                    ? `<a href="/metrics/${peer.ticker}" class="score-link">${peer.total_score_percentile_rank}th percentile</a>`
+                                    : 'N/A'}</td>
+                                <td>${peer.financial_total_percentile !== null
+                                    ? `<a href="/financial/${peer.ticker}" class="score-link">${Math.round(peer.financial_total_percentile)}th percentile</a>`
+                                    : 'N/A'}</td>
+                                <td>${peer.adjusted_pe_ratio !== null && peer.adjusted_pe_ratio !== undefined
+                                    ? peer.adjusted_pe_ratio.toFixed(2)
+                                    : 'N/A'}</td>
+                                <td>${peer.short_float || 'N/A'}</td>
+                            </tr>
+                        `;
+                    });
+
+                    tableHTML += `
+                            </tbody>
+                        </table>
+                    `;
+
+                    contentDiv.innerHTML = tableHTML;
+                })
+                .catch(err => {
+                    const contentDiv = document.getElementById('peer-content');
+                    contentDiv.innerHTML = `
+                        <div class="empty-state">
+                            <p>Error loading peer data: ${err.message}</p>
+                        </div>
+                    `;
+                });
+        }
+
+        // Load data on page load
+        loadPeerData();
+    </script>
+</body>
+</html>

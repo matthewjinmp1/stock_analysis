@@ -437,6 +437,9 @@
                         <div class="company-name">${companyName || ticker}</div>
                         <div class="header-actions">
                             <div class="ticker">${ticker}</div>
+                            <button class="peer-button" onclick="window.location.href='/peers/${ticker}'" title="View Peers">
+                                Peers
+                            </button>
                             <button class="${watchlistButtonClass}" onclick="toggleWatchlist('${ticker}', ${!isInWatchlist})">
                                 ${watchlistButtonText}
                             </button>

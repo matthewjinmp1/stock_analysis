@@ -57,8 +57,9 @@ def find_best_match(query: str) -> tuple:
         print(f"Error querying cache for matching: {e}")
         return None, None
     
+    # If no companies cached yet, fall back to treating the query as a ticker guess
     if not all_companies:
-        return None, None
+        return query_upper, 'ticker_guess'
     
     # 1. Try exact ticker match
     for ticker, company_name in all_companies:
@@ -105,7 +106,8 @@ def find_best_match(query: str) -> tuple:
     if best_match:
         return best_match, 'company_name'
     
-    return None, None
+    # If no match found, fall back to treating the query as a ticker guess
+    return query_upper, 'ticker_guess'
 
 @app.route('/')
 def index():

@@ -20,6 +20,14 @@ from src.scrapers.glassdoor_scraper import get_company_name_from_ticker
 from src.scrapers.get_short_interest import scrape_ticker_short_interest
 from web_app.score_calculator import calculate_total_score, SCORE_DEFINITIONS
 
+# Import QuickFS for adjusted PE ratio calculation
+try:
+    from quickfs import QuickFS
+    import statistics
+    QUICKFS_AVAILABLE = True
+except ImportError:
+    QUICKFS_AVAILABLE = False
+
 # Path to unified cache database
 CACHE_DB = os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db')
 
@@ -78,6 +86,9 @@ def init_database():
     columns.append('short_float TEXT')
     columns.append('short_interest_scraped_at TEXT')
     
+    # Add adjusted PE ratio
+    columns.append('adjusted_pe_ratio REAL')
+    
     # Create table
     create_table_sql = f'''
         CREATE TABLE IF NOT EXISTS ui_cache (
@@ -85,6 +96,17 @@ def init_database():
         )
     '''
     cursor.execute(create_table_sql)
+    
+    # Check if adjusted_pe_ratio column exists, if not add it
+    cursor.execute("PRAGMA table_info(ui_cache)")
+    existing_columns = [row[1] for row in cursor.fetchall()]
+    
+    if 'adjusted_pe_ratio' not in existing_columns:
+        try:
+            cursor.execute('ALTER TABLE ui_cache ADD COLUMN adjusted_pe_ratio REAL')
+            conn.commit()
+        except Exception as e:
+            print(f"Warning: Could not add adjusted_pe_ratio column: {e}")
     
     # Create index for faster lookups
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_ticker ON ui_cache(ticker)')
@@ -192,6 +214,154 @@ def update_cache(ticker: str, data: Dict[str, Any]) -> bool:
         return False
 
 
+def calculate_adjusted_pe_from_quickfs(quarterly: Dict) -> Optional[float]:
+    """
+    Calculate Adjusted PE Ratio from QuickFS quarterly data.
+    Same logic as in get_quickfs_data.py
+    
+    Returns:
+        Adjusted PE ratio or None if calculation not possible
+    """
+    if not quarterly or not QUICKFS_AVAILABLE:
+        return None
+    
+    # Get required data arrays
+    operating_income = quarterly.get("operating_income", [])
+    # Try both DA fields
+    da = quarterly.get("cfo_da", [])
+    if not da or (isinstance(da, list) and len(da) == 0):
+        da = quarterly.get("da_income_statement_supplemental", [])
+    capex = quarterly.get("capex", [])
+    enterprise_value = quarterly.get("enterprise_value", [])
+    income_tax = quarterly.get("income_tax", [])
+    pretax_income = quarterly.get("pretax_income", [])
+    
+    # Validate data types and minimum length
+    if not all(isinstance(arr, list) for arr in [operating_income, da, capex, enterprise_value, income_tax, pretax_income]):
+        return None
+    
+    # Need at least 4 quarters for TTM and 20 quarters for 5-year median tax rate
+    min_quarters = max(4, 20)
+    if len(operating_income) < min_quarters:
+        return None
+    
+    # Find the most recent position where we have enough data
+    for j in range(len(operating_income) - 1, min_quarters - 1, -1):
+        # Get EV from most recent quarter
+        if j >= len(enterprise_value) or enterprise_value[j] is None or enterprise_value[j] == 0:
+            continue
+        
+        ev = enterprise_value[j]
+        
+        # Calculate TTM operating income (sum of last 4 quarters)
+        ttm_oi = 0.0
+        ttm_da = 0.0
+        ttm_capex = 0.0
+        valid_ttm = True
+        
+        for k in range(max(0, j - 3), j + 1):
+            if k < len(operating_income) and operating_income[k] is not None:
+                ttm_oi += float(operating_income[k])
+            else:
+                valid_ttm = False
+                break
+            
+            if k < len(da) and da[k] is not None:
+                ttm_da += float(da[k])
+            
+            if k < len(capex) and capex[k] is not None:
+                ttm_capex += float(capex[k])
+        
+        if not valid_ttm:
+            continue
+        
+        # Step 4: If |DA| > |capex|, add back (DA - capex) to operating income
+        abs_da = abs(ttm_da)
+        abs_capex = abs(ttm_capex)
+        
+        if abs_da > abs_capex:
+            adjustment = ttm_da - ttm_capex
+            adjusted_oi = ttm_oi + adjustment
+        else:
+            adjusted_oi = ttm_oi
+        
+        # Step 5: Calculate 5-year median tax rate (last 20 quarters)
+        tax_rates = []
+        for k in range(max(0, j - 19), j + 1):
+            if k < len(income_tax) and k < len(pretax_income):
+                tax = income_tax[k] if income_tax[k] is not None else None
+                pretax = pretax_income[k] if pretax_income[k] is not None else None
+                
+                if tax is not None and pretax is not None and pretax != 0:
+                    # Tax rate = income_tax / pretax_income
+                    # Note: income_tax is often negative (tax benefit), so we use absolute value
+                    tax_rate = abs(tax) / abs(pretax) if pretax != 0 else None
+                    if tax_rate is not None and 0 <= tax_rate <= 1:  # Valid tax rate between 0 and 1
+                        tax_rates.append(tax_rate)
+        
+        if not tax_rates:
+            # If no valid tax rates, use a default (e.g., 0.21 for US corporate tax)
+            median_tax_rate = 0.21
+        else:
+            # Calculate median tax rate
+            median_tax_rate = statistics.median(tax_rates)
+        
+        # Step 6: Apply tax rate to adjusted operating income
+        adjusted_oi_after_tax = adjusted_oi * (1 - median_tax_rate)
+        
+        # Step 7: Calculate Adjusted PE = EV / adjusted operating income (after tax)
+        if adjusted_oi_after_tax != 0:
+            adjusted_pe = ev / adjusted_oi_after_tax
+            return adjusted_pe
+    
+    return None
+
+def fetch_adjusted_pe_ratio(ticker: str) -> Optional[float]:
+    """
+    Fetch adjusted PE ratio from QuickFS API.
+    
+    Args:
+        ticker: Stock ticker symbol
+        
+    Returns:
+        Adjusted PE ratio or None if not available
+    """
+    if not QUICKFS_AVAILABLE:
+        return None
+    
+    try:
+        # Try to import API key
+        try:
+            from config import QUICKFS_API_KEY
+            api_key = QUICKFS_API_KEY
+        except ImportError:
+            api_key = os.environ.get('QUICKFS_API_KEY')
+            if not api_key:
+                return None
+        
+        # Format ticker symbol
+        formatted_ticker = ticker
+        if ":" not in formatted_ticker:
+            formatted_ticker = f"{ticker}:US"
+        
+        # Fetch data from QuickFS
+        client = QuickFS(api_key)
+        data = client.get_data_full(formatted_ticker)
+        
+        if not data or "financials" not in data:
+            return None
+        
+        quarterly = data.get("financials", {}).get("quarterly", {})
+        if not quarterly:
+            return None
+        
+        # Calculate adjusted PE ratio
+        return calculate_adjusted_pe_from_quickfs(quarterly)
+        
+    except Exception as e:
+        print(f"Error fetching adjusted PE ratio for {ticker}: {e}")
+        return None
+
 def fetch_and_cache_all_data(ticker: str, silent: bool = False) -> Optional[Dict[str, Any]]:
     """Fetch all data for a ticker and cache it in the database.
     
@@ -199,7 +369,8 @@ def fetch_and_cache_all_data(ticker: str, silent: bool = False) -> Optional[Dict
     1. Gets company name from ticker
     2. Fetches score data from scores.db (if available)
     3. Fetches short interest data
-    4. Stores everything in the unified cache
+    4. Fetches adjusted PE ratio from QuickFS (if not in cache)
+    5. Stores everything in the unified cache
     
     Args:
         ticker: Stock ticker symbol
@@ -264,7 +435,18 @@ def fetch_and_cache_all_data(ticker: str, silent: bool = False) -> Optional[Dict
         if not silent:
             print(f"  Warning: Could not fetch short interest: {e}")
     
-    # 4. Store in cache
+    # 4. Fetch adjusted PE ratio from QuickFS (if not in cache)
+    cached = get_cached_data(ticker)
+    if not cached or cached.get('adjusted_pe_ratio') is None:
+        if not silent:
+            print(f"  Fetching adjusted PE ratio from QuickFS...")
+        adjusted_pe = fetch_adjusted_pe_ratio(ticker)
+        if adjusted_pe is not None:
+            cache_data['adjusted_pe_ratio'] = adjusted_pe
+            if not silent:
+                print(f"  Adjusted PE Ratio: {adjusted_pe:.2f}")
+    
+    # 5. Store in cache
     if cache_data:
         update_cache(ticker, cache_data)
         if not silent:
@@ -340,9 +522,10 @@ def get_complete_data(ticker: str) -> Optional[Dict[str, Any]]:
     # Check if we're missing essential data
     missing_company = not cached.get('company_name')
     missing_scores = not any(cached.get(col) for col in METRIC_COLUMNS)
+    missing_adjusted_pe = cached.get('adjusted_pe_ratio') is None
     
     # If we need to refresh or are missing data, fetch
-    if needs_si_refresh or missing_company:
+    if needs_si_refresh or missing_company or missing_adjusted_pe:
         # Fetch only what's missing
         update_data = {}
         
@@ -364,6 +547,12 @@ def get_complete_data(ticker: str) -> Optional[Dict[str, Any]]:
                     update_data['short_interest_scraped_at'] = si_result.get('scraped_at')
             except Exception as e:
                 print(f"Warning: Could not refresh short interest: {e}")
+        
+        # Adjusted PE ratio
+        if missing_adjusted_pe:
+            adjusted_pe = fetch_adjusted_pe_ratio(ticker)
+            if adjusted_pe is not None:
+                update_data['adjusted_pe_ratio'] = adjusted_pe
         
         # Update cache with new data
         if update_data:

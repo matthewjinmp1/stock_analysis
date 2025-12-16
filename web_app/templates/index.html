@@ -424,6 +424,7 @@
             const totalScorePercentage = data.total_score_percentage !== undefined ? data.total_score_percentage : null;
             const totalScorePercentileRank = data.total_score_percentile_rank !== undefined ? data.total_score_percentile_rank : null;
             const financialTotalPercentile = data.financial_total_percentile !== undefined ? data.financial_total_percentile : null;
+            const adjustedPeRatio = data.adjusted_pe_ratio !== undefined ? data.adjusted_pe_ratio : null;
             const companyName = data.company_name || null;
             const isInWatchlist = inWatchlist || false;
 
@@ -461,6 +462,12 @@
                                     ${Math.round(financialTotalPercentile)}th percentile
                                 </a>
                             </div>
+                        </div>
+                        ` : ''}
+                        ${adjustedPeRatio !== null ? `
+                        <div class="detail-item">
+                            <div class="detail-label">Adjusted PE Ratio</div>
+                            <div class="detail-value">${adjustedPeRatio.toFixed(2)}</div>
                         </div>
                         ` : ''}
                         ${shortFloat !== null ? `

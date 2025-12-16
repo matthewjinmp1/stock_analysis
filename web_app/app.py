@@ -144,6 +144,7 @@ def search_ticker(query):
             'short_float': data.get('short_float'),
             'total_score_percentage': data.get('total_score_percentage'),
             'total_score_percentile_rank': data.get('total_score_percentile_rank'),
+            'adjusted_pe_ratio': data.get('adjusted_pe_ratio'),
         }
         
         # Add financial scores if available

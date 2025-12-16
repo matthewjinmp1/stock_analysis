@@ -241,13 +241,30 @@
                             <span class="reverse-badge">Reverse</span>
                             {% endif %}
                         </td>
+                        {% if metric.is_reverse %}
+                            {% if metric.raw_score >= 7 %}
+                                {% set color_class = 'score-low' %}
+                            {% elif metric.raw_score >= 4 %}
+                                {% set color_class = 'score-medium' %}
+                            {% else %}
+                                {% set color_class = 'score-high' %}
+                            {% endif %}
+                        {% else %}
+                            {% if metric.raw_score >= 7 %}
+                                {% set color_class = 'score-high' %}
+                            {% elif metric.raw_score >= 4 %}
+                                {% set color_class = 'score-medium' %}
+                            {% else %}
+                                {% set color_class = 'score-low' %}
+                            {% endif %}
+                        {% endif %}
                         <td class="score-cell">
-                            <span class="score-badge {% if metric.is_reverse %}{% if metric.raw_score >= 7 %}score-low{% elif metric.raw_score >= 4 %}score-medium{% else %}score-high{% endif %}{% else %}{% if metric.raw_score >= 7 %}score-high{% elif metric.raw_score >= 4 %}score-medium{% else %}score-low{% endif %}{% endif %}">
+                            <span class="score-badge {{ color_class }}">
                                 {{ "%.1f"|format(metric.raw_score) }}/10
                             </span>
                         </td>
                         <td class="score-cell">
-                            <span class="score-badge {% if metric.is_reverse %}{% if metric.adjusted_score >= 7 %}score-low{% elif metric.adjusted_score >= 4 %}score-medium{% else %}score-high{% endif %}{% else %}{% if metric.adjusted_score >= 7 %}score-high{% elif metric.adjusted_score >= 4 %}score-medium{% else %}score-low{% endif %}{% endif %}">
+                            <span class="score-badge {{ color_class }}">
                                 {{ "%.1f"|format(metric.adjusted_score) }}/10
                             </span>
                         </td>

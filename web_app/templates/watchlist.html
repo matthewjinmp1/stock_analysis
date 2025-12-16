@@ -165,6 +165,21 @@
         </div>
 
         <div class="content">
+            <div class="add-ticker-section">
+                <div class="add-ticker-label">Add Ticker to Watchlist</div>
+                <div class="add-ticker-box">
+                    <input 
+                        type="text" 
+                        class="add-ticker-input" 
+                        id="addTickerInput" 
+                        placeholder="Enter ticker symbol (e.g., AAPL)"
+                        autocomplete="off"
+                    >
+                    <button class="add-ticker-button" onclick="addTickerToWatchlist()">Add</button>
+                </div>
+                <div id="add-message"></div>
+            </div>
+
             <div id="watchlist-content">
                 <div class="loading">
                     <div class="spinner"></div>
@@ -281,6 +296,52 @@
                     alert('Error removing from watchlist. Please try again.');
                 });
         }
+
+        function addTickerToWatchlist() {
+            const tickerInput = document.getElementById('addTickerInput');
+            const ticker = tickerInput.value.trim().toUpperCase();
+            const messageDiv = document.getElementById('add-message');
+            
+            if (!ticker) {
+                messageDiv.innerHTML = `
+                    <div class="message error">Please enter a ticker symbol</div>
+                `;
+                return;
+            }
+
+            // Clear previous message
+            messageDiv.innerHTML = '';
+
+            fetch(`/api/watchlist/add/${ticker}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        messageDiv.innerHTML = `
+                            <div class="message success">${ticker} added to watchlist</div>
+                        `;
+                        tickerInput.value = '';
+                        // Reload watchlist
+                        loadWatchlist();
+                    } else {
+                        messageDiv.innerHTML = `
+                            <div class="message error">${data.message || 'Error adding to watchlist'}</div>
+                        `;
+                    }
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    messageDiv.innerHTML = `
+                        <div class="message error">Error adding to watchlist. Please try again.</div>
+                    `;
+                });
+        }
+
+        // Allow Enter key to trigger add
+        document.getElementById('addTickerInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addTickerToWatchlist();
+            }
+        });
 
         // Load watchlist on page load
         loadWatchlist();

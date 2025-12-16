@@ -275,6 +275,9 @@
             // Encode the query for URL
             const encodedQuery = encodeURIComponent(query);
 
+            // Clear any previous errors/results before fetching
+            document.getElementById('results').innerHTML = '';
+            
             // Fetch data
             fetch(`/api/search/${encodedQuery}`)
                 .then(response => response.json())
@@ -292,6 +295,10 @@
         }
 
         function displayResult(ticker, data, originalQuery, matchScore) {
+            // Clear any previous errors
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+            
             const shortFloat = data.short_float || null;
             const totalScorePercentage = data.total_score_percentage !== undefined ? data.total_score_percentage : null;
             const totalScorePercentileRank = data.total_score_percentile_rank !== undefined ? data.total_score_percentile_rank : null;
@@ -341,11 +348,13 @@
                 </div>
             `;
 
-            document.getElementById('results').innerHTML = resultHTML;
+            resultsDiv.innerHTML = resultHTML;
         }
 
         function showError(message) {
-            document.getElementById('results').innerHTML = `
+            // Clear any previous results before showing error
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `
                 <div class="error">
                     <strong>Error:</strong> ${message}
                 </div>

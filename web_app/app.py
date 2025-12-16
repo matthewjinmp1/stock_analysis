@@ -23,6 +23,9 @@ from src.scrapers.glassdoor_scraper import get_company_name_from_ticker
 # Import financial scores database
 from web_app.financial_scores_db import get_financial_scores
 
+# Import financial scorer metrics
+from web_app.financial_scorer import METRICS
+
 # Import score calculator for weights and definitions
 from web_app.score_calculator import SCORE_WEIGHTS, SCORE_DEFINITIONS
 
@@ -243,6 +246,55 @@ def metrics_page(ticker):
                          total_score_percentage=total_score_percentage,
                          total_score_percentile_rank=total_score_percentile_rank,
                          max_score=max_score)
+
+@app.route('/financial/<ticker>')
+def financial_metrics_page(ticker):
+    """Display all financial metric scores for a ticker."""
+    ticker = ticker.strip().upper()
+    
+    # Get financial scores from database
+    financial_scores = get_financial_scores(ticker)
+    
+    if not financial_scores:
+        # Get company name from cache for error message
+        data = get_complete_data(ticker)
+        company_name = data.get('company_name') if data else None
+        return render_template('financial_metrics.html', 
+                             ticker=ticker,
+                             company_name=company_name,
+                             error="No financial score data found for this ticker.")
+    
+    # Build metrics detail list
+    metrics_detail = []
+    for metric in METRICS:
+        value = financial_scores.get(metric.key)
+        rank = financial_scores.get(f'{metric.key}_rank')
+        percentile = financial_scores.get(f'{metric.key}_percentile')
+        
+        if value is not None:
+            metrics_detail.append({
+                'key': metric.key,
+                'name': metric.display_name,
+                'description': metric.description,
+                'value': value,
+                'rank': rank,
+                'percentile': percentile,
+                'sort_descending': metric.sort_descending,
+            })
+    
+    # Sort by percentile (descending) - higher percentile is better
+    metrics_detail.sort(key=lambda x: x['percentile'] if x['percentile'] is not None else 0, reverse=True)
+    
+    # Get total percentile and rank
+    total_percentile = financial_scores.get('total_percentile')
+    total_rank = financial_scores.get('total_rank')
+    
+    return render_template('financial_metrics.html',
+                         ticker=ticker,
+                         company_name=financial_scores.get('company_name'),
+                         metrics=metrics_detail,
+                         total_percentile=total_percentile,
+                         total_rank=total_rank)
 
 @app.route('/api/list')
 def list_all():

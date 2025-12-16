@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Metrics - {{ ticker }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .header .ticker {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: white;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            text-decoration: none;
+            margin-bottom: 20px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1em;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateX(-3px);
+        }
+
+        .summary {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .summary-item {
+            flex: 1;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .summary-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .summary-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .metrics-table {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #667eea;
+            color: white;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .metric-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .metric-description {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 4px;
+            font-style: italic;
+        }
+
+        .value-cell {
+            text-align: right;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .rank-cell {
+            text-align: center;
+            color: #666;
+        }
+
+        .percentile-cell {
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .percentile-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .percentile-high {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .percentile-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .percentile-low {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .error-message {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            color: #721c24;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Search</a>
+        
+        {% if error %}
+        <div class="error-message">
+            <h2>Error</h2>
+            <p>{{ error }}</p>
+        </div>
+        {% else %}
+        <div class="header">
+            <h1>{{ company_name or ticker }}</h1>
+            <div class="ticker">{{ ticker }}</div>
+            
+            {% if total_percentile %}
+            <div class="summary">
+                <div class="summary-item">
+                    <div class="summary-label">Financial Score</div>
+                    <div class="summary-value">{{ "%.1f"|format(total_percentile) }}th percentile</div>
+                </div>
+                {% if total_rank %}
+                <div class="summary-item">
+                    <div class="summary-label">Rank</div>
+                    <div class="summary-value">{{ "{:,}"|format(total_rank) }}</div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="metrics-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th class="value-cell">Value</th>
+                        <th class="rank-cell">Rank</th>
+                        <th class="percentile-cell">Percentile</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for metric in metrics %}
+                    <tr>
+                        <td class="metric-name">
+                            <div>{{ metric.name }}</div>
+                            <div class="metric-description">{{ metric.description }}</div>
+                        </td>
+                        <td class="value-cell">
+                            {% if metric.value is not none %}
+                                {% if metric.value >= 1 or metric.value <= -1 %}
+                                    {{ "%.2f"|format(metric.value) }}
+                                {% else %}
+                                    {{ "%.4f"|format(metric.value) }}
+                                {% endif %}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td class="rank-cell">
+                            {% if metric.rank is not none %}
+                                {{ "{:,}"|format(metric.rank) }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td class="percentile-cell">
+                            {% if metric.percentile is not none %}
+                                {% if metric.percentile >= 70 %}
+                                    {% set pct_class = 'percentile-high' %}
+                                {% elif metric.percentile >= 30 %}
+                                    {% set pct_class = 'percentile-medium' %}
+                                {% else %}
+                                    {% set pct_class = 'percentile-low' %}
+                                {% endif %}
+                                <span class="percentile-badge {{ pct_class }}">
+                                    {{ "%.1f"|format(metric.percentile) }}th
+                                </span>
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

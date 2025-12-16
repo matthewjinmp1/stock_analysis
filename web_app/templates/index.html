@@ -320,7 +320,9 @@
                         <div class="detail-item">
                             <div class="detail-label">Financial Score</div>
                             <div class="detail-value">
-                                ${financialTotalPercentile.toFixed(1)}th percentile
+                                <a href="/financial/${ticker}" class="score-link">
+                                    ${financialTotalPercentile.toFixed(1)}th percentile
+                                </a>
                             </div>
                         </div>
                         ` : ''}

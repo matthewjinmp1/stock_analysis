@@ -66,25 +66,44 @@
 
         .watchlist-table {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
             margin-top: 20px;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
         .watchlist-table th {
-            background: #f8f9fa;
-            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 18px 15px;
             text-align: left;
             font-weight: 600;
-            color: #333;
-            border-bottom: 2px solid #e0e0e0;
+            font-size: 0.95em;
+            letter-spacing: 0.5px;
+        }
+
+        .watchlist-table th:first-child {
+            border-top-left-radius: 15px;
+        }
+
+        .watchlist-table th:last-child {
+            border-top-right-radius: 15px;
         }
 
         .watchlist-table td {
-            padding: 15px;
-            border-bottom: 1px solid #e0e0e0;
+            padding: 18px 15px;
+            border-bottom: 1px solid #e8e8e8;
+            background: white;
         }
 
-        .watchlist-table tr:hover {
+        .watchlist-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .watchlist-table tr:hover td {
             background: #f8f9fa;
         }
 
@@ -92,46 +111,75 @@
             color: #667eea;
             text-decoration: none;
             font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: inline-block;
         }
 
         .ticker-link:hover {
-            text-decoration: underline;
+            background: #e8ecff;
+            color: #5568d3;
+            transform: translateX(2px);
         }
 
         .score-link {
-            color: inherit;
+            color: #667eea;
             text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+            padding: 2px 4px;
+            border-radius: 4px;
         }
 
         .score-link:hover {
-            text-decoration: underline;
+            background: #e8ecff;
+            color: #5568d3;
         }
 
         .remove-button {
-            padding: 6px 12px;
+            padding: 8px 16px;
             font-size: 0.9em;
-            background: #dc3545;
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
             color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
-            transition: background 0.2s;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
         }
 
         .remove-button:hover {
-            background: #c82333;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+        }
+
+        .remove-button:active {
+            transform: translateY(0);
         }
 
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
+            padding: 80px 20px;
             color: #666;
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
         }
 
         .empty-state p {
             font-size: 1.2em;
             margin-bottom: 20px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .empty-state p:first-child {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
         }
 
         .loading {

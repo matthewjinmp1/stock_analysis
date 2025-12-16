@@ -295,6 +295,7 @@
             const shortFloat = data.short_float || null;
             const totalScorePercentage = data.total_score_percentage !== undefined ? data.total_score_percentage : null;
             const totalScorePercentileRank = data.total_score_percentile_rank !== undefined ? data.total_score_percentile_rank : null;
+            const financialTotalPercentile = data.financial_total_percentile !== undefined ? data.financial_total_percentile : null;
             const companyName = data.company_name || null;
 
             const resultHTML = `
@@ -312,6 +313,14 @@
                                 <a href="/metrics/${ticker}" class="score-link">
                                     ${totalScorePercentileRank}th percentile
                                 </a>
+                            </div>
+                        </div>
+                        ` : ''}
+                        ${financialTotalPercentile !== null ? `
+                        <div class="detail-item">
+                            <div class="detail-label">Financial Score</div>
+                            <div class="detail-value">
+                                ${financialTotalPercentile.toFixed(1)}th percentile
                             </div>
                         </div>
                         ` : ''}

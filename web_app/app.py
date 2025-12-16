@@ -20,6 +20,9 @@ from web_app.ui_cache_db import get_complete_data, init_database, get_cached_dat
 # Import company name lookup function
 from src.scrapers.glassdoor_scraper import get_company_name_from_ticker
 
+# Import financial scores database
+from web_app.financial_scores_db import get_financial_scores
+
 # Import score calculator for weights and definitions
 from web_app.score_calculator import SCORE_WEIGHTS, SCORE_DEFINITIONS
 
@@ -121,6 +124,9 @@ def search_ticker(query):
                 'message': f'Could not fetch data for "{ticker}". Please check that the ticker is valid.'
             }), 404
         
+        # Get financial scores
+        financial_scores = get_financial_scores(ticker)
+        
         # Build response data from unified cache
         response_data = {
             'ticker': ticker,
@@ -129,6 +135,11 @@ def search_ticker(query):
             'total_score_percentage': data.get('total_score_percentage'),
             'total_score_percentile_rank': data.get('total_score_percentile_rank'),
         }
+        
+        # Add financial scores if available
+        if financial_scores:
+            response_data['financial_total_percentile'] = financial_scores.get('total_percentile')
+            response_data['financial_total_rank'] = financial_scores.get('total_rank')
         
         return jsonify({
             'success': True,

@@ -45,14 +45,23 @@
 
         .back-link {
             display: inline-block;
-            color: #667eea;
+            color: white;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
             text-decoration: none;
             margin-bottom: 20px;
-            font-weight: 500;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1em;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
         }
 
         .back-link:hover {
-            text-decoration: underline;
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateX(-3px);
         }
 
         .summary {

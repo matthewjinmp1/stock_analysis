@@ -4,11 +4,15 @@ Script to get all financial data for a ticker using QuickFS API.
 Uses the same QuickFS method as the project (QuickFS Python SDK).
 
 Usage:
+    python web_app/get_quickfs_data.py <TICKER>
+    python web_app/get_quickfs_data.py AAPL
+    
+    Or from web_app directory:
+    cd web_app
     python get_quickfs_data.py <TICKER>
-    python get_quickfs_data.py AAPL
     
 Or run without arguments for interactive mode:
-    python get_quickfs_data.py
+    python web_app/get_quickfs_data.py
 """
 
 import json

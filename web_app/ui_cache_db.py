@@ -217,7 +217,7 @@ def update_cache(ticker: str, data: Dict[str, Any]) -> bool:
 def calculate_adjusted_pe_from_quickfs(quarterly: Dict) -> Optional[float]:
     """
     Calculate Adjusted PE Ratio from QuickFS quarterly data.
-    Same logic as in get_quickfs_data.py
+    Same logic as in web_app/get_quickfs_data.py
     
     Returns:
         Adjusted PE ratio or None if calculation not possible

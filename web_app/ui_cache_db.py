@@ -351,12 +351,13 @@ def calculate_adjusted_pe_from_quickfs(quarterly: Dict, ticker: str = None) -> O
         if not valid_ttm:
             continue
         
-        # Step 4: If |DA| > |capex|, add back (DA - capex) to operating income
+        # Step 4: If |DA| > |capex|, add back the positive difference of |DA| and |Capex| to operating income
         abs_da = abs(ttm_da)
         abs_capex = abs(ttm_capex)
         
         if abs_da > abs_capex:
-            adjustment = ttm_da - ttm_capex
+            # Use the positive difference of absolute values
+            adjustment = abs_da - abs_capex
             adjusted_oi = ttm_oi + adjustment
         else:
             adjusted_oi = ttm_oi

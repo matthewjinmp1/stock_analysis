@@ -310,12 +310,13 @@ def calculate_adjusted_pe_ratio(quarterly: Dict, ticker: str = None, verbose: bo
         if not valid_ttm:
             continue
         
-        # Step 4: If |DA| > |capex|, add back (DA - capex) to operating income
+        # Step 4: If |DA| > |capex|, add back the positive difference of |DA| and |Capex| to operating income
         abs_da = abs(ttm_da)
         abs_capex = abs(ttm_capex)
         
         if abs_da > abs_capex:
-            adjustment = ttm_da - ttm_capex
+            # Use the positive difference of absolute values
+            adjustment = abs_da - abs_capex
             adjusted_oi = ttm_oi + adjustment
             adjustment_applied = True
         else:
@@ -378,7 +379,7 @@ def calculate_adjusted_pe_ratio(quarterly: Dict, ticker: str = None, verbose: bo
                 print(f"   |Capex| = ${abs_capex:,.0f}")
                 if adjustment_applied:
                     print(f"   |DA| > |Capex|: YES")
-                    print(f"   Adjustment = DA - Capex = ${ttm_da:,.0f} - ${ttm_capex:,.0f} = ${adjustment:,.0f}")
+                    print(f"   Adjustment = |DA| - |Capex| = ${abs_da:,.0f} - ${abs_capex:,.0f} = ${adjustment:,.0f}")
                     print(f"   Adjusted Operating Income = TTM OI + Adjustment")
                     print(f"   Adjusted Operating Income = ${ttm_oi:,.0f} + ${adjustment:,.0f} = ${adjusted_oi:,.0f}")
                 else:

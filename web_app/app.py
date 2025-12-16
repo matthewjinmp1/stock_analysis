@@ -26,18 +26,18 @@ from web_app.score_calculator import SCORE_WEIGHTS, SCORE_DEFINITIONS
 # Display names for metrics (explicit, no "Score" suffix)
 METRIC_DISPLAY_NAMES = {
     'moat_score': 'Economic Moat',
-    'barriers_score': 'Barrier to Entry',
+    'barriers_score': 'Barriers to Entry',
     'disruption_risk': 'Disruption Risk',
     'switching_cost': 'Switching Cost',
     'brand_strength': 'Brand Strength',
     'competition_intensity': 'Competition Intensity',
     'network_effect': 'Network Effect',
     'product_differentiation': 'Product Differentiation',
-    'innovativeness_score': 'Innovation Capability',
+    'innovativeness_score': 'Innovativeness',
     'growth_opportunity': 'Growth Opportunity',
     'riskiness_score': 'Business Risk',
     'pricing_power': 'Pricing Power',
-    'ambition_score': 'Growth Ambition',
+    'ambition_score': 'Ambition',
     'bargaining_power_of_customers': 'Customer Bargaining Power',
     'bargaining_power_of_suppliers': 'Supplier Bargaining Power',
     'product_quality_score': 'Product Quality',
@@ -45,8 +45,8 @@ METRIC_DISPLAY_NAMES = {
     'trailblazer_score': 'Market Leadership',
     'management_quality_score': 'Management Quality',
     'ai_knowledge_score': 'AI Scoring Confidence',
-    'size_well_known_score': 'Market Recognition',
-    'ethical_healthy_environmental_score': 'ESG & Ethics',
+    'size_well_known_score': 'Size',
+    'ethical_healthy_environmental_score': 'Ethical, Healthy, Environmental',
     'long_term_orientation_score': 'Long Term Focus',
 }
 
@@ -126,7 +126,6 @@ def search_ticker(query):
             'ticker': ticker,
             'company_name': data.get('company_name'),
             'short_float': data.get('short_float'),
-            'moat_score': data.get('moat_score'),
             'total_score_percentage': data.get('total_score_percentage'),
             'total_score_percentile_rank': data.get('total_score_percentile_rank'),
         }

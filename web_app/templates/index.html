@@ -293,7 +293,6 @@
 
         function displayResult(ticker, data, originalQuery, matchScore) {
             const shortFloat = data.short_float || null;
-            const moatScore = data.moat_score || null;
             const totalScorePercentage = data.total_score_percentage !== undefined ? data.total_score_percentage : null;
             const totalScorePercentileRank = data.total_score_percentile_rank !== undefined ? data.total_score_percentile_rank : null;
             const companyName = data.company_name || null;
@@ -314,12 +313,6 @@
                                     ${totalScorePercentileRank}th percentile
                                 </a>
                             </div>
-                        </div>
-                        ` : ''}
-                        ${moatScore !== null ? `
-                        <div class="detail-item">
-                            <div class="detail-label">Moat Score</div>
-                            <div class="detail-value">${moatScore}/10</div>
                         </div>
                         ` : ''}
                         ${shortFloat !== null ? `

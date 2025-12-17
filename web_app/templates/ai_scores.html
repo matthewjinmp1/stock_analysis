@@ -391,6 +391,11 @@
             renderTable();
         }
 
+        function displayVal(val) {
+            if (val === null || val === undefined || val === '') return 'N/A';
+            return val;
+        }
+
         function renderTable() {
             const head = document.getElementById('tableHead');
             const body = document.getElementById('scoresBody');
@@ -422,12 +427,12 @@
             scoresToDisplay.forEach(score => {
                 let rowHTML = `
                     <td><a href="/?q=${score.ticker}" class="ticker">${score.ticker}</a></td>
-                    <td class="company-name" title="${score.company_name || ''}">${score.company_name || 'N/A'}</td>
-                    <td class="percentile-rank">${score.total_score_percentile_rank || 'N/A'}</td>
+                    <td class="company-name" title="${score.company_name || ''}">${displayVal(score.company_name)}</td>
+                    <td class="percentile-rank">${displayVal(score.total_score_percentile_rank)}</td>
                 `;
                 
                 visibleMetrics.forEach(m => {
-                    rowHTML += `<td class="score-val">${score[m] || 'N/A'}</td>`;
+                    rowHTML += `<td class="score-val">${displayVal(score[m])}</td>`;
                 });
                 
                 const row = document.createElement('tr');

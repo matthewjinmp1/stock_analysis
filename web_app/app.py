@@ -687,10 +687,68 @@ def get_peers_api(ticker):
                 peer_tickers.append(peer_ticker)
 
         if not peer_tickers:
-            return jsonify({
-                'success': False,
-                'message': f'No peers found for {ticker}'
-            }), 404
+            # No peers found in database, automatically generate them using AI
+            print(f"No peers found for {ticker}, generating new peers using AI...")
+
+            # Get company name for AI peer finding
+            ticker_data = get_complete_data(ticker)
+            company_name = ticker_data.get('company_name') if ticker_data else ticker
+
+            # Generate peers using AI (same process as peer_getter.py)
+            peers_data, error, token_usage, elapsed_time = find_peers_for_ticker_ai(ticker, company_name)
+
+            if error or not peers_data:
+                return jsonify({
+                    'success': False,
+                    'message': f'Failed to generate peers for {ticker}: {error or "No peers generated"}'
+                }), 500
+
+            # Save the AI-generated peers to database
+            try:
+                from web_app.peers.peers_results_db import save_peer_analysis
+                from datetime import datetime
+                analysis_timestamp = datetime.now().isoformat()
+
+                # Calculate cost
+                cost_cents = None
+                if token_usage:
+                    from company_keywords.generate_company_keywords import calculate_grok_cost
+                    cost = calculate_grok_cost(token_usage, "grok-4-1-fast-reasoning")
+                    cost_cents = cost * 100
+
+                db_success = save_peer_analysis(
+                    ticker=ticker,
+                    company_name=company_name,
+                    peers=peers_data,
+                    token_usage=token_usage,
+                    estimated_cost_cents=cost_cents,
+                    analysis_timestamp=analysis_timestamp
+                )
+
+                if db_success:
+                    print(f"Successfully saved AI-generated peer analysis for {ticker}")
+                else:
+                    print(f"Warning: Failed to save peer analysis for {ticker} to database")
+
+            except Exception as db_error:
+                print(f"Database save error for {ticker}: {db_error}")
+                # Continue anyway since we have the peer data
+
+            # Extract tickers from the newly generated peers
+            peer_tickers = []
+            for peer_data in peers_data:
+                peer_ticker = peer_data.get('ticker')
+                if peer_ticker:
+                    peer_tickers.append(peer_ticker)
+
+            # Update peers_data_from_db for consistency
+            peers_data_from_db = peers_data
+
+            if not peer_tickers:
+                return jsonify({
+                    'success': False,
+                    'message': f'Generated peers for {ticker} but no valid tickers found'
+                }), 500
 
         # Get data for the main ticker
         main_ticker_data = get_complete_data(ticker)

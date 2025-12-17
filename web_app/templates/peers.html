@@ -338,7 +338,7 @@
             <div id="peer-content">
                 <div class="loading">
                     <div class="spinner"></div>
-                    <p>Loading peer data...</p>
+                    <p id="loading-message">Loading peer data from database...</p>
                 </div>
             </div>
         </div>
@@ -353,9 +353,27 @@
         let peerData = null; // Store the original data
 
         function loadPeerData() {
+            // Set a timeout to update the message if it takes longer than expected
+            // (indicating AI generation is likely happening)
+            const aiTimeout = setTimeout(() => {
+                const msgElement = document.getElementById('loading-message');
+                if (msgElement) {
+                    msgElement.innerHTML = `
+                        Generating AI peer recommendations for ${ticker}...<br>
+                        <span style="font-size: 0.85em; color: rgba(125, 211, 252, 0.6); margin-top: 8px; display: block;">
+                            No existing peers found. AI is analyzing the market to find the best matches.
+                            This typically takes 20-30 seconds.
+                        </span>
+                    `;
+                }
+            }, 2000); // Show AI message after 2 seconds
+
             fetch(`/api/peers/${ticker}`)
                 .then(response => response.json())
                 .then(data => {
+                    // Clear the AI timeout since we got a response
+                    clearTimeout(aiTimeout);
+                    
                     if (!data.success) {
                         const contentDiv = document.getElementById('peer-content');
                         contentDiv.innerHTML = `
@@ -376,6 +394,7 @@
                     renderPeerTable();
                 })
                 .catch(err => {
+                    clearTimeout(aiTimeout);
                     const contentDiv = document.getElementById('peer-content');
                     contentDiv.innerHTML = `
                         <div class="empty-state">

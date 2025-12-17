@@ -10,8 +10,8 @@ import time
 import json
 from datetime import datetime
 
-# Add project root to path
-PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
+# Add project root to path (go up one level from peers folder)
+PROJECT_ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 

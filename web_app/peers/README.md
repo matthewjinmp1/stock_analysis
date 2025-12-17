@@ -26,22 +26,28 @@ This folder contains tools for finding comparable companies (peers) using AI ana
 
 ## Database Schema
 
-The `peers_results.db` contains a `peer_analysis` table:
+The `peers_results.db` contains a `peer_results` table with **one peer per row** for better performance:
 
 ```sql
-CREATE TABLE peer_analysis (
+CREATE TABLE peer_results (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ticker TEXT NOT NULL,
     company_name TEXT,
-    peers_json TEXT NOT NULL,        -- JSON array of peer company names
-    peer_count INTEGER NOT NULL,
-    token_usage_json TEXT,           -- JSON object with token usage details
-    estimated_cost_cents REAL,
+    peer_name TEXT NOT NULL,        -- Individual peer company name
+    peer_rank INTEGER NOT NULL,     -- Position in peer list (1-10)
+    token_usage_json TEXT,          -- JSON object with token usage details
+    estimated_cost_cents REAL,      -- Cost per analysis (duplicated across peers)
     analysis_timestamp TEXT NOT NULL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(ticker, analysis_timestamp)
+    UNIQUE(ticker, peer_name, analysis_timestamp)
 );
 ```
+
+### Indexes
+- `idx_peer_results_ticker` - Fast ticker lookups
+- `idx_peer_results_timestamp` - Time-based queries
+- `idx_peer_results_peer_name` - Peer frequency analysis
+- `idx_peer_results_rank` - Rank-based filtering
 
 ## Usage
 
@@ -50,6 +56,18 @@ CREATE TABLE peer_analysis (
 ```bash
 cd web_app/peers
 python test_peer_finder.py
+
+### Database Management
+
+Initialize/update the database:
+```bash
+python peers_results_db.py
+```
+
+Migrate from old JSON schema (if upgrading):
+```bash
+python peers_results_db.py --migrate
+```
 ```
 
 The script will prompt you to enter ticker symbols. For each ticker, it will:
@@ -107,6 +125,24 @@ from peers_results_db import get_peer_analysis
 results = get_peer_analysis("AAPL", limit=5)
 for result in results:
     print(f"{result['ticker']}: {result['peer_count']} peers, ${result['estimated_cost_cents']:.4f} cents")
+    print(f"Top peers: {', '.join(result['peers'][:3])}")
+```
+
+### Advanced Queries with New Schema:
+
+```python
+# Find most common peers across all analyses
+from peers_results_db import get_all_peer_analyses
+import collections
+
+all_results = get_all_peer_analyses(limit=1000)
+peer_counts = collections.Counter()
+for result in all_results:
+    peer_counts.update(result['peers'])
+
+print("Most common peers:")
+for peer, count in peer_counts.most_common(10):
+    print(f"{peer}: {count} appearances")
 ```
 
 ### Get database statistics:
@@ -114,6 +150,7 @@ for result in results:
 from peers_results_db import get_peer_analysis_stats
 stats = get_peer_analysis_stats()
 print(f"Total analyses: {stats['total_analyses']}")
+print(f"Total peer relationships: {stats['total_peer_relationships']}")
 print(f"Total cost: ${stats['total_cost_dollars']:.4f}")
 ```
 

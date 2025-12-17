@@ -50,7 +50,12 @@ from web_app.adjusted_pe_db import get_adjusted_pe, init_adjusted_pe_db
 from web_app.score_calculator import SCORE_WEIGHTS, SCORE_DEFINITIONS
 
 # Import revenue growth analyzer
-from web_app.yfinance_revenue_growth import get_revenue_growth_estimates
+try:
+    from web_app.yfinance.yfinance_revenue_growth import get_revenue_growth_estimates
+    REVENUE_GROWTH_AVAILABLE = True
+except ImportError:
+    REVENUE_GROWTH_AVAILABLE = False
+    print("Warning: Revenue growth analyzer not available")
 
 def find_ticker_for_company(company_name: str) -> str:
     """Find ticker for a company name by searching available databases.

@@ -212,25 +212,53 @@ def format_growth_data(data: Dict) -> str:
 
 
 def main():
-    """Command line interface for testing revenue growth estimates."""
-    if len(sys.argv) != 2:
-        print("Usage: python yfinance_revenue_growth.py <TICKER>")
-        print("Example: python yfinance_revenue_growth.py AAPL")
-        sys.exit(1)
+    """Interactive command line interface for revenue growth estimates."""
+    print("=" * 60)
+    print("YFinance Revenue Growth Analyzer")
+    print("=" * 60)
+    print("Enter stock tickers to get revenue growth estimates.")
+    print("Type 'quit', 'exit', or 'q' to exit the program.")
+    print("-" * 60)
 
-    ticker = sys.argv[1].upper()
-    print(f"Fetching revenue growth estimates for {ticker}...")
+    while True:
+        try:
+            # Get user input
+            ticker_input = input("\nEnter ticker symbol: ").strip()
 
-    data, error = get_revenue_growth_estimates(ticker)
+            # Check for exit commands
+            if ticker_input.lower() in ['quit', 'exit', 'q']:
+                print("Goodbye!")
+                break
 
-    if error:
-        print(f"Error: {error}")
-        sys.exit(1)
+            # Validate input
+            if not ticker_input:
+                print("Please enter a ticker symbol.")
+                continue
 
-    if data:
-        print("\n" + format_growth_data(data))
-    else:
-        print("No revenue growth data found.")
+            # Convert to uppercase
+            ticker = ticker_input.upper()
+
+            print(f"\nFetching revenue growth estimates for {ticker}...")
+            print("-" * 40)
+
+            # Get data
+            data, error = get_revenue_growth_estimates(ticker)
+
+            if error:
+                print(f"Error: {error}")
+                continue
+
+            if data:
+                print(format_growth_data(data))
+            else:
+                print("No revenue growth data found for this ticker.")
+
+        except KeyboardInterrupt:
+            print("\n\nInterrupted by user. Goodbye!")
+            break
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+            continue
 
 
 if __name__ == '__main__':

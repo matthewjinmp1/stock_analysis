@@ -89,6 +89,10 @@ Return exactly 10 complete company names in ranked order, separated by semicolon
             elapsed_time = time.time() - start_time
             print(f"AI query completed in {elapsed_time:.2f} seconds")
             if token_usage:
+                # Calculate cost
+                from company_keywords.generate_company_keywords import calculate_grok_cost
+                cost = calculate_grok_cost(token_usage, "grok-4-1-fast-reasoning")
+                print(f"Estimated cost: ${cost:.6f}")
                 print(f"Token usage: {token_usage}")
 
             # Parse company names

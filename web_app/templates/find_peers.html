@@ -304,13 +304,16 @@
             resultsContent.innerHTML = html;
 
             // Display stats if available
-            if (data.elapsed_time || data.token_usage) {
+            if (data.elapsed_time || data.token_usage || data.estimated_cost) {
                 let statsHtml = '<h3 style="color: #a5d8ff; margin-bottom: 10px;">Query Statistics</h3>';
                 if (data.elapsed_time) {
                     statsHtml += `<p style="color: rgba(125, 211, 252, 0.7); margin: 5px 0;">Time taken: ${data.elapsed_time.toFixed(2)} seconds</p>`;
                 }
+                if (data.estimated_cost !== undefined) {
+                    statsHtml += `<p style="color: rgba(125, 211, 252, 0.7); margin: 5px 0;">Estimated cost: $${data.estimated_cost.toFixed(6)}</p>`;
+                }
                 if (data.token_usage) {
-                    statsHtml += `<p style="color: rgba(125, 211, 252, 0.7); margin: 5px 0;">Token usage: ${JSON.stringify(data.token_usage)}</p>`;
+                    statsHtml += `<p style="color: rgba(125, 211, 252, 0.7); margin: 5px 0; font-size: 0.9em;">Token usage: ${JSON.stringify(data.token_usage)}</p>`;
                 }
                 statsSection.innerHTML = statsHtml;
                 statsSection.style.display = 'block';

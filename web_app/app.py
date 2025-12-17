@@ -649,13 +649,18 @@ def find_peers_api(ticker):
                 'message': f'No peers found for {ticker}'
             }), 404
 
+        # Calculate cost
+        from company_keywords.generate_company_keywords import calculate_grok_cost
+        cost = calculate_grok_cost(token_usage, "grok-4-1-fast-reasoning") if token_usage else 0
+
         return jsonify({
             'success': True,
             'ticker': ticker,
             'company_name': company_name,
             'peers': peers,
             'elapsed_time': elapsed_time,
-            'token_usage': token_usage
+            'token_usage': token_usage,
+            'estimated_cost': cost
         })
 
     except Exception as e:

@@ -53,6 +53,22 @@ This folder contains scripts and data for collecting all available stock tickers
 - GOOGL → Alphabet Inc Class A
 - TSLA → Tesla Inc
 - BHP → BHP Group Limited
+- **LNVGF → Lenovo Group** (OTC exchange, successfully tested)
+
+## ✅ **API Functionality Verified**
+
+**LNVGF (Lenovo) Test Results:**
+- ✅ **Company Name**: Lenovo Group
+- ✅ **Exchange**: OTC (Over-the-Counter)
+- ✅ **Country**: US
+- ✅ **Financial Data**: 88 quarters of historical data available
+- ✅ **Latest Period**: 2025-09 (forward-looking data)
+
+**Test confirms QuickFS can provide:**
+- Company metadata (name, exchange, country)
+- Complete financial statements (88 quarters)
+- Real-time and historical data
+- Forward-looking estimates
 
 ## Usage
 

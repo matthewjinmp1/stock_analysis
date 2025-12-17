@@ -191,18 +191,15 @@ Return exactly 10 complete company names in ranked order, separated by semicolon
         print(f"\nTotal peers found: {len(peers)}")
         print("Test completed successfully!")
 
-        # Ask user if they want to save results
-        save_choice = input("\nSave results to database? (y/n): ").strip().lower()
-        if save_choice in ['y', 'yes']:
-            # Save to database
-            db_success = save_peers_to_database(ticker, company_name, peers, token_usage, cost_cents)
+        # Always save results to database
+        print("\nSaving results to database...")
+        analysis_timestamp = datetime.now().isoformat()
+        db_success = save_peers_to_database(ticker, company_name, peers, token_usage, cost_cents, analysis_timestamp)
 
-            if db_success:
-                print("Results saved successfully to database!")
-            else:
-                print("Failed to save results to database.")
+        if db_success:
+            print("Results saved successfully to database!")
         else:
-            print("Results not saved.")
+            print("Failed to save results to database.")
 
 if __name__ == "__main__":
     try:

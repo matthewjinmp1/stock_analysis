@@ -173,9 +173,20 @@ def get_peers_with_tickers(ticker: str, include_details: bool = False) -> Dict:
 
     print(f"Company: {input_company_name}")
 
+    # Check if ticker has peers in peers.db
+    try:
+        from web_app.peers_db import get_peers_for_ticker
+        existing_peers = get_peers_for_ticker(ticker)
+        if existing_peers:
+            print(f"Ticker has {len(existing_peers)} peers in database: {', '.join(existing_peers[:5])}{'...' if len(existing_peers) > 5 else ''}")
+        else:
+            print(f"Warning: {ticker} has no peers in the peers database")
+    except Exception as e:
+        print(f"Could not check peers database: {e}")
+
     # Import peer finding functionality
     try:
-        from web_app.peers.test_peer_finder import find_peers_for_ticker_ai
+        from test_peer_finder import find_peers_for_ticker_ai
     except ImportError:
         return {"error": "Could not import peer finding functionality"}
 

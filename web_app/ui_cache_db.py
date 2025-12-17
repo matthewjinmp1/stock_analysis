@@ -557,10 +557,29 @@ def fetch_and_cache_all_data(ticker: str, silent: bool = False) -> Optional[Dict
     if not silent:
         print(f"  Getting company name...")
     company_name = get_company_name_from_ticker(ticker)
+
+    # If glassdoor scraper didn't find it, try tickers.db
+    if not company_name:
+        try:
+            tickers_db_path = os.path.join(os.path.dirname(__file__), 'data', 'tickers.db')
+            if os.path.exists(tickers_db_path):
+                conn = sqlite3.connect(tickers_db_path)
+                cur = conn.cursor()
+                cur.execute("SELECT company_name FROM tickers WHERE ticker = ?", (ticker,))
+                result = cur.fetchone()
+                conn.close()
+                if result and result[0]:
+                    company_name = result[0]
+        except Exception as e:
+            if not silent:
+                print(f"  Warning: Error checking tickers.db: {e}")
+
     if company_name:
         cache_data['company_name'] = company_name
         if not silent:
             print(f"  Company: {company_name}")
+    elif not silent:
+        print(f"  Warning: Could not find company name for {ticker}")
     
     # 2. Get score data from ai_scores.db (if it exists)
     scores_db_path = os.path.join(os.path.dirname(__file__), 'data', 'ai_scores.db')

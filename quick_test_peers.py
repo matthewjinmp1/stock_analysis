@@ -92,7 +92,8 @@ Return exactly 10 complete company names in ranked order, separated by semicolon
             # Calculate cost
             from company_keywords.generate_company_keywords import calculate_grok_cost
             cost = calculate_grok_cost(token_usage, "grok-4-1-fast-reasoning")
-            print(f"Estimated cost: ${cost:.6f}")
+            cost_cents = cost * 100
+            print(f"Estimated cost: {cost_cents:.4f} cents")
             print(f"Token usage: {token_usage}")
         print(f"Response: {response[:200]}...")
 

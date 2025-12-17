@@ -35,13 +35,19 @@ def calculate_grok_cost(token_usage: dict, model: str = "grok-4-1-fast-reasoning
     output_cost = (output_tokens / 1_000_000) * pricing["output"]
     thinking_cost = (thinking_tokens / 1_000_000) * pricing["reasoning"]
 
+    # Convert to cents for display
+    input_cost_cents = input_cost * 100
+    output_cost_cents = output_cost * 100
+    thinking_cost_cents = thinking_cost * 100
+
     print(f"Cost Calculation ({model}):")
-    print(f"  Input cost: ${input_cost:.6f} ({input_tokens:,} tokens @ ${pricing['input']}/1M)")
-    print(f"  Output cost: ${output_cost:.6f} ({output_tokens:,} tokens @ ${pricing['output']}/1M)")
-    print(f"  Thinking cost: ${thinking_cost:.6f} ({thinking_tokens:,} tokens @ ${pricing['reasoning']}/1M)")
+    print(f"  Input cost: {input_cost_cents:.4f} cents ({input_tokens:,} tokens @ ${pricing['input']}/1M)")
+    print(f"  Output cost: {output_cost_cents:.4f} cents ({output_tokens:,} tokens @ ${pricing['output']}/1M)")
+    print(f"  Thinking cost: {thinking_cost_cents:.4f} cents ({thinking_tokens:,} tokens @ ${pricing['reasoning']}/1M)")
 
     total_cost = input_cost + output_cost + thinking_cost
-    print(f"  Total cost: ${total_cost:.6f}")
+    total_cost_cents = total_cost * 100
+    print(f"  Total cost: {total_cost_cents:.4f} cents")
     print()
 
     return total_cost
@@ -62,6 +68,7 @@ if __name__ == "__main__":
 
     cost = calculate_grok_cost(token_usage, "grok-4-1-fast-reasoning")
 
+    cost_cents = cost * 100
     print(".4f")
     print()
     print("Note: Thinking tokens are charged at the same rate as output tokens ($0.50/1M)")

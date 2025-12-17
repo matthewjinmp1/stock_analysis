@@ -310,7 +310,8 @@
                     statsHtml += `<p style="color: rgba(125, 211, 252, 0.7); margin: 5px 0;">Time taken: ${data.elapsed_time.toFixed(2)} seconds</p>`;
                 }
                 if (data.estimated_cost !== undefined) {
-                    statsHtml += `<p style="color: rgba(125, 211, 252, 0.7); margin: 5px 0;">Estimated cost: $${data.estimated_cost.toFixed(6)}</p>`;
+                    const costInCents = data.estimated_cost * 100;
+                    statsHtml += `<p style="color: rgba(125, 211, 252, 0.7); margin: 5px 0;">Estimated cost: ${costInCents.toFixed(4)} cents</p>`;
                 }
                 if (data.token_usage) {
                     statsHtml += `<p style="color: rgba(125, 211, 252, 0.7); margin: 5px 0; font-size: 0.9em;">Token usage: ${JSON.stringify(data.token_usage)}</p>`;

@@ -492,7 +492,7 @@ def fetch_adjusted_pe_ratio_and_breakdown(ticker: str) -> Tuple[Optional[float],
         except ImportError:
             api_key = os.environ.get('QUICKFS_API_KEY')
             if not api_key:
-                return None
+                return None, None
         
         # Format ticker symbol
         formatted_ticker = ticker
@@ -504,11 +504,11 @@ def fetch_adjusted_pe_ratio_and_breakdown(ticker: str) -> Tuple[Optional[float],
         data = client.get_data_full(formatted_ticker)
         
         if not data or "financials" not in data:
-            return None
+            return None, None
         
         quarterly = data.get("financials", {}).get("quarterly", {})
         if not quarterly:
-            return None
+            return None, None
         
         # Calculate adjusted PE ratio (pass ticker for yfinance price lookup)
         ratio, breakdown = calculate_adjusted_pe_with_components(quarterly, ticker=ticker)

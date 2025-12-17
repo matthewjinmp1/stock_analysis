@@ -42,7 +42,7 @@ def test_peer_finder():
 
     def get_model_for_ticker(ticker):
         """Get appropriate model for ticker analysis."""
-        return "grok-2-1212" if XAI_API_KEY else "anthropic/claude-3.5-sonnet"
+        return "grok-4-1-fast-reasoning" if XAI_API_KEY else "anthropic/claude-3.5-sonnet"
 
     def find_peers_for_ticker_ai(ticker, company_name=None):
         """Find peers for a ticker using AI."""

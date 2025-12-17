@@ -65,7 +65,7 @@ try:
 
     def get_model_for_ticker(ticker):
         """Get appropriate model for ticker analysis."""
-        return "grok-2-1212" if XAI_API_KEY else "anthropic/claude-3.5-sonnet"
+        return "grok-4-1-fast-reasoning" if XAI_API_KEY else "anthropic/claude-3.5-sonnet"
 
     AI_AVAILABLE = True
 except ImportError:

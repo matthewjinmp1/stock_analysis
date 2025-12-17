@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Peers - Stock Analysis</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0a0a0a;
+            background-image:
+                radial-gradient(circle at 20% 50%, rgba(0, 200, 220, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(200, 0, 200, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(120, 0, 200, 0.03) 0%, transparent 50%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #7dd3fc;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(13, 13, 13, 0.8);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(125, 211, 252, 0.3);
+            box-shadow: 0 0 15px rgba(125, 211, 252, 0.15);
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            color: #a5d8ff;
+            margin-bottom: 10px;
+            text-shadow: 0 0 8px rgba(125, 211, 252, 0.3);
+        }
+
+        .header p {
+            color: rgba(125, 211, 252, 0.7);
+        }
+
+        .search-section {
+            background: rgba(13, 13, 13, 0.8);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(125, 211, 252, 0.3);
+            box-shadow: 0 0 15px rgba(125, 211, 252, 0.15);
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            color: #a5d8ff;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(10, 10, 10, 0.6);
+            border: 1px solid rgba(125, 211, 252, 0.3);
+            border-radius: 8px;
+            color: #a5d8ff;
+            font-size: 1em;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: rgba(125, 211, 252, 0.6);
+            box-shadow: 0 0 8px rgba(125, 211, 252, 0.3);
+        }
+
+        .button {
+            background: rgba(125, 211, 252, 0.1);
+            color: #7dd3fc;
+            border: 1px solid rgba(125, 211, 252, 0.3);
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .button:hover {
+            background: rgba(125, 211, 252, 0.2);
+            border-color: rgba(125, 211, 252, 0.5);
+            box-shadow: 0 0 8px rgba(125, 211, 252, 0.3);
+        }
+
+        .back-link {
+            display: inline-block;
+            color: #a5d8ff;
+            text-decoration: none;
+            margin-bottom: 20px;
+            padding: 10px 20px;
+            background: rgba(125, 211, 252, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(125, 211, 252, 0.4);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .back-link:hover {
+            background: rgba(125, 211, 252, 0.2);
+            border-color: rgba(125, 211, 252, 0.6);
+            box-shadow: 0 0 12px rgba(125, 211, 252, 0.3);
+        }
+
+        .results-section {
+            background: rgba(13, 13, 13, 0.8);
+            border-radius: 15px;
+            padding: 30px;
+            border: 1px solid rgba(125, 211, 252, 0.3);
+            box-shadow: 0 0 15px rgba(125, 211, 252, 0.15);
+            display: none;
+        }
+
+        .results-section.show {
+            display: block;
+        }
+
+        .company-info {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(125, 211, 252, 0.2);
+        }
+
+        .company-info h2 {
+            color: #a5d8ff;
+            margin-bottom: 5px;
+        }
+
+        .company-info p {
+            color: rgba(125, 211, 252, 0.7);
+        }
+
+        .peers-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .peer-item {
+            background: rgba(10, 10, 10, 0.6);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(125, 211, 252, 0.2);
+            transition: all 0.3s;
+        }
+
+        .peer-item:hover {
+            background: rgba(10, 10, 10, 0.8);
+            border-color: rgba(125, 211, 252, 0.4);
+        }
+
+        .peer-number {
+            color: rgba(125, 211, 252, 0.6);
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .peer-name {
+            color: #a5d8ff;
+            font-weight: 500;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: rgba(125, 211, 252, 0.7);
+        }
+
+        .spinner {
+            border: 4px solid rgba(125, 211, 252, 0.2);
+            border-top: 4px solid rgba(125, 211, 252, 0.8);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button onclick="history.back()" class="back-link">← Back</button>
+
+        <div class="header">
+            <h1>🤖 AI Peer Finder</h1>
+            <p>Find comparable companies using artificial intelligence</p>
+        </div>
+
+        <div class="search-section">
+            <div class="input-group">
+                <label for="tickerInput">Enter Ticker Symbol:</label>
+                <input type="text" id="tickerInput" placeholder="e.g., AAPL, MSFT, GOOGL" style="text-transform: uppercase;">
+            </div>
+            <button onclick="findPeers()" class="button">Find Peers</button>
+        </div>
+
+        <div id="resultsSection" class="results-section">
+            <div id="resultsContent">
+                <!-- Results will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function findPeers() {
+            const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
+
+            if (!ticker) {
+                showError('Please enter a ticker symbol');
+                return;
+            }
+
+            // Show loading
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsContent = document.getElementById('resultsContent');
+            resultsSection.classList.add('show');
+            resultsContent.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Finding peers for ${ticker} using AI...</p>
+                    <p>This may take a moment...</p>
+                </div>
+            `;
+
+            // Fetch peers
+            fetch(`/api/find_peers/${ticker}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayResults(data);
+                    } else {
+                        showError(data.message || 'Error finding peers');
+                    }
+                })
+                .catch(error => {
+                    showError('Network error: ' + error.message);
+                });
+        }
+
+        function displayResults(data) {
+            const resultsContent = document.getElementById('resultsContent');
+
+            let html = `
+                <div class="company-info">
+                    <h2>${data.ticker}</h2>
+                    <p>${data.company_name || 'Company name not found'}</p>
+                </div>
+                <div class="peers-list">
+            `;
+
+            data.peers.forEach((peer, index) => {
+                html += `
+                    <div class="peer-item">
+                        <div class="peer-number">#${index + 1}</div>
+                        <div class="peer-name">${peer}</div>
+                    </div>
+                `;
+            });
+
+            html += `
+                </div>
+            `;
+
+            resultsContent.innerHTML = html;
+        }
+
+        function showError(message) {
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsContent = document.getElementById('resultsContent');
+            resultsSection.classList.add('show');
+            resultsContent.innerHTML = `
+                <div class="error-message">
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        // Allow Enter key to trigger search
+        document.getElementById('tickerInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                findPeers();
+            }
+        });
+    </script>
+</body>
+</html>

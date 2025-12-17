@@ -9,6 +9,7 @@ import os
 import sys
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 
 # Ensure project root is on path so we can import modules
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -46,6 +47,30 @@ from web_app.adjusted_pe_db import get_adjusted_pe, init_adjusted_pe_db
 
 # Import score calculator for weights and definitions
 from web_app.score_calculator import SCORE_WEIGHTS, SCORE_DEFINITIONS
+
+# Import AI client for peer finding
+try:
+    from src.clients.grok_client import GrokClient
+    from src.clients.openrouter_client import OpenRouterClient
+    from config import XAI_API_KEY, OPENROUTER_KEY
+
+    def get_api_client():
+        """Get configured API client."""
+        if XAI_API_KEY:
+            return GrokClient(XAI_API_KEY)
+        elif OPENROUTER_KEY:
+            return OpenRouterClient(OPENROUTER_KEY)
+        else:
+            raise ValueError("No API key configured")
+
+    def get_model_for_ticker(ticker):
+        """Get appropriate model for ticker analysis."""
+        return "grok-2-1212" if XAI_API_KEY else "anthropic/claude-3.5-sonnet"
+
+    AI_AVAILABLE = True
+except ImportError:
+    AI_AVAILABLE = False
+    print("Warning: AI client imports failed, peer finding will not be available")
 
 # Display names for metrics (explicit, no "Score" suffix)
 METRIC_DISPLAY_NAMES = {
@@ -363,6 +388,11 @@ def peers_page(ticker):
     ticker = ticker.strip().upper()
     return render_template('peers.html', ticker=ticker)
 
+@app.route('/find_peers')
+def find_peers_page():
+    """Display AI peer finder page."""
+    return render_template('find_peers.html')
+
 @app.route('/adjusted_pe/<ticker>')
 def adjusted_pe_page(ticker):
     """Display adjusted PE breakdown page for a ticker."""
@@ -466,6 +496,66 @@ def fetch_peer_data(peer_ticker):
         'short_float': peer_data.get('short_float') if peer_data else None,
     }
 
+def find_peers_for_ticker_ai(ticker, company_name=None):
+    """Find peers for a ticker using AI (simplified version for web app)."""
+    if not AI_AVAILABLE:
+        return None, "AI functionality not available"
+
+    try:
+        # Get company name if not provided
+        if not company_name:
+            ticker_data = get_complete_data(ticker)
+            company_name = ticker_data.get('company_name') if ticker_data else ticker
+
+        # Create AI prompt
+        prompt = f"""You are analyzing companies to find the 10 most comparable companies to {company_name} ({ticker}).
+
+Your task is to find the 10 MOST comparable companies to {company_name}.
+
+Consider factors such as:
+1. Industry and market segment similarity (MUST be in same or very similar industry)
+2. Business model similarity
+3. Product/service similarity
+4. Market overlap and customer base similarity
+5. Competitive dynamics (direct competitors)
+6. Company size and scale (if relevant)
+
+Return ONLY a semicolon-separated list of exactly 10 FULL company names, starting with the most comparable company first.
+CRITICAL: Use semicolons (;) to separate company names, NOT commas, because company names often contain commas.
+Each company name must be complete (e.g., "Microsoft Corporation", "Alphabet Inc.", "Meta Platforms Inc.", "Nike, Inc.").
+DO NOT return partial names, suffixes alone (like "Inc" or "Corporation"), or abbreviations.
+Each name should be the full legal company name or commonly used full name.
+Do not include explanations, ticker symbols, ranking numbers, or any other text - just the 10 complete company names separated by semicolons in order from most to least comparable.
+
+Example format: "Microsoft Corporation; Alphabet Inc.; Meta Platforms Inc.; Amazon.com Inc.; NVIDIA Corporation; Intel Corporation; Advanced Micro Devices Inc.; Salesforce Inc.; Oracle Corporation; Adobe Inc."
+
+Return exactly 10 complete company names in ranked order, separated by semicolons, nothing else."""
+
+        # Query AI
+        grok = get_api_client()
+        model = get_model_for_ticker(ticker)
+        response, _ = grok.simple_query_with_tokens(prompt, model=model)
+
+        # Parse company names
+        response_clean = response.strip()
+
+        # Split by semicolons first (preferred), then fall back to commas if needed
+        if ';' in response_clean:
+            company_names = [name.strip() for name in response_clean.split(';') if name.strip()]
+        else:
+            # Fallback: try to split by commas, but this is less reliable
+            company_names = [name.strip() for name in response_clean.split(',') if name.strip()]
+
+        # Clean up company names and limit to 10
+        company_names = company_names[:10]
+
+        # Convert company names to tickers (simplified - this would need a lookup)
+        # For now, return the company names - the frontend can handle ticker conversion
+        return company_names, None
+
+    except Exception as e:
+        return None, str(e)
+
 @app.route('/api/peers/<ticker>', methods=['GET'])
 def get_peers_api(ticker):
     """Get peer data for a ticker with their stats using multithreading."""
@@ -525,6 +615,47 @@ def get_peers_api(ticker):
         })
     except Exception as e:
         print(f"Error getting peers for {ticker}: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/find_peers/<ticker>', methods=['GET'])
+def find_peers_api(ticker):
+    """Find peers for a ticker using AI."""
+    try:
+        ticker = ticker.strip().upper()
+
+        # Get company name
+        ticker_data = get_complete_data(ticker)
+        company_name = ticker_data.get('company_name') if ticker_data else ticker
+
+        # Find peers using AI
+        peers, error = find_peers_for_ticker_ai(ticker, company_name)
+
+        if error:
+            return jsonify({
+                'success': False,
+                'message': f'Error finding peers: {error}'
+            }), 500
+
+        if not peers:
+            return jsonify({
+                'success': False,
+                'message': f'No peers found for {ticker}'
+            }), 404
+
+        return jsonify({
+            'success': True,
+            'ticker': ticker,
+            'company_name': company_name,
+            'peers': peers
+        })
+
+    except Exception as e:
+        print(f"Error finding peers for {ticker}: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({

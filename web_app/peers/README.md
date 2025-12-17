@@ -7,6 +7,7 @@ This folder contains tools for finding comparable companies (peers) using AI ana
 - `test_peer_finder.py` - Interactive command-line tool for testing peer finding
 - `peers_results_db.py` - Database functions for storing peer analysis results
 - `peers_results.db` - SQLite database containing all peer analysis results
+- `get_peers_with_tickers.py` - Converts AI-generated peer company names to ticker symbols
 - `README.md` - This documentation file
 
 ## Features
@@ -68,6 +69,19 @@ Migrate from old JSON schema (if upgrading):
 ```bash
 python peers_results_db.py --migrate
 ```
+
+### Running Peer Ticker Conversion
+
+```bash
+cd web_app/peers
+python get_peers_with_tickers.py
+```
+
+This script:
+1. Takes a ticker input (e.g., "AAPL")
+2. Finds AI-generated peers (company names)
+3. Converts company names to ticker symbols using multiple matching strategies
+4. Shows matching results and saves to JSON if requested
 ```
 
 The script will prompt you to enter ticker symbols. For each ticker, it will:

@@ -10,6 +10,7 @@ import sys
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
+from datetime import datetime
 
 # Ensure project root is on path so we can import modules
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -600,7 +601,7 @@ def find_peers_for_ticker_ai(ticker, company_name=None):
             company_name = ticker_data.get('company_name') if ticker_data else ticker
 
         # Create AI prompt
-        prompt = f"""You are analyzing companies to find the 10 most comparable companies to {company_name} ({ticker}).
+        prompt = f"""You are analyzing companies to find the 10 most comparable companies to {company_name}.
 
 Your task is to find the 10 MOST comparable companies to {company_name}.
 
@@ -612,16 +613,20 @@ Consider factors such as:
 5. Competitive dynamics (direct competitors)
 6. Company size and scale (if relevant)
 
-Return ONLY a semicolon-separated list of exactly 10 CLEAN company names, starting with the most comparable company first.
-CRITICAL: Use semicolons (;) to separate company names, NOT commas, because company names often contain commas.
-IMPORTANT: Return ONLY the core company name without any generic suffixes like Inc, Corp, Co, Ltd, LLC, Group, Holdings, Corporation, Incorporated, Limited, etc.
-Examples: "Microsoft" (not "Microsoft Corporation"), "Alphabet" (not "Alphabet Inc"), "Apple" (not "Apple Inc"), "Nike" (not "Nike Inc"), "Meta" (not "Meta Platforms Inc").
-DO NOT include legal suffixes, corporate designations, or any generic business terms at the end of company names.
-Do not include explanations, ticker symbols, ranking numbers, or any other text - just the 10 clean company names separated by semicolons in order from most to least comparable.
+For each company, provide both the clean company name and its stock ticker symbol (if it has one).
+Return ONLY a semicolon-separated list of exactly 10 entries, starting with the most comparable company first.
+Each entry should be in format: "Company Name|Ticker" or "Company Name|NONE" if no ticker exists.
 
-Example format: "Microsoft; Alphabet; Meta; Amazon; Nvidia; Intel; Advanced Micro Devices; Salesforce; Oracle; Adobe"
+CRITICAL: Use semicolons (;) to separate entries, NOT commas.
+IMPORTANT: Use ONLY the core company name without generic suffixes like Inc, Corp, Co, Ltd, LLC, Group, Holdings, Corporation, Incorporated, Limited, etc.
+Examples: "Microsoft|MSFT", "Alphabet|GOOG", "Apple|AAPL", "Nike|NKE", "Meta|META".
+For private companies or those without tickers, use "NONE" as the ticker.
 
-Return exactly 10 clean company names in ranked order, separated by semicolons, nothing else."""
+Do not include explanations, ranking numbers, or any other text - just the 10 entries separated by semicolons in order from most to least comparable.
+
+Example format: "Microsoft|MSFT; Alphabet|GOOG; Meta|META; Amazon|AMZN; Nvidia|NVDA; Intel|INTC; Advanced Micro Devices|AMD; Salesforce|CRM; Oracle|ORCL; Adobe|ADBE"
+
+Return exactly 10 entries in ranked order, separated by semicolons, nothing else."""
 
         # Query AI
         grok = get_api_client()
@@ -630,22 +635,37 @@ Return exactly 10 clean company names in ranked order, separated by semicolons, 
         response, token_usage = grok.simple_query_with_tokens(prompt, model=model)
         elapsed_time = time.time() - start_time
 
-        # Parse company names
+        # Parse company names and tickers
         response_clean = response.strip()
 
         # Split by semicolons first (preferred), then fall back to commas if needed
         if ';' in response_clean:
-            company_names = [name.strip() for name in response_clean.split(';') if name.strip()]
+            entries = [entry.strip() for entry in response_clean.split(';') if entry.strip()]
         else:
             # Fallback: try to split by commas, but this is less reliable
-            company_names = [name.strip() for name in response_clean.split(',') if name.strip()]
+            entries = [entry.strip() for entry in response_clean.split(',') if entry.strip()]
 
-        # Clean up company names and limit to 10
-        company_names = company_names[:10]
+        # Parse each entry into company name and ticker
+        peers_data = []
+        for entry in entries[:10]:  # Limit to 10
+            if '|' in entry:
+                parts = entry.split('|', 1)
+                company_name = parts[0].strip()
+                ticker = parts[1].strip() if len(parts) > 1 else None
+                if ticker == 'NONE':
+                    ticker = None
+                peers_data.append({
+                    'name': company_name,
+                    'ticker': ticker
+                })
+            else:
+                # Fallback: treat as company name only
+                peers_data.append({
+                    'name': entry,
+                    'ticker': None
+                })
 
-        # Convert company names to tickers (simplified - this would need a lookup)
-        # For now, return the company names - the frontend can handle ticker conversion
-        return company_names, None
+        return peers_data, None, token_usage, elapsed_time
 
     except Exception as e:
         return None, str(e)
@@ -656,16 +676,15 @@ def get_peers_api(ticker):
     try:
         ticker = ticker.strip().upper()
 
-        # Get peer company names from peers.db, then convert back to tickers for data lookup
-        peer_company_names = get_peers_for_ticker(ticker)  # This now returns company names
+        # Get peer data from peers_results.db (includes both names and tickers)
+        peers_data_from_db = get_peers_for_ticker(ticker)  # Returns list of dicts with 'name' and 'ticker'
 
-        # Convert peer company names back to tickers for data lookup
+        # Extract tickers from peer data
         peer_tickers = []
-        for peer_company in peer_company_names:
-            # Find ticker for this company name by searching the databases
-            ticker_found = find_ticker_for_company(peer_company)
-            if ticker_found:
-                peer_tickers.append(ticker_found)
+        for peer_data in peers_data_from_db:
+            peer_ticker = peer_data.get('ticker')
+            if peer_ticker:
+                peer_tickers.append(peer_ticker)
 
         if not peer_tickers:
             return jsonify({
@@ -735,7 +754,7 @@ def find_peers_api(ticker):
         company_name = ticker_data.get('company_name') if ticker_data else ticker
 
         # Find peers using AI
-        peers, error = find_peers_for_ticker_ai(ticker, company_name)
+        peers, error, token_usage, elapsed_time = find_peers_for_ticker_ai(ticker, company_name)
 
         if error:
             return jsonify({
@@ -752,6 +771,25 @@ def find_peers_api(ticker):
         # Calculate cost
         from company_keywords.generate_company_keywords import calculate_grok_cost
         cost = calculate_grok_cost(token_usage, "grok-4-1-fast-reasoning") if token_usage else 0
+
+        # Save results to database
+        try:
+            from web_app.peers.peers_results_db import save_peer_analysis
+            analysis_timestamp = datetime.now().isoformat()
+            db_success = save_peer_analysis(
+                ticker=ticker,
+                company_name=company_name,
+                peers=peers,
+                token_usage=token_usage,
+                estimated_cost_cents=cost * 100,  # Convert to cents
+                analysis_timestamp=analysis_timestamp
+            )
+            if db_success:
+                print(f"Successfully saved peer analysis for {ticker} to database")
+            else:
+                print(f"Failed to save peer analysis for {ticker} to database")
+        except Exception as db_error:
+            print(f"Database save error for {ticker}: {db_error}")
 
         return jsonify({
             'success': True,

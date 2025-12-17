@@ -513,13 +513,35 @@ def get_adjusted_pe_api(ticker):
     """Get adjusted PE ratio and breakdown for a ticker."""
     try:
         ticker = ticker.strip().upper()
-        
+
         # Try cache in adjusted_pe.db first
         stored = get_adjusted_pe(ticker)
         ratio = stored.get('adjusted_pe_ratio') if stored else None
-        
+
+        # Check if we need to refresh the data
+        should_refresh = False
         if not stored or ratio is None:
-            # Compute and persist if missing
+            should_refresh = True
+        else:
+            # Check if data was fetched today
+            from datetime import datetime
+            last_updated = stored.get('last_updated')
+            if last_updated:
+                try:
+                    # Parse the timestamp and check if it's from today
+                    updated_date = datetime.fromisoformat(last_updated).date()
+                    today = datetime.now().date()
+                    if updated_date != today:
+                        should_refresh = True
+                except (ValueError, TypeError):
+                    # If we can't parse the date, refresh to be safe
+                    should_refresh = True
+            else:
+                # No timestamp, refresh to be safe
+                should_refresh = True
+
+        if should_refresh:
+            # Compute and persist if missing or outdated
             ratio, breakdown = fetch_adjusted_pe_ratio_and_breakdown(ticker)
         else:
             breakdown = stored

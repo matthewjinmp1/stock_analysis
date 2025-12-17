@@ -7,7 +7,7 @@ Stores peer finding results with metadata, token usage, and costs.
 import os
 import sqlite3
 import json
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Union
 from datetime import datetime
 
 # Database path
@@ -27,6 +27,7 @@ def init_peers_results_db() -> None:
             ticker TEXT NOT NULL,
             company_name TEXT,
             peer_name TEXT NOT NULL,        -- Individual peer company name
+            peer_ticker TEXT,               -- Individual peer ticker symbol (if available)
             peer_rank INTEGER NOT NULL,     -- Position in peer list (1-10)
             token_usage_json TEXT,          -- JSON object with token usage details
             estimated_cost_cents REAL,      -- Cost per analysis (duplicated across peers)
@@ -57,7 +58,7 @@ def init_peers_results_db() -> None:
 def save_peer_analysis(
     ticker: str,
     company_name: str,
-    peers: List[str],
+    peers: List[Union[str, Dict[str, Any]]],
     token_usage: Optional[Dict[str, Any]] = None,
     estimated_cost_cents: Optional[float] = None,
     analysis_timestamp: Optional[str] = None
@@ -68,7 +69,7 @@ def save_peer_analysis(
     Args:
         ticker: Stock ticker symbol
         company_name: Full company name
-        peers: List of peer company names
+        peers: List of peer company names (strings) or peer data (dicts with 'name' and 'ticker' keys)
         token_usage: Dictionary with token usage details
         estimated_cost_cents: Cost in cents
         analysis_timestamp: ISO timestamp of analysis
@@ -92,18 +93,28 @@ def save_peer_analysis(
         token_usage_json = json.dumps(token_usage) if token_usage else None
 
         # Insert one row per peer
-        for rank, peer_name in enumerate(peers, start=1):
+        for rank, peer_data in enumerate(peers, start=1):
+            # Handle both old format (string) and new format (dict)
+            if isinstance(peer_data, dict):
+                peer_name = peer_data.get('name', '')
+                peer_ticker = peer_data.get('ticker')
+            else:
+                # Backward compatibility: peer_data is a string
+                peer_name = peer_data
+                peer_ticker = None
+
             cur.execute(
                 """
                 INSERT OR REPLACE INTO peer_results
-                (ticker, company_name, peer_name, peer_rank, token_usage_json,
+                (ticker, company_name, peer_name, peer_ticker, peer_rank, token_usage_json,
                  estimated_cost_cents, analysis_timestamp)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     ticker,
                     company_name,
                     peer_name,
+                    peer_ticker,
                     rank,
                     token_usage_json,
                     estimated_cost_cents,
@@ -154,7 +165,7 @@ def get_peer_analysis(ticker: str, limit: int = 10) -> List[Dict[str, Any]]:
             # Get all peers for this analysis
             cur.execute(
                 """
-                SELECT ticker, company_name, peer_name, peer_rank, token_usage_json,
+                SELECT ticker, company_name, peer_name, peer_ticker, peer_rank, token_usage_json,
                        estimated_cost_cents, created_at
                 FROM peer_results
                 WHERE ticker = ? AND analysis_timestamp = ?
@@ -168,17 +179,21 @@ def get_peer_analysis(ticker: str, limit: int = 10) -> List[Dict[str, Any]]:
                 continue
 
             # Extract data from first row (shared across all peers)
-            ticker_name, company_name, _, _, token_usage_json, \
+            ticker_name, company_name, _, _, _, token_usage_json, \
             estimated_cost_cents, created_at = peer_rows[0]
 
             # Parse token usage
             token_usage = json.loads(token_usage_json) if token_usage_json else None
 
-            # Extract peer names and ranks
+            # Extract peer names and tickers
             peers = []
             for row in peer_rows:
                 peer_name = row[2]  # peer_name column
-                peers.append(peer_name)
+                peer_ticker = row[3]  # peer_ticker column
+                peers.append({
+                    "name": peer_name,
+                    "ticker": peer_ticker
+                })
 
             results.append({
                 "ticker": ticker_name,
@@ -245,17 +260,21 @@ def get_all_peer_analyses(limit: int = 100) -> List[Dict[str, Any]]:
                 continue
 
             # Extract data from first row (shared across all peers)
-            ticker_name, company_name, _, _, token_usage_json, \
+            ticker_name, company_name, _, _, _, token_usage_json, \
             estimated_cost_cents, created_at = peer_rows[0]
 
             # Parse token usage
             token_usage = json.loads(token_usage_json) if token_usage_json else None
 
-            # Extract peer names and ranks
+            # Extract peer names and tickers
             peers = []
             for row in peer_rows:
                 peer_name = row[2]  # peer_name column
-                peers.append(peer_name)
+                peer_ticker = row[3]  # peer_ticker column
+                peers.append({
+                    "name": peer_name,
+                    "ticker": peer_ticker
+                })
 
             results.append({
                 "ticker": ticker_name,

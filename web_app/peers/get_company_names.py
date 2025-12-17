@@ -195,38 +195,39 @@ def get_peers_with_tickers(ticker: str, include_details: bool = False, analysis_
     latest_analysis = stored_analyses[0]
     print(f"\nUsing stored analysis from: {latest_analysis['analysis_timestamp']}")
 
-    # Extract peer company names from stored analysis
-    peers = latest_analysis.get('peers', [])
-    if not peers:
+    # Extract peer data from stored analysis (now includes both names and tickers)
+    peers_data = latest_analysis.get('peers', [])
+    if not peers_data:
         return {"error": "No peers found in stored analysis"}
 
-    print(f"\nFound {len(peers)} stored peer companies:")
-    for i, peer in enumerate(peers, 1):
-        print(f"  {i}. {peer}")
+    print(f"\nFound {len(peers_data)} stored peer companies:")
+    for i, peer in enumerate(peers_data, 1):
+        ticker_display = f" ({peer.get('ticker', 'NO TICKER')})" if peer.get('ticker') else ""
+        print(f"  {i}. {peer['name']}{ticker_display}")
 
-    # Convert company names to tickers
-    print("\nConverting company names to ticker symbols...")
+    # Extract tickers and names (they're already provided by the AI)
     peer_tickers = []
+    peer_names = []
     unmatched_peers = []
     matching_details = []
-    ticker_mapping = {}  # peer_name -> ticker
 
-    for peer_name in peers:
-        ticker_found = find_ticker_for_company(peer_name, ticker_map)
+    for peer in peers_data:
+        peer_name = peer['name']
+        peer_ticker = peer.get('ticker')
 
-        if ticker_found:
-            peer_tickers.append(ticker_found)
-            ticker_mapping[peer_name] = ticker_found
+        peer_names.append(peer_name)
+
+        if peer_ticker:
+            peer_tickers.append(peer_ticker)
             if include_details:
                 matching_details.append({
                     "peer_name": peer_name,
-                    "ticker": ticker_found,
+                    "ticker": peer_ticker,
                     "matched": True
                 })
         else:
-            # Skip peers that don't have real tickers - don't keep as fake tickers
+            # Peer doesn't have a ticker (private company or AI couldn't find one)
             unmatched_peers.append(peer_name)
-            ticker_mapping[peer_name] = None
             if include_details:
                 matching_details.append({
                     "peer_name": peer_name,
@@ -236,30 +237,29 @@ def get_peers_with_tickers(ticker: str, include_details: bool = False, analysis_
 
     # Display results
     print("\nPeer tickers found:")
-    for i, peer_name in enumerate(peers, 1):
-        ticker_result = ticker_mapping.get(peer_name)
-        if ticker_result:
+    for i, peer in enumerate(peers_data, 1):
+        peer_name = peer['name']
+        peer_ticker = peer.get('ticker')
+        if peer_ticker:
             status = "[OK]"
-            display_result = ticker_result
+            display_result = peer_ticker
         else:
             status = "[NO TICKER]"
-            display_result = "SKIPPED"
+            display_result = "NONE"
 
         print(f"  {i}. {peer_name} -> {display_result} {status}")
 
     if unmatched_peers:
-        print(f"\nWarning: {len(unmatched_peers)} peers could not be matched to tickers:")
-        for peer in unmatched_peers:
-            print(f"     - {peer}")
+        print(f"\nNote: {len(unmatched_peers)} peers do not have ticker symbols (private companies or not found)")
 
     # Prepare result
     result = {
         "input_ticker": ticker,
         "input_company": input_company_name,
-        "peer_companies": peers,
+        "peer_companies": peer_names,
         "peer_tickers": peer_tickers,
-        "total_peers": len(peers),
-        "matched_peers": len(peers) - len(unmatched_peers),
+        "total_peers": len(peers_data),
+        "matched_peers": len(peer_tickers),
         "unmatched_peers": unmatched_peers,
         "analysis_timestamp": latest_analysis.get('analysis_timestamp'),
         "token_usage": latest_analysis.get('token_usage'),

@@ -94,16 +94,20 @@ Consider factors such as:
 5. Competitive dynamics (direct competitors)
 6. Company size and scale (if relevant)
 
-Return ONLY a semicolon-separated list of exactly 10 CLEAN company names, starting with the most comparable company first.
-CRITICAL: Use semicolons (;) to separate company names, NOT commas, because company names often contain commas.
-IMPORTANT: Return ONLY the core company name without any generic suffixes like Inc, Corp, Co, Ltd, LLC, Group, Holdings, Corporation, Incorporated, Limited, etc.
-Examples: "Microsoft" (not "Microsoft Corporation"), "Alphabet" (not "Alphabet Inc"), "Apple" (not "Apple Inc"), "Nike" (not "Nike Inc"), "Meta" (not "Meta Platforms Inc").
-DO NOT include legal suffixes, corporate designations, or any generic business terms at the end of company names.
-Do not include explanations, ticker symbols, ranking numbers, or any other text - just the 10 clean company names separated by semicolons in order from most to least comparable.
+For each company, provide both the clean company name and its stock ticker symbol (if it has one).
+Return ONLY a semicolon-separated list of exactly 10 entries, starting with the most comparable company first.
+Each entry should be in format: "Company Name|Ticker" or "Company Name|NONE" if no ticker exists.
 
-Example format: "Microsoft; Alphabet; Meta; Amazon; Nvidia; Intel; Advanced Micro Devices; Salesforce; Oracle; Adobe"
+CRITICAL: Use semicolons (;) to separate entries, NOT commas.
+IMPORTANT: Use ONLY the core company name without generic suffixes like Inc, Corp, Co, Ltd, LLC, Group, Holdings, Corporation, Incorporated, Limited, etc.
+Examples: "Microsoft|MSFT", "Alphabet|GOOG", "Apple|AAPL", "Nike|NKE", "Meta|META".
+For private companies or those without tickers, use "NONE" as the ticker.
 
-Return exactly 10 clean company names in ranked order, separated by semicolons, nothing else."""
+Do not include explanations, ranking numbers, or any other text - just the 10 entries separated by semicolons in order from most to least comparable.
+
+Example format: "Microsoft|MSFT; Alphabet|GOOG; Meta|META; Amazon|AMZN; Nvidia|NVDA; Intel|INTC; Advanced Micro Devices|AMD; Salesforce|CRM; Oracle|ORCL; Adobe|ADBE"
+
+Return exactly 10 entries in ranked order, separated by semicolons, nothing else."""
 
             print("Querying AI for peer recommendations...")
             start_time = time.time()
@@ -125,20 +129,37 @@ Return exactly 10 clean company names in ranked order, separated by semicolons, 
                 print(f"Estimated cost: {cost_cents:.4f} cents")
                 print(f"Token usage: {token_usage}")
 
-            # Parse company names
+            # Parse company names and tickers
             response_clean = response.strip()
 
             # Split by semicolons first (preferred), then fall back to commas if needed
             if ';' in response_clean:
-                company_names = [name.strip() for name in response_clean.split(';') if name.strip()]
+                entries = [entry.strip() for entry in response_clean.split(';') if entry.strip()]
             else:
                 # Fallback: try to split by commas, but this is less reliable
-                company_names = [name.strip() for name in response_clean.split(',') if name.strip()]
+                entries = [entry.strip() for entry in response_clean.split(',') if entry.strip()]
 
-            # Clean up company names and limit to 10
-            company_names = company_names[:10]
+            # Parse each entry into company name and ticker
+            peers_data = []
+            for entry in entries[:10]:  # Limit to 10
+                if '|' in entry:
+                    parts = entry.split('|', 1)
+                    company_name = parts[0].strip()
+                    ticker = parts[1].strip() if len(parts) > 1 else None
+                    if ticker == 'NONE':
+                        ticker = None
+                    peers_data.append({
+                        'name': company_name,
+                        'ticker': ticker
+                    })
+                else:
+                    # Fallback: treat as company name only
+                    peers_data.append({
+                        'name': entry,
+                        'ticker': None
+                    })
 
-            return company_names, None, token_usage, cost_cents
+            return peers_data, None, token_usage, cost_cents
 
         except Exception as e:
             return None, str(e), None, None

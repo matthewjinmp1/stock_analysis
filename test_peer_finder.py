@@ -87,7 +87,7 @@ Return exactly 10 complete company names in ranked order, separated by semicolon
             response, token_usage = grok.simple_query_with_tokens(prompt, model=model)
 
             elapsed_time = time.time() - start_time
-            print(".2f"
+            print(f"⏱️ AI query completed in {elapsed_time:.2f} seconds")
             # Parse company names
             response_clean = response.strip()
 
@@ -145,8 +145,8 @@ Return exactly 10 complete company names in ranked order, separated by semicolon
             continue
 
         # Display results
-        print("
-🎯 AI-Generated Peer Recommendations:"        print("-" * 40)
+        print("\n🎯 AI-Generated Peer Recommendations:")
+        print("-" * 40)
 
         for i, peer in enumerate(peers, 1):
             print("2d")

@@ -237,34 +237,34 @@ def search_suggestions(query):
         # Search for tickers and company names containing the query string
         # Use UNION to combine ticker matches and company name matches, then limit to 10
         cur.execute("""
-            SELECT ticker, company_name, 'ticker' as match_type
+            SELECT ticker, company_name,
+                   CASE
+                       WHEN LOWER(ticker) LIKE ? THEN 'ticker'
+                       ELSE 'company'
+                   END as match_type,
+                   CASE
+                       WHEN LOWER(ticker) = ? THEN 1  -- Exact ticker match first
+                       WHEN LOWER(company_name) LIKE ? || '%' THEN 2  -- Company name starting with query
+                       ELSE 3  -- Other matches
+                   END as priority,
+                   LENGTH(ticker) as ticker_length
             FROM tickers
-            WHERE LOWER(ticker) LIKE ?
-            UNION
-            SELECT ticker, company_name, 'company' as match_type
-            FROM tickers
-            WHERE LOWER(company_name) LIKE ?
-            ORDER BY
-                CASE
-                    WHEN LOWER(ticker) = ? THEN 1  -- Exact ticker match first
-                    WHEN LOWER(company_name) LIKE ? || '%' THEN 2  -- Company name starting with query
-                    ELSE 3  -- Other matches
-                END,
-                LENGTH(ticker),  -- Shorter tickers first
-                ticker  -- Alphabetical
+            WHERE LOWER(ticker) LIKE ? OR LOWER(company_name) LIKE ?
+            ORDER BY priority, ticker_length, ticker
             LIMIT 10
         """, (
             f'%{query_lower}%',
-            f'%{query_lower}%',
             query_lower,
-            query_lower
+            query_lower,
+            f'%{query_lower}%',
+            f'%{query_lower}%'
         ))
 
         results = []
         seen_tickers = set()  # Avoid duplicates
 
         for row in cur.fetchall():
-            ticker, company_name, match_type = row
+            ticker, company_name, match_type, priority, ticker_length = row
             if ticker not in seen_tickers:
                 results.append({
                     'ticker': ticker,

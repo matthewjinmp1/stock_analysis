@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Scores - Stock Analysis</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0a0a0a;
+            background-image:
+                radial-gradient(circle at 20% 50%, rgba(0, 200, 220, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(200, 0, 200, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(120, 0, 200, 0.03) 0%, transparent 50%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #7dd3fc;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(13, 13, 13, 0.8);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(125, 211, 252, 0.3);
+            box-shadow: 0 0 15px rgba(125, 211, 252, 0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            color: #a5d8ff;
+            text-shadow: 0 0 8px rgba(125, 211, 252, 0.3);
+        }
+
+        .back-link {
+            display: inline-block;
+            color: #a5d8ff;
+            text-decoration: none;
+            padding: 10px 20px;
+            background: rgba(125, 211, 252, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(125, 211, 252, 0.4);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .back-link:hover {
+            background: rgba(125, 211, 252, 0.2);
+            border-color: rgba(125, 211, 252, 0.6);
+            box-shadow: 0 0 12px rgba(125, 211, 252, 0.3);
+        }
+
+        .scores-section {
+            background: rgba(13, 13, 13, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(125, 211, 252, 0.3);
+            box-shadow: 0 0 15px rgba(125, 211, 252, 0.15);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            color: #7dd3fc;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(125, 211, 252, 0.1);
+        }
+
+        th {
+            background: rgba(125, 211, 252, 0.05);
+            color: #a5d8ff;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+        }
+
+        th:hover {
+            background: rgba(125, 211, 252, 0.1);
+        }
+
+        tr:hover {
+            background: rgba(125, 211, 252, 0.03);
+        }
+
+        .ticker {
+            font-weight: 700;
+            color: #c4b5fd;
+            text-decoration: none;
+        }
+
+        .ticker:hover {
+            text-decoration: underline;
+        }
+
+        .percentile-rank {
+            font-weight: 600;
+            color: #a5d8ff;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: rgba(125, 211, 252, 0.7);
+        }
+
+        .spinner {
+            border: 4px solid rgba(125, 211, 252, 0.2);
+            border-top: 4px solid rgba(125, 211, 252, 0.8);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .search-container {
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            width: 100%;
+            max-width: 400px;
+            padding: 12px 20px;
+            background: rgba(10, 10, 10, 0.6);
+            border: 1px solid rgba(125, 211, 252, 0.3);
+            border-radius: 8px;
+            color: #a5d8ff;
+            font-size: 1em;
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: rgba(125, 211, 252, 0.6);
+            box-shadow: 0 0 10px rgba(125, 211, 252, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 AI Analysis Scores</h1>
+            <a href="/" class="back-link">← Main Page</a>
+        </div>
+
+        <div class="search-container">
+            <input type="text" id="tickerSearch" class="search-input" placeholder="Search by ticker..." onkeyup="filterTable()">
+        </div>
+
+        <div class="scores-section">
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Loading scores from AI database...</p>
+            </div>
+            <table id="scoresTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable(0)">Ticker</th>
+                        <th onclick="sortTable(1)">Percentile Rank</th>
+                        <th onclick="sortTable(2)">Moat</th>
+                        <th onclick="sortTable(3)">Brand</th>
+                        <th onclick="sortTable(4)">Pricing Power</th>
+                        <th onclick="sortTable(5)">Innovativeness</th>
+                        <th onclick="sortTable(6)">Management</th>
+                        <th onclick="sortTable(7)">Culture</th>
+                    </tr>
+                </thead>
+                <tbody id="scoresBody">
+                    <!-- Data will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let allScores = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchScores();
+        });
+
+        function fetchScores() {
+            fetch('/api/ai_scores')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        allScores = data.scores;
+                        renderTable(allScores);
+                        document.getElementById('loading').style.display = 'none';
+                        document.getElementById('scoresTable').style.display = 'table';
+                    } else {
+                        alert('Error loading scores: ' + data.message);
+                    }
+                })
+                .catch(err => {
+                    alert('Error fetching scores: ' + err.message);
+                });
+        }
+
+        function renderTable(scores) {
+            const body = document.getElementById('scoresBody');
+            body.innerHTML = '';
+            
+            scores.forEach(score => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><a href="/?q=${score.ticker}" class="ticker">${score.ticker}</a></td>
+                    <td class="percentile-rank">${score.total_score_percentile_rank || 'N/A'}</td>
+                    <td>${score.moat_score || 'N/A'}</td>
+                    <td>${score.brand_strength || 'N/A'}</td>
+                    <td>${score.pricing_power || 'N/A'}</td>
+                    <td>${score.innovativeness_score || 'N/A'}</td>
+                    <td>${score.management_quality_score || 'N/A'}</td>
+                    <td>${score.culture_employee_satisfaction_score || 'N/A'}</td>
+                `;
+                body.appendChild(row);
+            });
+        }
+
+        function filterTable() {
+            const input = document.getElementById('tickerSearch');
+            const filter = input.value.toUpperCase();
+            const filtered = allScores.filter(score => score.ticker.toUpperCase().includes(filter));
+            renderTable(filtered);
+        }
+
+        function sortTable(n) {
+            const table = document.getElementById("scoresTable");
+            let switching = true;
+            let dir = "desc";
+            let switchcount = 0;
+
+            while (switching) {
+                switching = false;
+                const rows = table.rows;
+                for (let i = 1; i < (rows.length - 1); i++) {
+                    let shouldSwitch = false;
+                    const x = rows[i].getElementsByTagName("TD")[n];
+                    const y = rows[i + 1].getElementsByTagName("TD")[n];
+                    
+                    let xVal = x.innerHTML.toLowerCase();
+                    let yVal = y.innerHTML.toLowerCase();
+
+                    // Handle numeric values
+                    if (!isNaN(parseFloat(xVal)) && !isNaN(parseFloat(yVal))) {
+                        xVal = parseFloat(xVal);
+                        yVal = parseFloat(yVal);
+                    }
+
+                    if (dir === "asc") {
+                        if (xVal > yVal) {
+                            shouldSwitch = true;
+                            break;
+                        }
+                    } else if (dir === "desc") {
+                        if (xVal < yVal) {
+                            shouldSwitch = true;
+                            break;
+                        }
+                    }
+                }
+                if (shouldSwitch) {
+                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                    switching = true;
+                    switchcount++;
+                } else {
+                    if (switchcount === 0 && dir === "desc") {
+                        dir = "asc";
+                        switching = true;
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>

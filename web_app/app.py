@@ -949,6 +949,35 @@ def remove_from_watchlist_api(ticker):
             'message': str(e)
         }), 500
 
+AI_SCORES_DB = os.path.join(os.path.dirname(__file__), 'data', 'ai_scores.db')
+
+@app.route('/ai_scores')
+def ai_scores_page():
+    """Render the AI scores page."""
+    return render_template('ai_scores.html')
+
+@app.route('/api/ai_scores')
+def get_ai_scores_api():
+    """Get all AI scores from the database."""
+    try:
+        conn = sqlite3.connect(AI_SCORES_DB)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM scores ORDER BY total_score_percentile_rank DESC")
+        rows = cur.fetchall()
+        scores = [dict(row) for row in rows]
+        conn.close()
+        return jsonify({
+            'success': True,
+            'scores': scores
+        })
+    except Exception as e:
+        print(f"Error getting AI scores: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
 

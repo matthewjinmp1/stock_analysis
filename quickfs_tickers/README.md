@@ -26,6 +26,10 @@ This folder contains scripts and data for collecting all available stock tickers
    - NZX (New Zealand): 167 tickers
    - Total: 11,970 unique tickers
 
+4. **Known Issues**: Some exchanges (CA/TSX, LN/LSE, MM/YSX) fail due to a bug in the QuickFS Python library where it expects dictionary responses but receives lists. Direct API calls also timeout, suggesting these exchanges may not be fully supported or have different API endpoints.
+
+5. **Coverage**: The working exchanges cover the major US and international markets. The missing exchanges (Canada, UK, Myanmar) represent a small portion of global market capitalization.
+
 ## Usage
 
 Run the main script:

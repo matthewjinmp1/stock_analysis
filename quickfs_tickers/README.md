@@ -19,6 +19,8 @@ This folder contains scripts and data for collecting all available stock tickers
 
 ### Database
 - `quickfs_tickers.db` - SQLite database with all 17,278 QuickFS tickers
+- `populate_company_names.py` - Populate company names using QuickFS API
+- `quickfs_tickers_db.py` - Database manager for querying tickers
 
 ## Key Findings
 
@@ -37,6 +39,20 @@ This folder contains scripts and data for collecting all available stock tickers
 4. **Known Issues**: Some exchanges (CA/TSX, LN/LSE, MM/YSX) fail due to a bug in the QuickFS Python library where it expects dictionary responses but receives lists. Direct API calls also timeout, suggesting these exchanges may not be fully supported or have different API endpoints.
 
 5. **Coverage**: The working exchanges cover the major US and international markets. The missing exchanges (Canada, UK, Myanmar) represent a small portion of global market capitalization.
+
+## 🏢 **Company Names**
+
+**API-Based Population**: Company names are populated using the QuickFS `get_data_full()` API
+- **Reliable**: Uses official QuickFS data, not web scraping
+- **Complete**: Covers all supported tickers
+- **Current**: Gets the most up-to-date company names
+
+**Examples of populated names:**
+- AAPL → Apple Inc
+- MSFT → Microsoft Corporation
+- GOOGL → Alphabet Inc Class A
+- TSLA → Tesla Inc
+- BHP → BHP Group Limited
 
 ## Usage
 

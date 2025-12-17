@@ -23,6 +23,7 @@ def test_peer_finder():
         from src.clients.grok_client import GrokClient
         from src.clients.openrouter_client import OpenRouterClient
         from config import XAI_API_KEY, OPENROUTER_KEY
+        from web_app.ui_cache_db import get_complete_data
         AI_AVAILABLE = True
         print("AI modules imported successfully")
     except ImportError as e:

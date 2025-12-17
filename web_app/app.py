@@ -49,12 +49,14 @@ from web_app.adjusted_pe_db import get_adjusted_pe, init_adjusted_pe_db
 from web_app.score_calculator import SCORE_WEIGHTS, SCORE_DEFINITIONS
 
 def find_ticker_for_company(company_name: str) -> str:
-    """Find ticker for a company name by searching available databases."""
-    # Check UI cache
+    """Find ticker for a company name by searching available databases.
+    Only returns real tickers from tickers.db.
+    """
+    # Check tickers.db first (only contains real tickers)
     try:
-        conn = sqlite3.connect(os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db'))
+        conn = sqlite3.connect(os.path.join(os.path.dirname(__file__), 'data', 'tickers.db'))
         cur = conn.cursor()
-        cur.execute("SELECT ticker FROM ui_cache WHERE company_name = ?", (company_name,))
+        cur.execute("SELECT ticker FROM tickers WHERE company_name = ?", (company_name,))
         result = cur.fetchone()
         conn.close()
         if result:
@@ -62,30 +64,7 @@ def find_ticker_for_company(company_name: str) -> str:
     except:
         pass
 
-    # Check financial scores
-    try:
-        conn = sqlite3.connect(os.path.join(os.path.dirname(__file__), 'data', 'financial_scores.db'))
-        cur = conn.cursor()
-        cur.execute("SELECT ticker FROM financial_scores WHERE company_name = ?", (company_name,))
-        result = cur.fetchone()
-        conn.close()
-        if result:
-            return result[0]
-    except:
-        pass
-
-    # Check AI scores
-    try:
-        conn = sqlite3.connect(os.path.join(os.path.dirname(__file__), 'data', 'ai_scores.db'))
-        cur = conn.cursor()
-        cur.execute("SELECT ticker FROM scores WHERE company_name = ?", (company_name,))
-        result = cur.fetchone()
-        conn.close()
-        if result:
-            return result[0]
-    except:
-        pass
-
+    # If not found in tickers.db, return None (no fake ticker)
     return None
 
 # Import AI client for peer finding
@@ -265,13 +244,13 @@ def search_suggestions(query):
     query_lower = query.lower().strip()
 
     try:
-        # Use UI cache database instead of tickers.db
-        ui_cache_db_path = os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db')
+        # Use tickers.db for search suggestions (contains only real tickers)
+        tickers_db_path = os.path.join(os.path.dirname(__file__), 'data', 'tickers.db')
 
-        if not os.path.exists(ui_cache_db_path):
-            return jsonify({'success': False, 'message': 'UI cache database not found'}), 500
+        if not os.path.exists(tickers_db_path):
+            return jsonify({'success': False, 'message': 'Tickers database not found'}), 500
 
-        conn = sqlite3.connect(ui_cache_db_path)
+        conn = sqlite3.connect(tickers_db_path)
         cur = conn.cursor()
 
         # Search for tickers and company names containing the query string
@@ -288,7 +267,7 @@ def search_suggestions(query):
                        ELSE 3  -- Other matches
                    END as priority,
                    LENGTH(ticker) as ticker_length
-            FROM ui_cache
+            FROM tickers
             WHERE LOWER(ticker) LIKE ? OR LOWER(company_name) LIKE ?
             ORDER BY priority, ticker_length, ticker
             LIMIT 10

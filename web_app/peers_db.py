@@ -63,15 +63,15 @@ def import_peers_from_json():
         print(f"Warning: Could not load peers file: {e}")
         return 0
 
-    # Get ticker to company mapping from UI cache
-    ui_cache_db = os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db')
+    # Get ticker to company mapping from tickers.db (only real tickers)
+    tickers_db = os.path.join(os.path.dirname(__file__), 'data', 'tickers.db')
     ticker_to_company = {}
-    if os.path.exists(ui_cache_db):
-        conn_ui = sqlite3.connect(ui_cache_db)
-        cur_ui = conn_ui.cursor()
-        cur_ui.execute("SELECT ticker, company_name FROM ui_cache")
-        ticker_to_company = {row[0]: row[1] for row in cur_ui.fetchall()}
-        conn_ui.close()
+    if os.path.exists(tickers_db):
+        conn_tickers = sqlite3.connect(tickers_db)
+        cur_tickers = conn_tickers.cursor()
+        cur_tickers.execute("SELECT ticker, company_name FROM tickers")
+        ticker_to_company = {row[0]: row[1] for row in cur_tickers.fetchall()}
+        conn_tickers.close()
 
     init_peers_database()
 
@@ -145,14 +145,14 @@ def get_peers_for_ticker(ticker: str) -> List[str]:
     Returns:
         list: List of peer company names (up to 10), ordered by rank
     """
-    # Get company name from ticker using UI cache
-    ui_cache_db = os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db')
-    if os.path.exists(ui_cache_db):
-        conn_ui = sqlite3.connect(ui_cache_db)
-        cur_ui = conn_ui.cursor()
-        cur_ui.execute("SELECT company_name FROM ui_cache WHERE ticker = ?", (ticker.upper(),))
-        result = cur_ui.fetchone()
-        conn_ui.close()
+    # Get company name from ticker using tickers.db
+    tickers_db = os.path.join(os.path.dirname(__file__), 'data', 'tickers.db')
+    if os.path.exists(tickers_db):
+        conn_tickers = sqlite3.connect(tickers_db)
+        cur_tickers = conn_tickers.cursor()
+        cur_tickers.execute("SELECT company_name FROM tickers WHERE ticker = ?", (ticker.upper(),))
+        result = cur_tickers.fetchone()
+        conn_tickers.close()
         if result:
             return get_peers_for_company(result[0])
 
@@ -210,18 +210,18 @@ def add_peer(ticker: str, peer_ticker: str, rank: Optional[int] = None) -> bool:
     Returns:
         True if added, False if already exists
     """
-    # Convert tickers to company names using UI cache
-    ui_cache_db = os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db')
-    if os.path.exists(ui_cache_db):
-        conn_ui = sqlite3.connect(ui_cache_db)
-        cur_ui = conn_ui.cursor()
+    # Convert tickers to company names using tickers.db
+    tickers_db = os.path.join(os.path.dirname(__file__), 'data', 'tickers.db')
+    if os.path.exists(tickers_db):
+        conn_tickers = sqlite3.connect(tickers_db)
+        cur_tickers = conn_tickers.cursor()
 
-        cur_ui.execute("SELECT company_name FROM ui_cache WHERE ticker = ?", (ticker.upper(),))
-        main_result = cur_ui.fetchone()
-        cur_ui.execute("SELECT company_name FROM ui_cache WHERE ticker = ?", (peer_ticker.upper(),))
-        peer_result = cur_ui.fetchone()
+        cur_tickers.execute("SELECT company_name FROM tickers WHERE ticker = ?", (ticker.upper(),))
+        main_result = cur_tickers.fetchone()
+        cur_tickers.execute("SELECT company_name FROM tickers WHERE ticker = ?", (peer_ticker.upper(),))
+        peer_result = cur_tickers.fetchone()
 
-        conn_ui.close()
+        conn_tickers.close()
 
         if main_result and peer_result:
             return add_peer_company(main_result[0], peer_result[0], rank)
@@ -313,14 +313,14 @@ def has_peers(ticker: str) -> bool:
     Returns:
         True if ticker has peers, False otherwise
     """
-    # Convert ticker to company name using UI cache
-    ui_cache_db = os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db')
-    if os.path.exists(ui_cache_db):
-        conn_ui = sqlite3.connect(ui_cache_db)
-        cur_ui = conn_ui.cursor()
-        cur_ui.execute("SELECT company_name FROM ui_cache WHERE ticker = ?", (ticker.upper(),))
-        result = cur_ui.fetchone()
-        conn_ui.close()
+    # Convert ticker to company name using tickers.db
+    tickers_db = os.path.join(os.path.dirname(__file__), 'data', 'tickers.db')
+    if os.path.exists(tickers_db):
+        conn_tickers = sqlite3.connect(tickers_db)
+        cur_tickers = conn_tickers.cursor()
+        cur_tickers.execute("SELECT company_name FROM tickers WHERE ticker = ?", (ticker.upper(),))
+        result = cur_tickers.fetchone()
+        conn_tickers.close()
         if result:
             return has_peers_company(result[0])
 
@@ -352,20 +352,20 @@ def get_all_tickers_with_peers() -> List[str]:
     """
     companies = get_all_companies_with_peers()
 
-    # Convert company names back to tickers using UI cache
-    ui_cache_db = os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db')
-    if os.path.exists(ui_cache_db):
-        conn_ui = sqlite3.connect(ui_cache_db)
-        cur_ui = conn_ui.cursor()
+    # Convert company names back to tickers using tickers.db
+    tickers_db = os.path.join(os.path.dirname(__file__), 'data', 'tickers.db')
+    if os.path.exists(tickers_db):
+        conn_tickers = sqlite3.connect(tickers_db)
+        cur_tickers = conn_tickers.cursor()
 
         tickers = []
         for company in companies:
-            cur_ui.execute("SELECT ticker FROM ui_cache WHERE company_name = ?", (company,))
-            result = cur_ui.fetchone()
+            cur_tickers.execute("SELECT ticker FROM tickers WHERE company_name = ?", (company,))
+            result = cur_tickers.fetchone()
             if result:
                 tickers.append(result[0])
 
-        conn_ui.close()
+        conn_tickers.close()
         return tickers
 
     return []

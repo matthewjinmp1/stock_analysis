@@ -424,9 +424,9 @@
         function getSortValue(obj, column) {
             switch (column) {
                 case 'ticker':
-                    return obj.ticker;
+                    return obj.ticker || '';
                 case 'company_name':
-                    return obj.company_name || obj.ticker;
+                    return obj.company_name || '';
                 case 'total_score_percentile_rank':
                     return obj.total_score_percentile_rank;
                 case 'financial_total_percentile':
@@ -470,34 +470,42 @@
                     </thead>
                     <tbody>
                         <tr class="main-ticker-row">
-                            <td><a href="/?q=${mainTicker.ticker}" class="ticker-link">${mainTicker.ticker}</a></td>
-                            <td>${mainTicker.company_name || mainTicker.ticker}</td>
+                            <td>${mainTicker.ticker ? `<a href="/?q=${mainTicker.ticker}" class="ticker-link">${mainTicker.ticker}</a>` : 'N/A'}</td>
+                            <td>${mainTicker.company_name || mainTicker.ticker || 'N/A'}</td>
                             <td>${mainTicker.total_score_percentile_rank !== null
-                                ? `<a href="/metrics/${mainTicker.ticker}" class="score-link">${mainTicker.total_score_percentile_rank}%</a>`
+                                ? `<a href="/metrics/${mainTicker.ticker || mainTicker.company_name}" class="score-link">${mainTicker.total_score_percentile_rank}%</a>`
                                 : 'N/A'}</td>
                             <td>${mainTicker.financial_total_percentile !== null
-                                ? `<a href="/financial/${mainTicker.ticker}" class="score-link">${Math.round(mainTicker.financial_total_percentile)}%</a>`
+                                ? `<a href="/financial/${mainTicker.ticker || mainTicker.company_name}" class="score-link">${Math.round(mainTicker.financial_total_percentile)}%</a>`
                                 : 'N/A'}</td>
                             <td>${mainTicker.adjusted_pe_ratio !== null && mainTicker.adjusted_pe_ratio !== undefined
-                                ? `<a href="/adjusted_pe/${mainTicker.ticker}" class="score-link">${mainTicker.adjusted_pe_ratio.toFixed(2)}</a>`
+                                ? `<a href="/adjusted_pe/${mainTicker.ticker || mainTicker.company_name}" class="score-link">${mainTicker.adjusted_pe_ratio.toFixed(2)}</a>`
                                 : 'N/A'}</td>
                             <td>${mainTicker.short_float || 'N/A'}</td>
                         </tr>
             `;
 
             peers.forEach(peer => {
+                // Only show ticker link if ticker exists
+                const tickerCell = peer.ticker
+                    ? `<a href="/?q=${peer.ticker}" class="ticker-link">${peer.ticker}</a>`
+                    : 'N/A';
+
+                // Use ticker for links only if it exists
+                const linkTicker = peer.ticker || peer.company_name;
+
                 tableHTML += `
                     <tr>
-                        <td><a href="/?q=${peer.ticker}" class="ticker-link">${peer.ticker}</a></td>
-                        <td>${peer.company_name || peer.ticker}</td>
+                        <td>${tickerCell}</td>
+                        <td>${peer.company_name || 'N/A'}</td>
                         <td>${peer.total_score_percentile_rank !== null
-                            ? `<a href="/metrics/${peer.ticker}" class="score-link">${peer.total_score_percentile_rank}%</a>`
+                            ? `<a href="/metrics/${linkTicker}" class="score-link">${peer.total_score_percentile_rank}%</a>`
                             : 'N/A'}</td>
                         <td>${peer.financial_total_percentile !== null
-                            ? `<a href="/financial/${peer.ticker}" class="score-link">${Math.round(peer.financial_total_percentile)}%</a>`
+                            ? `<a href="/financial/${linkTicker}" class="score-link">${Math.round(peer.financial_total_percentile)}%</a>`
                             : 'N/A'}</td>
                         <td>${peer.adjusted_pe_ratio !== null && peer.adjusted_pe_ratio !== undefined
-                            ? `<a href="/adjusted_pe/${peer.ticker}" class="score-link">${peer.adjusted_pe_ratio.toFixed(2)}</a>`
+                            ? `<a href="/adjusted_pe/${linkTicker}" class="score-link">${peer.adjusted_pe_ratio.toFixed(2)}</a>`
                             : 'N/A'}</td>
                         <td>${peer.short_float || 'N/A'}</td>
                     </tr>

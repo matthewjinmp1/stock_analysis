@@ -8,6 +8,7 @@ import json
 import os
 import sys
 import sqlite3
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Ensure project root is on path so we can import modules
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -451,25 +452,39 @@ def add_to_watchlist_api(ticker):
             'message': str(e)
         }), 500
 
+def fetch_peer_data(peer_ticker):
+    """Fetch data for a single peer ticker."""
+    peer_data = get_complete_data(peer_ticker)
+    peer_financial_scores = get_financial_scores(peer_ticker)
+
+    return {
+        'ticker': peer_ticker,
+        'company_name': peer_data.get('company_name') if peer_data else None,
+        'total_score_percentile_rank': peer_data.get('total_score_percentile_rank') if peer_data else None,
+        'financial_total_percentile': peer_financial_scores.get('total_percentile') if peer_financial_scores else None,
+        'adjusted_pe_ratio': peer_data.get('adjusted_pe_ratio') if peer_data else None,
+        'short_float': peer_data.get('short_float') if peer_data else None,
+    }
+
 @app.route('/api/peers/<ticker>', methods=['GET'])
 def get_peers_api(ticker):
-    """Get peer data for a ticker with their stats."""
+    """Get peer data for a ticker with their stats using multithreading."""
     try:
         ticker = ticker.strip().upper()
-        
-        # Get peer tickers
+
+        # Get peer tickers from peers.db
         peer_tickers = get_peers_for_ticker(ticker)
-        
+
         if not peer_tickers:
             return jsonify({
                 'success': False,
                 'message': f'No peers found for {ticker}'
             }), 404
-        
+
         # Get data for the main ticker
         main_ticker_data = get_complete_data(ticker)
         main_financial_scores = get_financial_scores(ticker)
-        
+
         main_data = {
             'ticker': ticker,
             'company_name': main_ticker_data.get('company_name') if main_ticker_data else None,
@@ -478,22 +493,31 @@ def get_peers_api(ticker):
             'adjusted_pe_ratio': main_ticker_data.get('adjusted_pe_ratio') if main_ticker_data else None,
             'short_float': main_ticker_data.get('short_float') if main_ticker_data else None,
         }
-        
-        # Get data for all peers
+
+        # Get data for all peers using multithreading - one thread per peer
         peers_data = []
-        for peer_ticker in peer_tickers:
-            peer_data = get_complete_data(peer_ticker)
-            peer_financial_scores = get_financial_scores(peer_ticker)
-            
-            peers_data.append({
-                'ticker': peer_ticker,
-                'company_name': peer_data.get('company_name') if peer_data else None,
-                'total_score_percentile_rank': peer_data.get('total_score_percentile_rank') if peer_data else None,
-                'financial_total_percentile': peer_financial_scores.get('total_percentile') if peer_financial_scores else None,
-                'adjusted_pe_ratio': peer_data.get('adjusted_pe_ratio') if peer_data else None,
-                'short_float': peer_data.get('short_float') if peer_data else None,
-            })
-        
+        with ThreadPoolExecutor(max_workers=len(peer_tickers)) as executor:
+            # Submit all peer data fetching tasks
+            future_to_peer = {executor.submit(fetch_peer_data, peer_ticker): peer_ticker for peer_ticker in peer_tickers}
+
+            # Collect results as they complete
+            for future in as_completed(future_to_peer):
+                try:
+                    peer_data = future.result()
+                    peers_data.append(peer_data)
+                except Exception as exc:
+                    peer_ticker = future_to_peer[future]
+                    print(f'Peer {peer_ticker} generated an exception: {exc}')
+                    # Add empty data for failed peers
+                    peers_data.append({
+                        'ticker': peer_ticker,
+                        'company_name': None,
+                        'total_score_percentile_rank': None,
+                        'financial_total_percentile': None,
+                        'adjusted_pe_ratio': None,
+                        'short_float': None,
+                    })
+
         return jsonify({
             'success': True,
             'main_ticker': main_data,

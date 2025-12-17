@@ -283,20 +283,31 @@
             const b = data.breakdown || {};
 
             const fields = [
+                // Step 1: Base TTM operating income calculation
                 { label: 'TTM Operating Income', value: fmtMoney(b.ttm_operating_income) },
                 { label: 'TTM Depreciation & Amortization (DA)', value: fmtMoney(b.ttm_da) },
                 { label: 'TTM Capex', value: fmtMoney(b.ttm_capex) },
                 { label: 'Adjustment (|DA| - |Capex| if > 0)', value: fmtMoney(b.adjustment) },
                 { label: 'Adjusted Operating Income', value: fmtMoney(b.adjusted_operating_income) },
+
+                // Step 2: Apply tax rate
                 { label: 'Median Tax Rate (5yr)', value: fmtPercent(b.median_tax_rate, 2) },
                 { label: 'Adjusted OI After Tax', value: fmtMoney(b.adjusted_oi_after_tax) },
+
+                // Step 3: Get QuickFS base data
                 { label: 'QuickFS EV (latest)', value: fmtMoney(b.quickfs_ev) },
                 { label: 'QuickFS Market Cap (latest)', value: fmtMoney(b.quickfs_market_cap) },
-                { label: 'Updated EV (with current price)', value: fmtMoney(b.updated_ev) },
+
+                // Step 4: Get current market data
                 { label: 'Share Count (latest QuickFS)', value: fmtSuffix(b.share_count, 2) },
                 { label: 'Current Price (yfinance)', value: b.current_price !== undefined && b.current_price !== null ? '$' + fmt(b.current_price) : 'N/A' },
-                { label: 'EV Difference (EV - Market Cap)', value: fmtMoney(b.ev_difference) },
+
+                // Step 5: Calculate updated market cap
                 { label: 'Updated Market Cap', value: fmtMoney(b.updated_market_cap) },
+
+                // Step 6: Calculate EV adjustment
+                { label: 'EV Difference (EV - Market Cap)', value: fmtMoney(b.ev_difference) },
+                { label: 'Updated EV (with current price)', value: fmtMoney(b.updated_ev) },
             ];
 
             contentDiv.innerHTML = `

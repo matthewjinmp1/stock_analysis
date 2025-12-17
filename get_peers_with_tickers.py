@@ -219,13 +219,13 @@ def get_peers_with_tickers(ticker: str, include_details: bool = False) -> Dict:
                 })
 
     # Display results
-    print("
-Peer tickers found:"    for i, (original, ticker_result) in enumerate(zip(peers, peer_tickers), 1):
-        status = "✓" if ticker_result != original else "✗"
+    print("\nPeer tickers found:")
+    for i, (original, ticker_result) in enumerate(zip(peers, peer_tickers), 1):
+        status = "[OK]" if ticker_result != original else "[FAIL]"
         print(f"  {i}. {original} → {ticker_result} {status}")
 
     if unmatched_peers:
-        print(f"\n⚠️  {len(unmatched_peers)} peers could not be matched to tickers:")
+        print(f"\nWarning: {len(unmatched_peers)} peers could not be matched to tickers:")
         for peer in unmatched_peers:
             print(f"     - {peer}")
 
@@ -271,7 +271,7 @@ def main():
             continue
 
         # Display summary
-        print(f"\n✅ Successfully processed {ticker}")
+        print(f"\nSuccessfully processed {ticker}")
         print(f"   Company: {result['input_company']}")
         print(f"   Peers found: {result['total_peers']}")
         print(f"   Tickers matched: {result['matched_peers']}")

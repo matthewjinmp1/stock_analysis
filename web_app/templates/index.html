@@ -855,6 +855,7 @@
             const totalScorePercentileRank = data.total_score_percentile_rank !== undefined ? data.total_score_percentile_rank : null;
             const financialTotalPercentile = data.financial_total_percentile !== undefined ? data.financial_total_percentile : null;
             const adjustedPeRatio = data.adjusted_pe_ratio !== undefined ? data.adjusted_pe_ratio : null;
+            const forwardGrowth2yr = data.forward_growth_2yr !== undefined ? data.forward_growth_2yr : null;
             const companyName = data.company_name || null;
             const isInWatchlist = inWatchlist || false;
 
@@ -905,6 +906,12 @@
                                     ${adjustedPeRatio.toFixed(2)}
                                 </a>
                             </div>
+                        </div>
+                        ` : ''}
+                        ${forwardGrowth2yr !== null ? `
+                        <div class="detail-item">
+                            <div class="detail-label">2-Year Forward Growth</div>
+                            <div class="detail-value">${forwardGrowth2yr.toFixed(1)}%</div>
                         </div>
                         ` : ''}
                         ${shortFloat !== null ? `

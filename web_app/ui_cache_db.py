@@ -25,6 +25,14 @@ from web_app.adjusted_pe_db import (
     get_adjusted_pe,
 )
 
+# Import revenue growth analyzer
+try:
+    from web_app.yfinance.yfinance_revenue_growth import get_revenue_growth_estimates
+    REVENUE_GROWTH_AVAILABLE = True
+except ImportError:
+    REVENUE_GROWTH_AVAILABLE = False
+    print("Warning: Revenue growth analyzer not available")
+
 # Import QuickFS for adjusted PE ratio calculation
 try:
     from quickfs import QuickFS
@@ -100,7 +108,10 @@ def init_database():
     
     # Add adjusted PE ratio
     columns.append('adjusted_pe_ratio REAL')
-    
+
+    # Add 2-year forward growth
+    columns.append('forward_growth_2yr REAL')
+
     # Create table
     create_table_sql = f'''
         CREATE TABLE IF NOT EXISTS ui_cache (
@@ -119,7 +130,14 @@ def init_database():
             conn.commit()
         except Exception as e:
             print(f"Warning: Could not add adjusted_pe_ratio column: {e}")
-    
+
+    if 'forward_growth_2yr' not in existing_columns:
+        try:
+            cursor.execute('ALTER TABLE ui_cache ADD COLUMN forward_growth_2yr REAL')
+            conn.commit()
+        except Exception as e:
+            print(f"Warning: Could not add forward_growth_2yr column: {e}")
+
     # Create index for faster lookups
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_ticker ON ui_cache(ticker)')
     
@@ -630,7 +648,23 @@ def fetch_and_cache_all_data(ticker: str, silent: bool = False) -> Optional[Dict
             cache_data['adjusted_pe_ratio'] = adjusted_pe
             if not silent:
                 print(f"  Adjusted PE Ratio: {adjusted_pe:.2f}")
-    
+
+    # 4.5. Fetch 2-year forward growth
+    if REVENUE_GROWTH_AVAILABLE and (not cached or cached.get('forward_growth_2yr') is None):
+        if not silent:
+            print(f"  Fetching 2-year forward growth...")
+        try:
+            growth_data, error = get_revenue_growth_estimates(ticker)
+            if growth_data and growth_data.get('next_2_years_growth') is not None:
+                cache_data['forward_growth_2yr'] = growth_data['next_2_years_growth']
+                if not silent:
+                    print(f"  2-Year Forward Growth: {growth_data['next_2_years_growth']:.1f}%")
+            elif error and not silent:
+                print(f"  Warning: Could not fetch growth data: {error}")
+        except Exception as e:
+            if not silent:
+                print(f"  Warning: Could not fetch 2-year growth: {e}")
+
     # 5. Store in cache
     if cache_data:
         update_cache(ticker, cache_data)
@@ -708,9 +742,10 @@ def get_complete_data(ticker: str) -> Optional[Dict[str, Any]]:
     missing_company = not cached.get('company_name')
     missing_scores = not any(cached.get(col) for col in METRIC_COLUMNS)
     missing_adjusted_pe = cached.get('adjusted_pe_ratio') is None
-    
+    missing_growth_2yr = cached.get('forward_growth_2yr') is None
+
     # If we need to refresh or are missing data, fetch
-    if needs_si_refresh or missing_company or missing_adjusted_pe:
+    if needs_si_refresh or missing_company or missing_adjusted_pe or missing_growth_2yr:
         # Fetch only what's missing
         update_data = {}
         
@@ -738,7 +773,16 @@ def get_complete_data(ticker: str) -> Optional[Dict[str, Any]]:
             adjusted_pe, _ = fetch_adjusted_pe_ratio_and_breakdown(ticker)
             if adjusted_pe is not None:
                 update_data['adjusted_pe_ratio'] = adjusted_pe
-        
+
+        # 2-year forward growth
+        if missing_growth_2yr and REVENUE_GROWTH_AVAILABLE:
+            try:
+                growth_data, error = get_revenue_growth_estimates(ticker)
+                if growth_data and growth_data.get('next_2_years_growth') is not None:
+                    update_data['forward_growth_2yr'] = growth_data['next_2_years_growth']
+            except Exception as e:
+                print(f"Warning: Could not fetch 2-year growth: {e}")
+
         # Update cache with new data
         if update_data:
             update_cache(ticker, update_data)

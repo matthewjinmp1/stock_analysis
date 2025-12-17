@@ -207,6 +207,7 @@ def search_ticker(query):
             'total_score_percentage': data.get('total_score_percentage'),
             'total_score_percentile_rank': data.get('total_score_percentile_rank'),
             'adjusted_pe_ratio': data.get('adjusted_pe_ratio'),
+            'forward_growth_2yr': data.get('forward_growth_2yr'),
         }
         
         # Add financial scores if available

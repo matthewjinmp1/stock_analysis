@@ -49,6 +49,9 @@ from web_app.adjusted_pe_db import get_adjusted_pe, init_adjusted_pe_db
 # Import score calculator for weights and definitions
 from web_app.score_calculator import SCORE_WEIGHTS, SCORE_DEFINITIONS
 
+# Import revenue growth analyzer
+from web_app.yfinance_revenue_growth import get_revenue_growth_estimates
+
 def find_ticker_for_company(company_name: str) -> str:
     """Find ticker for a company name by searching available databases.
     Only returns real tickers from tickers.db.
@@ -905,13 +908,13 @@ def get_adjusted_pe_api(ticker):
             ratio, breakdown = fetch_adjusted_pe_ratio_and_breakdown(ticker)
         else:
             breakdown = stored
-        
+
         if ratio is None or breakdown is None:
             return jsonify({
                 'success': False,
                 'message': f'Adjusted PE data not available for {ticker}'
             }), 404
-        
+
         breakdown['ticker'] = ticker
         return jsonify({
             'success': True,
@@ -920,6 +923,40 @@ def get_adjusted_pe_api(ticker):
         })
     except Exception as e:
         print(f"Error getting adjusted PE for {ticker}: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/revenue_growth/<ticker>', methods=['GET'])
+def get_revenue_growth_api(ticker):
+    """Get revenue growth analyst estimates for a ticker."""
+    try:
+        ticker = ticker.strip().upper()
+
+        # Fetch revenue growth estimates
+        data, error = get_revenue_growth_estimates(ticker)
+
+        if error:
+            return jsonify({
+                'success': False,
+                'message': error
+            }), 404
+
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': f'No revenue growth estimates available for {ticker}'
+            }), 404
+
+        return jsonify({
+            'success': True,
+            'data': data
+        })
+    except Exception as e:
+        print(f"Error getting revenue growth for {ticker}: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({

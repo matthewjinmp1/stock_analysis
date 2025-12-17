@@ -85,8 +85,8 @@ def get_revenue_growth_estimates(ticker: str) -> Tuple[Optional[Dict], Optional[
             - error_message: Error message string or None if successful
 
     The returned data includes:
-    - next_year_growth: Next year revenue growth estimate (%)
-    - next_2_years_growth: Next 2 years revenue growth estimate (%)
+    - next_year_growth: Year 1 revenue growth estimate (%)
+    - next_2_years_growth: Year 2 revenue growth estimate (%)
     - next_5_years_growth: Next 5 years revenue growth estimate (%)
     - past_5_year_growth: Past 5 year actual revenue growth (%)
     - company_name: Company name from yfinance
@@ -133,7 +133,7 @@ def get_revenue_growth_estimates(ticker: str) -> Tuple[Optional[Dict], Optional[
                 pass
 
             try:
-                # Get next 2 years revenue growth estimate (+2y row, growth column)
+                # Get year 2 revenue growth estimate (+2y row, growth column)
                 if '+2y' in revenue_estimate.index:
                     next_2_years_growth = revenue_estimate.loc['+2y', 'growth']
                     if next_2_years_growth is not None and not str(next_2_years_growth).lower() in ['nan', 'none', '']:
@@ -150,7 +150,7 @@ def get_revenue_growth_estimates(ticker: str) -> Tuple[Optional[Dict], Optional[
             except (KeyError, ValueError, TypeError):
                 pass
 
-        # Calculate estimated 2-year growth if we have next year growth but no direct 2-year data
+        # Calculate estimated year 2 growth if we have year 1 growth but no direct year 2 data
         if data['next_2_years_growth'] is None and data['next_year_growth'] is not None:
             try:
                 next_year_growth = data['next_year_growth'] / 100  # Convert back to decimal
@@ -230,7 +230,7 @@ def format_growth_data(data: Dict) -> str:
         lines.append(f"Next Year Growth:       {data['next_year_growth']:.1f}%")
 
     if data.get('next_2_years_growth') is not None:
-        lines.append(f"Next 2 Years Growth:    {data['next_2_years_growth']:.1f}%")
+        lines.append(f"Year 2 Growth:          {data['next_2_years_growth']:.1f}%")
 
     if data.get('next_5_years_growth') is not None:
         lines.append(f"Next 5 Years Growth:    {data['next_5_years_growth']:.1f}%")

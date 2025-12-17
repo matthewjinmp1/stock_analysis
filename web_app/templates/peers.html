@@ -256,6 +256,31 @@
             text-align: left;
             font-weight: 600;
             border-bottom: 2px solid rgba(125, 211, 252, 0.3);
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s;
+            position: relative;
+        }
+
+        .comparison-table th:hover {
+            background: rgba(125, 211, 252, 0.2);
+        }
+
+        .comparison-table th.sortable::after {
+            content: ' ⇅';
+            opacity: 0.5;
+            font-size: 0.8em;
+            margin-left: 5px;
+        }
+
+        .comparison-table th.sort-asc::after {
+            content: ' ↑';
+            opacity: 1;
+        }
+
+        .comparison-table th.sort-desc::after {
+            content: ' ↓';
+            opacity: 1;
         }
 
         .comparison-table td {
@@ -322,13 +347,17 @@
     <script>
         const ticker = '{{ ticker }}';
 
+        // Sorting state
+        let currentSortColumn = null;
+        let currentSortDirection = 'asc'; // 'asc' or 'desc'
+        let peerData = null; // Store the original data
+
         function loadPeerData() {
             fetch(`/api/peers/${ticker}`)
                 .then(response => response.json())
                 .then(data => {
-                    const contentDiv = document.getElementById('peer-content');
-                    
                     if (!data.success) {
+                        const contentDiv = document.getElementById('peer-content');
                         contentDiv.innerHTML = `
                             <div class="empty-state">
                                 <p>${data.message || 'Error loading peer data'}</p>
@@ -337,72 +366,11 @@
                         return;
                     }
 
-                    const mainTicker = data.main_ticker;
-                    const peers = data.peers || [];
+                    // Store the data globally for sorting
+                    peerData = data;
 
-                    if (peers.length === 0) {
-                        contentDiv.innerHTML = `
-                            <div class="empty-state">
-                                <p>No peers found for ${ticker}</p>
-                            </div>
-                        `;
-                        return;
-                    }
-
-                    let tableHTML = `
-                        <table class="comparison-table">
-                            <thead>
-                                <tr>
-                                    <th>Ticker</th>
-                                    <th>Company Name</th>
-                                    <th>Total Score</th>
-                                    <th>Financial Score</th>
-                                    <th>Adjusted PE Ratio</th>
-                                    <th>Short Float</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr class="main-ticker-row">
-                                    <td><a href="/?q=${mainTicker.ticker}" class="ticker-link">${mainTicker.ticker}</a></td>
-                                    <td>${mainTicker.company_name || mainTicker.ticker}</td>
-                                    <td>${mainTicker.total_score_percentile_rank !== null 
-                                        ? `<a href="/metrics/${mainTicker.ticker}" class="score-link">${mainTicker.total_score_percentile_rank}%</a>`
-                                        : 'N/A'}</td>
-                                    <td>${mainTicker.financial_total_percentile !== null
-                                        ? `<a href="/financial/${mainTicker.ticker}" class="score-link">${Math.round(mainTicker.financial_total_percentile)}%</a>`
-                                        : 'N/A'}</td>
-                                    <td>${mainTicker.adjusted_pe_ratio !== null && mainTicker.adjusted_pe_ratio !== undefined
-                                        ? `<a href="/adjusted_pe/${mainTicker.ticker}" class="score-link">${mainTicker.adjusted_pe_ratio.toFixed(2)}</a>`
-                                        : 'N/A'}</td>
-                                    <td>${mainTicker.short_float || 'N/A'}</td>
-                                </tr>
-                    `;
-
-                    peers.forEach(peer => {
-                        tableHTML += `
-                            <tr>
-                                <td><a href="/?q=${peer.ticker}" class="ticker-link">${peer.ticker}</a></td>
-                                <td>${peer.company_name || peer.ticker}</td>
-                                <td>${peer.total_score_percentile_rank !== null 
-                                    ? `<a href="/metrics/${peer.ticker}" class="score-link">${peer.total_score_percentile_rank}%</a>`
-                                    : 'N/A'}</td>
-                                <td>${peer.financial_total_percentile !== null
-                                    ? `<a href="/financial/${peer.ticker}" class="score-link">${Math.round(peer.financial_total_percentile)}%</a>`
-                                    : 'N/A'}</td>
-                                <td>${peer.adjusted_pe_ratio !== null && peer.adjusted_pe_ratio !== undefined
-                                    ? `<a href="/adjusted_pe/${peer.ticker}" class="score-link">${peer.adjusted_pe_ratio.toFixed(2)}</a>`
-                                    : 'N/A'}</td>
-                                <td>${peer.short_float || 'N/A'}</td>
-                            </tr>
-                        `;
-                    });
-
-                    tableHTML += `
-                            </tbody>
-                        </table>
-                    `;
-
-                    contentDiv.innerHTML = tableHTML;
+                    // Render the table
+                    renderPeerTable();
                 })
                 .catch(err => {
                     const contentDiv = document.getElementById('peer-content');
@@ -412,6 +380,136 @@
                         </div>
                     `;
                 });
+        }
+
+        // Sorting functions
+        function sortTable(column) {
+            if (!peerData) return;
+
+            // If clicking the same column, toggle direction
+            if (currentSortColumn === column) {
+                currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortColumn = column;
+                currentSortDirection = 'asc';
+            }
+
+            // Sort the peers array
+            peerData.peers.sort((a, b) => {
+                let aVal = getSortValue(a, column);
+                let bVal = getSortValue(b, column);
+
+                // Handle null/undefined values
+                if (aVal == null && bVal == null) return 0;
+                if (aVal == null) return currentSortDirection === 'asc' ? 1 : -1;
+                if (bVal == null) return currentSortDirection === 'asc' ? -1 : 1;
+
+                // Convert to numbers if they're numeric
+                if (typeof aVal === 'string' && !isNaN(aVal) && aVal !== '') {
+                    aVal = parseFloat(aVal);
+                }
+                if (typeof bVal === 'string' && !isNaN(bVal) && bVal !== '') {
+                    bVal = parseFloat(bVal);
+                }
+
+                if (aVal < bVal) return currentSortDirection === 'asc' ? -1 : 1;
+                if (aVal > bVal) return currentSortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            // Re-render the table
+            renderPeerTable();
+        }
+
+        function getSortValue(obj, column) {
+            switch (column) {
+                case 'ticker':
+                    return obj.ticker;
+                case 'company_name':
+                    return obj.company_name || obj.ticker;
+                case 'total_score_percentile_rank':
+                    return obj.total_score_percentile_rank;
+                case 'financial_total_percentile':
+                    return obj.financial_total_percentile;
+                case 'adjusted_pe_ratio':
+                    return obj.adjusted_pe_ratio;
+                case 'short_float':
+                    return obj.short_float;
+                default:
+                    return obj[column];
+            }
+        }
+
+        function renderPeerTable() {
+            if (!peerData) return;
+
+            const contentDiv = document.getElementById('peer-content');
+            const mainTicker = peerData.main_ticker;
+            const peers = peerData.peers || [];
+
+            if (peers.length === 0) {
+                contentDiv.innerHTML = `
+                    <div class="empty-state">
+                        <p>No peers found for ${ticker}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let tableHTML = `
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable${currentSortColumn === 'ticker' ? ' sort-' + currentSortDirection : ''}" onclick="sortTable('ticker')">Ticker</th>
+                            <th class="sortable${currentSortColumn === 'company_name' ? ' sort-' + currentSortDirection : ''}" onclick="sortTable('company_name')">Company Name</th>
+                            <th class="sortable${currentSortColumn === 'total_score_percentile_rank' ? ' sort-' + currentSortDirection : ''}" onclick="sortTable('total_score_percentile_rank')">Total Score</th>
+                            <th class="sortable${currentSortColumn === 'financial_total_percentile' ? ' sort-' + currentSortDirection : ''}" onclick="sortTable('financial_total_percentile')">Financial Score</th>
+                            <th class="sortable${currentSortColumn === 'adjusted_pe_ratio' ? ' sort-' + currentSortDirection : ''}" onclick="sortTable('adjusted_pe_ratio')">Adjusted PE Ratio</th>
+                            <th class="sortable${currentSortColumn === 'short_float' ? ' sort-' + currentSortDirection : ''}" onclick="sortTable('short_float')">Short Float</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="main-ticker-row">
+                            <td><a href="/?q=${mainTicker.ticker}" class="ticker-link">${mainTicker.ticker}</a></td>
+                            <td>${mainTicker.company_name || mainTicker.ticker}</td>
+                            <td>${mainTicker.total_score_percentile_rank !== null
+                                ? `<a href="/metrics/${mainTicker.ticker}" class="score-link">${mainTicker.total_score_percentile_rank}%</a>`
+                                : 'N/A'}</td>
+                            <td>${mainTicker.financial_total_percentile !== null
+                                ? `<a href="/financial/${mainTicker.ticker}" class="score-link">${Math.round(mainTicker.financial_total_percentile)}%</a>`
+                                : 'N/A'}</td>
+                            <td>${mainTicker.adjusted_pe_ratio !== null && mainTicker.adjusted_pe_ratio !== undefined
+                                ? `<a href="/adjusted_pe/${mainTicker.ticker}" class="score-link">${mainTicker.adjusted_pe_ratio.toFixed(2)}</a>`
+                                : 'N/A'}</td>
+                            <td>${mainTicker.short_float || 'N/A'}</td>
+                        </tr>
+            `;
+
+            peers.forEach(peer => {
+                tableHTML += `
+                    <tr>
+                        <td><a href="/?q=${peer.ticker}" class="ticker-link">${peer.ticker}</a></td>
+                        <td>${peer.company_name || peer.ticker}</td>
+                        <td>${peer.total_score_percentile_rank !== null
+                            ? `<a href="/metrics/${peer.ticker}" class="score-link">${peer.total_score_percentile_rank}%</a>`
+                            : 'N/A'}</td>
+                        <td>${peer.financial_total_percentile !== null
+                            ? `<a href="/financial/${peer.ticker}" class="score-link">${Math.round(peer.financial_total_percentile)}%</a>`
+                            : 'N/A'}</td>
+                        <td>${peer.adjusted_pe_ratio !== null && peer.adjusted_pe_ratio !== undefined
+                            ? `<a href="/adjusted_pe/${peer.ticker}" class="score-link">${peer.adjusted_pe_ratio.toFixed(2)}</a>`
+                            : 'N/A'}</td>
+                        <td>${peer.short_float || 'N/A'}</td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += `
+                    </tbody>
+                </table>
+            `;
+
+            contentDiv.innerHTML = tableHTML;
         }
 
         // Load data on page load

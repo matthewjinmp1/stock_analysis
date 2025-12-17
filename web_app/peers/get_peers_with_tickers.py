@@ -239,7 +239,7 @@ def get_peers_with_tickers(ticker: str, include_details: bool = False, analysis_
     print("\nPeer tickers found:")
     for i, (original, ticker_result) in enumerate(zip(peers, peer_tickers), 1):
         status = "[OK]" if ticker_result != original else "[FAIL]"
-        print(f"  {i}. {original} → {ticker_result} {status}")
+        print(f"  {i}. {original} -> {ticker_result} {status}")
 
     if unmatched_peers:
         print(f"\nWarning: {len(unmatched_peers)} peers could not be matched to tickers:")

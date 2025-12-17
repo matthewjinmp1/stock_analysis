@@ -79,16 +79,18 @@ python get_peers_with_tickers.py
 
 This script:
 1. Takes a ticker input (e.g., "AAPL")
-2. Finds AI-generated peers (company names)
+2. Retrieves stored peer analysis from `peers_results.db` (previously AI-generated)
 3. Converts company names to ticker symbols using multiple matching strategies
-4. Shows matching results and saves to JSON if requested
+4. Displays original analysis metadata (cost, timestamp)
+5. Saves complete results to JSON if requested
 ```
 
 The script will prompt you to enter ticker symbols. For each ticker, it will:
 1. Look up the company name from cached data
-2. Query AI to find 10 comparable companies
-3. Display results with timing and cost information
-4. Ask if you want to save to the database
+2. Retrieve stored peer analysis from `peers_results.db`
+3. Convert company names to ticker symbols
+4. Display original analysis metadata and conversion results
+5. Ask if you want to save results to JSON
 
 ### Example Session
 

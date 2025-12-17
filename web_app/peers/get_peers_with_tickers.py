@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Get AI-generated peers for a ticker and convert company names to ticker symbols.
+Get stored peer analysis results from peers_results.db and convert company names to ticker symbols.
 Uses multiple matching strategies against the tickers database.
 """
 
@@ -142,18 +142,19 @@ def find_ticker_for_company(company_name: str, ticker_map: Dict[str, str]) -> Op
 
     return None
 
-def get_peers_with_tickers(ticker: str, include_details: bool = False) -> Dict:
+def get_peers_with_tickers(ticker: str, include_details: bool = False, analysis_limit: int = 1) -> Dict:
     """
-    Get AI-generated peers for a ticker and convert to ticker symbols.
+    Get stored peer analysis results for a ticker from peers_results.db and convert company names to ticker symbols.
 
     Args:
         ticker: Stock ticker symbol
         include_details: Whether to include matching details
+        analysis_limit: Maximum number of analyses to retrieve (default: most recent)
 
     Returns:
         Dict with peer analysis results
     """
-    print(f"Getting peers for: {ticker}")
+    print(f"Getting stored peers for: {ticker}")
     print("=" * 50)
 
     # Load ticker database
@@ -178,29 +179,32 @@ def get_peers_with_tickers(ticker: str, include_details: bool = False) -> Dict:
         from web_app.peers_db import get_peers_for_ticker
         existing_peers = get_peers_for_ticker(ticker)
         if existing_peers:
-            print(f"Ticker has {len(existing_peers)} peers in database: {', '.join(existing_peers[:5])}{'...' if len(existing_peers) > 5 else ''}")
+            print(f"Ticker has {len(existing_peers)} peers in peers.db: {', '.join(existing_peers[:5])}{'...' if len(existing_peers) > 5 else ''}")
         else:
             print(f"Warning: {ticker} has no peers in the peers database")
     except Exception as e:
         print(f"Could not check peers database: {e}")
 
-    # Import peer finding functionality
+    # Get stored peer analysis from peers_results.db
     try:
-        from test_peer_finder import find_peers_for_ticker_ai
+        from peers_results_db import get_peer_analysis
+        stored_analyses = get_peer_analysis(ticker, limit=analysis_limit)
     except ImportError:
-        return {"error": "Could not import peer finding functionality"}
+        return {"error": "Could not import peers results database"}
 
-    # Find peers using AI
-    print("\nFinding peers using AI...")
-    peers, error, token_usage, cost_cents = find_peers_for_ticker_ai(ticker, input_company_name)
+    if not stored_analyses:
+        return {"error": f"No stored peer analysis found for {ticker} in peers_results.db"}
 
-    if error:
-        return {"error": f"Error finding peers: {error}"}
+    # Use the most recent analysis
+    latest_analysis = stored_analyses[0]
+    print(f"\nUsing stored analysis from: {latest_analysis['analysis_timestamp']}")
 
+    # Extract peer company names from stored analysis
+    peers = latest_analysis.get('peers', [])
     if not peers:
-        return {"error": "No peers found"}
+        return {"error": "No peers found in stored analysis"}
 
-    print(f"\nFound {len(peers)} peer companies:")
+    print(f"\nFound {len(peers)} stored peer companies:")
     for i, peer in enumerate(peers, 1):
         print(f"  {i}. {peer}")
 
@@ -251,8 +255,9 @@ def get_peers_with_tickers(ticker: str, include_details: bool = False) -> Dict:
         "total_peers": len(peers),
         "matched_peers": len(peers) - len(unmatched_peers),
         "unmatched_peers": unmatched_peers,
-        "token_usage": token_usage,
-        "estimated_cost_cents": cost_cents
+        "analysis_timestamp": latest_analysis.get('analysis_timestamp'),
+        "token_usage": latest_analysis.get('token_usage'),
+        "estimated_cost_cents": latest_analysis.get('estimated_cost_cents')
     }
 
     if include_details:
@@ -262,7 +267,7 @@ def get_peers_with_tickers(ticker: str, include_details: bool = False) -> Dict:
 
 def main():
     """Main interactive function."""
-    print("AI Peer Finder with Ticker Conversion")
+    print("Stored Peer Analysis with Ticker Conversion")
     print("=" * 50)
 
     while True:
@@ -284,12 +289,14 @@ def main():
             continue
 
         # Display summary
-        print(f"\nSuccessfully processed {ticker}")
+        print(f"\nSuccessfully retrieved stored analysis for {ticker}")
         print(f"   Company: {result['input_company']}")
         print(f"   Peers found: {result['total_peers']}")
         print(f"   Tickers matched: {result['matched_peers']}")
-        if result['estimated_cost_cents']:
-            print(f"   Cost: ${result['estimated_cost_cents']:.4f}")
+        if result.get('estimated_cost_cents'):
+            print(f"   Original cost: ${result['estimated_cost_cents']:.4f}")
+        if result.get('analysis_timestamp'):
+            print(f"   Analysis date: {result['analysis_timestamp'][:19]}")
         print(f"   Peer tickers: {', '.join(result['peer_tickers'])}")
 
         # Ask to save results

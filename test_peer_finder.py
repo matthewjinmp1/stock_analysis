@@ -15,19 +15,18 @@ if PROJECT_ROOT not in sys.path:
 
 def test_peer_finder():
     """Test the AI peer finding functionality."""
-    print("🤖 AI Peer Finder Test")
+    print("AI Peer Finder Test")
     print("=" * 50)
 
     # Import required modules
     try:
-        from web_app.ui_cache_db import get_complete_data
         from src.clients.grok_client import GrokClient
         from src.clients.openrouter_client import OpenRouterClient
         from config import XAI_API_KEY, OPENROUTER_KEY
         AI_AVAILABLE = True
-        print("✅ AI modules imported successfully")
+        print("AI modules imported successfully")
     except ImportError as e:
-        print(f"❌ Failed to import AI modules: {e}")
+        print(f"Failed to import AI modules: {e}")
         print("Make sure you have the required dependencies and config files.")
         return
 
@@ -52,7 +51,7 @@ def test_peer_finder():
                 ticker_data = get_complete_data(ticker)
                 company_name = ticker_data.get('company_name') if ticker_data else ticker
 
-            print(f"🔍 Finding peers for: {ticker} ({company_name})")
+            print(f"Finding peers for: {ticker} ({company_name})")
 
             # Create AI prompt
             prompt = f"""You are analyzing companies to find the 10 most comparable companies to {company_name} ({ticker}).
@@ -78,7 +77,7 @@ Example format: "Microsoft Corporation; Alphabet Inc.; Meta Platforms Inc.; Amaz
 
 Return exactly 10 complete company names in ranked order, separated by semicolons, nothing else."""
 
-            print("🧠 Querying AI for peer recommendations...")
+            print("Querying AI for peer recommendations...")
             start_time = time.time()
 
             # Query AI
@@ -87,7 +86,8 @@ Return exactly 10 complete company names in ranked order, separated by semicolon
             response, token_usage = grok.simple_query_with_tokens(prompt, model=model)
 
             elapsed_time = time.time() - start_time
-            print(f"⏱️ AI query completed in {elapsed_time:.2f} seconds")
+            print(f"AI query completed in {elapsed_time:.2f} seconds")
+
             # Parse company names
             response_clean = response.strip()
 
@@ -112,54 +112,54 @@ Return exactly 10 complete company names in ranked order, separated by semicolon
         ticker = input("Enter ticker symbol (or 'quit' to exit): ").strip().upper()
 
         if ticker.lower() in ['quit', 'exit', 'q']:
-            print("👋 Goodbye!")
+            print("Goodbye!")
             break
 
         if not ticker:
-            print("❌ Please enter a valid ticker symbol.")
+            print("Please enter a valid ticker symbol.")
             continue
 
-        print(f"\n🔄 Testing peer finding for: {ticker}")
+        print(f"\nTesting peer finding for: {ticker}")
 
         # Get company data first
-        print("📊 Fetching company data...")
+        print("Fetching company data...")
         ticker_data = get_complete_data(ticker)
 
         if not ticker_data:
-            print(f"❌ No data found for ticker: {ticker}")
+            print(f"No data found for ticker: {ticker}")
             print("Make sure the ticker exists and has been analyzed.")
             continue
 
         company_name = ticker_data.get('company_name', ticker)
-        print(f"✅ Found company: {company_name}")
+        print(f"Found company: {company_name}")
 
         # Find peers
         peers, error = find_peers_for_ticker_ai(ticker, company_name)
 
         if error:
-            print(f"❌ Error finding peers: {error}")
+            print(f"Error finding peers: {error}")
             continue
 
         if not peers:
-            print("❌ No peers found.")
+            print("No peers found.")
             continue
 
         # Display results
-        print("\n🎯 AI-Generated Peer Recommendations:")
+        print("\nAI-Generated Peer Recommendations:")
         print("-" * 40)
 
         for i, peer in enumerate(peers, 1):
-            print("2d")
+            print(f"{i:2d}. {peer}")
 
-        print(f"\n📈 Total peers found: {len(peers)}")
-        print("✅ Test completed successfully!")
+        print(f"\nTotal peers found: {len(peers)}")
+        print("Test completed successfully!")
 
 if __name__ == "__main__":
     try:
         test_peer_finder()
     except KeyboardInterrupt:
-        print("\n👋 Interrupted by user. Goodbye!")
+        print("\nInterrupted by user. Goodbye!")
     except Exception as e:
-        print(f"❌ Unexpected error: {e}")
+        print(f"Unexpected error: {e}")
         import traceback
         traceback.print_exc()

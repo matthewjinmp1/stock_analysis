@@ -112,19 +112,17 @@
         }
 
         body.high-contrast .theme-switcher {
-            position: absolute;
-            top: 20px;
-            right: 20px;
             display: flex;
+            justify-content: flex-end;
             gap: 10px;
+            margin-bottom: 20px;
         }
 
         .theme-switcher {
-            position: absolute;
-            top: 20px;
-            right: 20px;
             display: flex;
+            justify-content: flex-end;
             gap: 10px;
+            margin-bottom: 20px;
         }
 
         .theme-button {
@@ -363,7 +361,12 @@
 <body>
     <div class="container">
         <a href="/" class="back-link">← Back to Search</a>
-        
+
+        <div class="theme-switcher">
+            <button class="theme-button active" id="darkThemeBtn" onclick="setTheme('dark')">🌙 Cyber</button>
+            <button class="theme-button" id="highContrastThemeBtn" onclick="setTheme('high-contrast')">⚫ High Contrast</button>
+        </div>
+
         {% if error %}
         <div class="error-message">
             <h2>Error</h2>
@@ -371,10 +374,6 @@
         </div>
         {% else %}
         <div class="header">
-            <div class="theme-switcher">
-                <button class="theme-button active" id="darkThemeBtn" onclick="setTheme('dark')">🌙 Dark</button>
-                <button class="theme-button" id="highContrastThemeBtn" onclick="setTheme('high-contrast')">⚫ High Contrast</button>
-            </div>
             <h1>{{ company_name or ticker }}</h1>
             <div class="ticker">{{ ticker }}</div>
             

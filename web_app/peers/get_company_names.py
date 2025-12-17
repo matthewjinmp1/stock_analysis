@@ -90,7 +90,7 @@ def normalize_company_name(name: str) -> str:
 
 def find_ticker_for_company(company_name: str, ticker_map: Dict[str, str]) -> Optional[str]:
     """
-    Find ticker symbol for a company name using exact prefix matching.
+    Find ticker symbol for a company name using complete word matching.
 
     Args:
         company_name: Company name to find ticker for
@@ -105,23 +105,36 @@ def find_ticker_for_company(company_name: str, ticker_map: Dict[str, str]) -> Op
     # Normalize the target company name (remove generic suffixes)
     normalized_target = normalize_company_name(company_name)
 
-    # Find exact prefix matches
-    # The AI-generated peer name should be an exact prefix of the database company name
+    # Find matches where the AI name matches complete words at the start of database names
     for ticker, db_name in ticker_map.items():
         normalized_db_name = normalize_company_name(db_name)
 
-        # Check if the AI name is an exact prefix of the database name
+        # Check if the AI name matches the beginning of the database name as complete words
+        # This prevents "meta" from matching "metalpha" - it must be "meta" followed by word boundary
         if normalized_db_name.startswith(normalized_target):
-            return ticker
+            # If the target is shorter than the db name, check that it ends at a word boundary
+            if len(normalized_target) < len(normalized_db_name):
+                # Check if the next character after the match is a space or end of string
+                next_char = normalized_db_name[len(normalized_target)]
+                if next_char == ' ' or next_char == '' or next_char in '.,':
+                    return ticker
+            else:
+                # Exact match
+                return ticker
 
-    # If no exact prefix match, try the reverse: database name is prefix of AI name
-    # This handles cases where AI might generate a longer name than what's in the database
+    # If no match found, try the reverse: database name is complete prefix of AI name
     for ticker, db_name in ticker_map.items():
         normalized_db_name = normalize_company_name(db_name)
 
-        # Check if the database name is an exact prefix of the AI name
         if normalized_target.startswith(normalized_db_name):
-            return ticker
+            # If the db name is shorter than the target, check word boundary
+            if len(normalized_db_name) < len(normalized_target):
+                next_char = normalized_target[len(normalized_db_name)]
+                if next_char == ' ' or next_char == '' or next_char in '.,':
+                    return ticker
+            else:
+                # Exact match
+                return ticker
 
     return None
 

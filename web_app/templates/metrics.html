@@ -92,6 +92,67 @@
             color: #ffffff;
         }
 
+        /* High contrast score colors - using different shades of gray */
+        body.high-contrast .score-10 {
+            background: #666666;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+        }
+
+        body.high-contrast .score-9 {
+            background: #5a5a5a;
+            color: #ffffff;
+            border: 2px solid #cccccc;
+        }
+
+        body.high-contrast .score-8 {
+            background: #4e4e4e;
+            color: #ffffff;
+            border: 2px solid #cccccc;
+        }
+
+        body.high-contrast .score-7 {
+            background: #424242;
+            color: #ffffff;
+            border: 2px solid #cccccc;
+        }
+
+        body.high-contrast .score-6 {
+            background: #363636;
+            color: #ffffff;
+            border: 2px solid #cccccc;
+        }
+
+        body.high-contrast .score-5 {
+            background: #2a2a2a;
+            color: #ffffff;
+            border: 2px solid #cccccc;
+        }
+
+        body.high-contrast .score-4 {
+            background: #1e1e1e;
+            color: #ffffff;
+            border: 2px solid #cccccc;
+        }
+
+        body.high-contrast .score-3 {
+            background: #121212;
+            color: #ffffff;
+            border: 2px solid #cccccc;
+        }
+
+        body.high-contrast .score-2 {
+            background: #0a0a0a;
+            color: #ffffff;
+            border: 2px solid #cccccc;
+        }
+
+        body.high-contrast .score-1 {
+            background: #000000;
+            color: #ffffff;
+            border: 2px solid #cccccc;
+        }
+
         body.high-contrast .error-message {
             background: #330000;
             color: #ffffff;
@@ -298,21 +359,70 @@
             font-size: 0.9em;
         }
 
-        .score-high {
+        .score-10 {
             background: rgba(34, 197, 94, 0.2);
             color: #4ade80;
             border: 1px solid rgba(34, 197, 94, 0.4);
             box-shadow: 0 0 8px rgba(34, 197, 94, 0.2);
         }
 
-        .score-medium {
-            background: rgba(251, 191, 36, 0.2);
-            color: #fbbf24;
-            border: 1px solid rgba(251, 191, 36, 0.4);
-            box-shadow: 0 0 8px rgba(251, 191, 36, 0.2);
+        .score-9 {
+            background: rgba(75, 192, 85, 0.2);
+            color: #4ec76a;
+            border: 1px solid rgba(75, 192, 85, 0.4);
+            box-shadow: 0 0 8px rgba(75, 192, 85, 0.2);
         }
 
-        .score-low {
+        .score-8 {
+            background: rgba(104, 187, 76, 0.2);
+            color: #68c04c;
+            border: 1px solid rgba(104, 187, 76, 0.4);
+            box-shadow: 0 0 8px rgba(104, 187, 76, 0.2);
+        }
+
+        .score-7 {
+            background: rgba(133, 182, 67, 0.2);
+            color: #85b643;
+            border: 1px solid rgba(133, 182, 67, 0.4);
+            box-shadow: 0 0 8px rgba(133, 182, 67, 0.2);
+        }
+
+        .score-6 {
+            background: rgba(162, 177, 58, 0.2);
+            color: #a2b13a;
+            border: 1px solid rgba(162, 177, 58, 0.4);
+            box-shadow: 0 0 8px rgba(162, 177, 58, 0.2);
+        }
+
+        .score-5 {
+            background: rgba(191, 172, 49, 0.2);
+            color: #bfac31;
+            border: 1px solid rgba(191, 172, 49, 0.4);
+            box-shadow: 0 0 8px rgba(191, 172, 49, 0.2);
+        }
+
+        .score-4 {
+            background: rgba(220, 167, 40, 0.2);
+            color: #dca728;
+            border: 1px solid rgba(220, 167, 40, 0.4);
+            box-shadow: 0 0 8px rgba(220, 167, 40, 0.2);
+        }
+
+        .score-3 {
+            background: rgba(229, 152, 31, 0.2);
+            color: #e5981f;
+            border: 1px solid rgba(229, 152, 31, 0.4);
+            box-shadow: 0 0 8px rgba(229, 152, 31, 0.2);
+        }
+
+        .score-2 {
+            background: rgba(238, 137, 22, 0.2);
+            color: #ee8916;
+            border: 1px solid rgba(238, 137, 22, 0.4);
+            box-shadow: 0 0 8px rgba(238, 137, 22, 0.2);
+        }
+
+        .score-1 {
             background: rgba(239, 68, 68, 0.2);
             color: #f87171;
             border: 1px solid rgba(239, 68, 68, 0.4);
@@ -414,22 +524,11 @@
                             <span class="reverse-badge">Reverse</span>
                             {% endif %}
                         </td>
+                        {% set score_int = metric.raw_score|round|int %}
                         {% if metric.is_reverse %}
-                            {% if metric.raw_score >= 7 %}
-                                {% set color_class = 'score-low' %}
-                            {% elif metric.raw_score >= 4 %}
-                                {% set color_class = 'score-medium' %}
-                            {% else %}
-                                {% set color_class = 'score-high' %}
-                            {% endif %}
+                            {% set color_class = 'score-' + (11 - score_int)|string %}
                         {% else %}
-                            {% if metric.raw_score >= 7 %}
-                                {% set color_class = 'score-high' %}
-                            {% elif metric.raw_score >= 4 %}
-                                {% set color_class = 'score-medium' %}
-                            {% else %}
-                                {% set color_class = 'score-low' %}
-                            {% endif %}
+                            {% set color_class = 'score-' + score_int|string %}
                         {% endif %}
                         <td class="score-cell">
                             <span class="score-badge {{ color_class }}">

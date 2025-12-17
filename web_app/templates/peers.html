@@ -443,7 +443,12 @@
                 case 'adjusted_pe_ratio':
                     return obj.adjusted_pe_ratio;
                 case 'short_float':
-                    return obj.short_float;
+                    // Parse percentage string to number for proper sorting
+                    if (obj.short_float && typeof obj.short_float === 'string') {
+                        const percentMatch = obj.short_float.match(/(\d+(?:\.\d+)?)/);
+                        return percentMatch ? parseFloat(percentMatch[1]) : 0;
+                    }
+                    return obj.short_float || 0;
                 default:
                     return obj[column];
             }

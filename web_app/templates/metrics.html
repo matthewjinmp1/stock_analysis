@@ -92,35 +92,6 @@
             color: #ffffff;
         }
 
-        /* High contrast versions of score colors */
-        body.high-contrast .score-10,
-        body.high-contrast .score-9,
-        body.high-contrast .score-8,
-        body.high-contrast .score-7,
-        body.high-contrast .score-6 {
-            background: #004400;
-            color: #00ff00;
-            border: 2px solid #00ff00;
-            box-shadow: 0 0 8px rgba(0, 255, 0, 0.3);
-        }
-
-        body.high-contrast .score-5,
-        body.high-contrast .score-4,
-        body.high-contrast .score-3 {
-            background: #444400;
-            color: #ffff00;
-            border: 2px solid #ffff00;
-            box-shadow: 0 0 8px rgba(255, 255, 0, 0.3);
-        }
-
-        body.high-contrast .score-2,
-        body.high-contrast .score-1 {
-            background: #440000;
-            color: #ff0000;
-            border: 2px solid #ff0000;
-            box-shadow: 0 0 8px rgba(255, 0, 0, 0.3);
-        }
-
         body.high-contrast .error-message {
             background: #330000;
             color: #ffffff;
@@ -327,75 +298,25 @@
             font-size: 0.9em;
         }
 
-        /* 10-level score color system from green (10) to red (1) */
-        .score-10 {
-            background: rgba(34, 197, 94, 0.25);
-            color: #22c55e;
-            border: 1px solid rgba(34, 197, 94, 0.5);
-            box-shadow: 0 0 8px rgba(34, 197, 94, 0.3);
-        }
-
-        .score-9 {
+        .score-high {
             background: rgba(34, 197, 94, 0.2);
             color: #4ade80;
             border: 1px solid rgba(34, 197, 94, 0.4);
             box-shadow: 0 0 8px rgba(34, 197, 94, 0.2);
         }
 
-        .score-8 {
-            background: rgba(74, 222, 128, 0.2);
-            color: #16a34a;
-            border: 1px solid rgba(74, 222, 128, 0.4);
-            box-shadow: 0 0 8px rgba(74, 222, 128, 0.2);
-        }
-
-        .score-7 {
-            background: rgba(134, 239, 172, 0.2);
-            color: #15803d;
-            border: 1px solid rgba(134, 239, 172, 0.4);
-            box-shadow: 0 0 8px rgba(134, 239, 172, 0.2);
-        }
-
-        .score-6 {
-            background: rgba(187, 247, 208, 0.2);
-            color: #166534;
-            border: 1px solid rgba(187, 247, 208, 0.4);
-            box-shadow: 0 0 8px rgba(187, 247, 208, 0.2);
-        }
-
-        .score-5 {
-            background: rgba(254, 240, 138, 0.2);
-            color: #eab308;
-            border: 1px solid rgba(254, 240, 138, 0.4);
-            box-shadow: 0 0 8px rgba(254, 240, 138, 0.2);
-        }
-
-        .score-4 {
+        .score-medium {
             background: rgba(251, 191, 36, 0.2);
-            color: #d97706;
+            color: #fbbf24;
             border: 1px solid rgba(251, 191, 36, 0.4);
             box-shadow: 0 0 8px rgba(251, 191, 36, 0.2);
         }
 
-        .score-3 {
-            background: rgba(245, 158, 11, 0.2);
-            color: #ea580c;
-            border: 1px solid rgba(245, 158, 11, 0.4);
-            box-shadow: 0 0 8px rgba(245, 158, 11, 0.2);
-        }
-
-        .score-2 {
-            background: rgba(239, 68, 68, 0.25);
-            color: #dc2626;
-            border: 1px solid rgba(239, 68, 68, 0.5);
-            box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
-        }
-
-        .score-1 {
-            background: rgba(239, 68, 68, 0.3);
-            color: #b91c1c;
-            border: 1px solid rgba(239, 68, 68, 0.6);
-            box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+        .score-low {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
         }
 
         .weight-cell {
@@ -494,15 +415,22 @@
                             {% endif %}
                         </td>
                         {% if metric.is_reverse %}
-                            {% set score_int = (11 - metric.raw_score)|round|int %}
-                            {% set score_int = [score_int, 1]|max %}
-                            {% set score_int = [score_int, 10]|min %}
+                            {% if metric.raw_score >= 7 %}
+                                {% set color_class = 'score-low' %}
+                            {% elif metric.raw_score >= 4 %}
+                                {% set color_class = 'score-medium' %}
+                            {% else %}
+                                {% set color_class = 'score-high' %}
+                            {% endif %}
                         {% else %}
-                            {% set score_int = metric.raw_score|round|int %}
-                            {% set score_int = [score_int, 1]|max %}
-                            {% set score_int = [score_int, 10]|min %}
+                            {% if metric.raw_score >= 7 %}
+                                {% set color_class = 'score-high' %}
+                            {% elif metric.raw_score >= 4 %}
+                                {% set color_class = 'score-medium' %}
+                            {% else %}
+                                {% set color_class = 'score-low' %}
+                            {% endif %}
                         {% endif %}
-                        {% set color_class = 'score-' + score_int|string %}
                         <td class="score-cell">
                             <span class="score-badge {{ color_class }}">
                                 {{ "%.1f"|format(metric.raw_score) }}/10

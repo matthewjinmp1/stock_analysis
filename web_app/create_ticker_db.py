@@ -67,10 +67,16 @@ def load_ticker_definitions():
         return {}
 
 def create_database(clean_tickers, ticker_definitions):
-    """Create database with combined ticker data."""
+    """Create database with combined ticker data and source tracking."""
     # Combine data: ticker_definitions take precedence
-    all_tickers = clean_tickers.copy()
-    
+    all_tickers = {}
+    ticker_sources = {}
+
+    # Add clean tickers first
+    for ticker, name in clean_tickers.items():
+        all_tickers[ticker] = name
+        ticker_sources[ticker] = 'clean_tickers'
+
     # Add/override with ticker_definitions
     override_count = 0
     new_count = 0
@@ -80,51 +86,56 @@ def create_database(clean_tickers, ticker_definitions):
         else:
             new_count += 1
         all_tickers[ticker] = name
-    
+        ticker_sources[ticker] = 'ticker_definitions'
+
     print(f"\nCombined data:")
     print(f"  From clean tickers: {len(clean_tickers)}")
     print(f"  From ticker definitions: {len(ticker_definitions)}")
     print(f"  Overrides: {override_count}")
     print(f"  New from definitions: {new_count}")
     print(f"  Total unique tickers: {len(all_tickers)}")
-    
+
     # Create database
     os.makedirs(os.path.dirname(OUTPUT_DB), exist_ok=True)
-    
+
     conn = sqlite3.connect(OUTPUT_DB)
     cursor = conn.cursor()
-    
-    # Create table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS tickers (
-            ticker TEXT PRIMARY KEY,
-            company_name TEXT NOT NULL
-        )
-    ''')
-    
+
+    # Check if source column exists, add it if not
+    cursor.execute('PRAGMA table_info(tickers)')
+    columns = [row[1] for row in cursor.fetchall()]
+
+    if 'source' not in columns:
+        print("Adding source column to existing table...")
+        cursor.execute('ALTER TABLE tickers ADD COLUMN source TEXT')
+    else:
+        print("Source column already exists")
+
     # Clear existing data
     cursor.execute('DELETE FROM tickers')
-    
-    # Insert data
-    ticker_list = sorted(all_tickers.items())
+
+    # Insert data with source information
+    ticker_data = [(ticker, name, ticker_sources[ticker]) for ticker, name in sorted(all_tickers.items())]
     cursor.executemany(
-        'INSERT INTO tickers (ticker, company_name) VALUES (?, ?)',
-        ticker_list
+        'INSERT INTO tickers (ticker, company_name, source) VALUES (?, ?, ?)',
+        ticker_data
     )
-    
-    # Create index
+
+    # Create indexes
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_ticker ON tickers(ticker)')
-    
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_source ON tickers(source)')
+
     conn.commit()
     conn.close()
-    
+
     print(f"\nCreated database: {OUTPUT_DB}")
-    print(f"Inserted {len(ticker_list)} tickers")
-    
-    # Show sample
+    print(f"Inserted {len(ticker_data)} tickers")
+
+    # Show sample with sources
     print("\nSample tickers:")
-    for ticker, name in ticker_list[:10]:
-        print(f"  {ticker:6} - {name}")
+    for ticker, name, source in ticker_data[:10]:
+        source_short = source.replace('ticker_', '').replace('clean_', '')
+        print(f"  {ticker:6} - {name[:30]:<30} ({source_short})")
 
 def main():
     """Main function."""

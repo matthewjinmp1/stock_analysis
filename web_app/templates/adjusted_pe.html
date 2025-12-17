@@ -100,26 +100,53 @@
             return (value * 100).toFixed(decimals) + '%';
         }
 
+        function fmtSuffix(value, decimals = 2) {
+            if (value === null || value === undefined) return 'N/A';
+            const num = Number(value);
+            if (Number.isNaN(num)) return 'N/A';
+            const abs = Math.abs(num);
+            let suffix = '';
+            let scaled = num;
+            if (abs >= 1_000_000_000) {
+                scaled = num / 1_000_000_000;
+                suffix = 'B';
+            } else if (abs >= 1_000_000) {
+                scaled = num / 1_000_000;
+                suffix = 'M';
+            } else if (abs >= 1_000) {
+                scaled = num / 1_000;
+                suffix = 'K';
+            }
+            return scaled.toFixed(decimals) + suffix;
+        }
+
+        function fmtMoney(value, decimals = 2) {
+            if (value === null || value === undefined) return 'N/A';
+            const num = Number(value);
+            if (Number.isNaN(num)) return 'N/A';
+            return '$' + fmtSuffix(num, decimals);
+        }
+
         function render(data) {
             const contentDiv = document.getElementById('content');
             const ratio = data.adjusted_pe_ratio;
             const b = data.breakdown || {};
 
             const fields = [
-                { label: 'TTM Operating Income', value: fmt(b.ttm_operating_income) },
-                { label: 'TTM Depreciation & Amortization (DA)', value: fmt(b.ttm_da) },
-                { label: 'TTM Capex', value: fmt(b.ttm_capex) },
-                { label: 'Adjustment (|DA| - |Capex| if > 0)', value: fmt(b.adjustment) },
-                { label: 'Adjusted Operating Income', value: fmt(b.adjusted_operating_income) },
+                { label: 'TTM Operating Income', value: fmtMoney(b.ttm_operating_income) },
+                { label: 'TTM Depreciation & Amortization (DA)', value: fmtMoney(b.ttm_da) },
+                { label: 'TTM Capex', value: fmtMoney(b.ttm_capex) },
+                { label: 'Adjustment (|DA| - |Capex| if > 0)', value: fmtMoney(b.adjustment) },
+                { label: 'Adjusted Operating Income', value: fmtMoney(b.adjusted_operating_income) },
                 { label: 'Median Tax Rate (5yr)', value: fmtPercent(b.median_tax_rate, 2) },
-                { label: 'Adjusted OI After Tax', value: fmt(b.adjusted_oi_after_tax) },
-                { label: 'QuickFS EV (latest)', value: fmt(b.quickfs_ev) },
-                { label: 'QuickFS Market Cap (latest)', value: fmt(b.quickfs_market_cap) },
-                { label: 'Updated EV (with current price)', value: fmt(b.updated_ev) },
-                { label: 'Share Count (latest QuickFS)', value: fmt(b.share_count, 0) },
-                { label: 'Current Price (yfinance)', value: fmt(b.current_price) },
-                { label: 'EV Difference (EV - Market Cap)', value: fmt(b.ev_difference) },
-                { label: 'Updated Market Cap', value: fmt(b.updated_market_cap) },
+                { label: 'Adjusted OI After Tax', value: fmtMoney(b.adjusted_oi_after_tax) },
+                { label: 'QuickFS EV (latest)', value: fmtMoney(b.quickfs_ev) },
+                { label: 'QuickFS Market Cap (latest)', value: fmtMoney(b.quickfs_market_cap) },
+                { label: 'Updated EV (with current price)', value: fmtMoney(b.updated_ev) },
+                { label: 'Share Count (latest QuickFS)', value: fmtSuffix(b.share_count, 2) },
+                { label: 'Current Price (yfinance)', value: b.current_price !== undefined && b.current_price !== null ? '$' + fmt(b.current_price) : 'N/A' },
+                { label: 'EV Difference (EV - Market Cap)', value: fmtMoney(b.ev_difference) },
+                { label: 'Updated Market Cap', value: fmtMoney(b.updated_market_cap) },
             ];
 
             contentDiv.innerHTML = `

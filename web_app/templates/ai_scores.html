@@ -270,36 +270,32 @@
         let currentSort = { column: 'total_score_percentile_rank', direction: 'desc' };
         
         const METRIC_LABELS = {
-            'moat_score': 'Moat',
-            'barriers_score': 'Barriers',
-            'disruption_risk': 'Disr. Risk',
-            'switching_cost': 'Switching',
-            'brand_strength': 'Brand',
-            'competition_intensity': 'Comp. Int.',
-            'network_effect': 'Network',
-            'product_differentiation': 'Prod. Diff.',
-            'innovativeness_score': 'Innov.',
-            'growth_opportunity': 'Growth',
-            'riskiness_score': 'Bus. Risk',
-            'pricing_power': 'Pricing',
+            'moat_score': 'Economic Moat',
+            'barriers_score': 'Barriers to Entry',
+            'disruption_risk': 'Disruption Risk',
+            'switching_cost': 'Switching Cost',
+            'brand_strength': 'Brand Strength',
+            'competition_intensity': 'Competition Intensity',
+            'network_effect': 'Network Effect',
+            'product_differentiation': 'Product Differentiation',
+            'innovativeness_score': 'Innovativeness',
+            'growth_opportunity': 'Growth Opportunity',
+            'riskiness_score': 'Business Risk',
+            'pricing_power': 'Pricing Power',
             'ambition_score': 'Ambition',
-            'bargaining_power_of_customers': 'Cust. Pwr',
-            'bargaining_power_of_suppliers': 'Supp. Pwr',
-            'product_quality_score': 'Prod. Qual.',
-            'culture_employee_satisfaction_score': 'Culture',
-            'trailblazer_score': 'Leadership',
-            'management_quality_score': 'Management',
-            'size_well_known_score': 'Size',
-            'ethical_healthy_environmental_score': 'Ethical',
-            'long_term_orientation_score': 'Long Term'
+            'bargaining_power_of_customers': 'Customer Power',
+            'bargaining_power_of_suppliers': 'Supplier Power',
+            'product_quality_score': 'Product Quality',
+            'culture_employee_satisfaction_score': 'Employee Culture',
+            'trailblazer_score': 'Market Leadership',
+            'management_quality_score': 'Management Quality',
+            'size_well_known_score': 'Company Size',
+            'ethical_healthy_environmental_score': 'Ethical/ESG',
+            'long_term_orientation_score': 'Long Term Focus'
         };
 
-        // Default visible metrics
-        let visibleMetrics = [
-            'moat_score', 'brand_strength', 'pricing_power', 
-            'innovativeness_score', 'management_quality_score', 
-            'culture_employee_satisfaction_score'
-        ];
+        // Default visible metrics (none selected by default)
+        let visibleMetrics = [];
 
         document.addEventListener('DOMContentLoaded', () => {
             initToggles();
@@ -414,7 +410,7 @@
             let headHTML = '<tr>';
             headHTML += `<th class="${currentSort.column === 'ticker' ? 'sort-' + currentSort.direction : ''}" onclick="handleSort('ticker')">Ticker</th>`;
             headHTML += `<th class="${currentSort.column === 'company_name' ? 'sort-' + currentSort.direction : ''}" onclick="handleSort('company_name')">Company</th>`;
-            headHTML += `<th class="${currentSort.column === 'total_score_percentile_rank' ? 'sort-' + currentSort.direction : ''}" onclick="handleSort('total_score_percentile_rank')">Rank</th>`;
+            headHTML += `<th class="${currentSort.column === 'total_score_percentile_rank' ? 'sort-' + currentSort.direction : ''}" onclick="handleSort('total_score_percentile_rank')">Percentile</th>`;
             
             visibleMetrics.forEach(m => {
                 headHTML += `<th class="score-val ${currentSort.column === m ? 'sort-' + currentSort.direction : ''}" onclick="handleSort('${m}')">${METRIC_LABELS[m]}</th>`;

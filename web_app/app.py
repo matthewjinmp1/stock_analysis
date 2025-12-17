@@ -213,6 +213,79 @@ def search_ticker(query):
             'message': f'Error fetching data for "{ticker}": {str(e)}'
         }), 500
 
+@app.route('/api/search_suggestions/<query>')
+def search_suggestions(query):
+    """API endpoint to get search suggestions for tickers and company names containing the query string.
+
+    Returns top 10 matches from tickers database where either ticker or company name contains the query.
+    """
+    if not query or len(query.strip()) < 1:
+        return jsonify({'success': False, 'message': 'Query too short'}), 400
+
+    query_lower = query.lower().strip()
+
+    try:
+        # Path to tickers database
+        tickers_db_path = os.path.join(os.path.dirname(__file__), 'data', 'tickers.db')
+
+        if not os.path.exists(tickers_db_path):
+            return jsonify({'success': False, 'message': 'Tickers database not found'}), 500
+
+        conn = sqlite3.connect(tickers_db_path)
+        cur = conn.cursor()
+
+        # Search for tickers and company names containing the query string
+        # Use UNION to combine ticker matches and company name matches, then limit to 10
+        cur.execute("""
+            SELECT ticker, company_name, 'ticker' as match_type
+            FROM tickers
+            WHERE LOWER(ticker) LIKE ?
+            UNION
+            SELECT ticker, company_name, 'company' as match_type
+            FROM tickers
+            WHERE LOWER(company_name) LIKE ?
+            ORDER BY
+                CASE
+                    WHEN LOWER(ticker) = ? THEN 1  -- Exact ticker match first
+                    WHEN LOWER(company_name) LIKE ? || '%' THEN 2  -- Company name starting with query
+                    ELSE 3  -- Other matches
+                END,
+                LENGTH(ticker),  -- Shorter tickers first
+                ticker  -- Alphabetical
+            LIMIT 10
+        """, (
+            f'%{query_lower}%',
+            f'%{query_lower}%',
+            query_lower,
+            query_lower
+        ))
+
+        results = []
+        seen_tickers = set()  # Avoid duplicates
+
+        for row in cur.fetchall():
+            ticker, company_name, match_type = row
+            if ticker not in seen_tickers:
+                results.append({
+                    'ticker': ticker,
+                    'company_name': company_name,
+                    'match_type': match_type
+                })
+                seen_tickers.add(ticker)
+
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'query': query,
+            'suggestions': results[:10],  # Ensure max 10 results
+            'count': len(results)
+        })
+
+    except Exception as e:
+        print(f"Error searching tickers: {e}")
+        return jsonify({'success': False, 'message': 'Database error'}), 500
+
 @app.route('/metrics/<ticker>')
 def metrics_page(ticker):
     """Display all metric scores for a ticker."""

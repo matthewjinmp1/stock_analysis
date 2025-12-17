@@ -958,12 +958,25 @@ def ai_scores_page():
 
 @app.route('/api/ai_scores')
 def get_ai_scores_api():
-    """Get all AI scores from the database."""
+    """Get all AI scores from the database with company names."""
     try:
+        # Connect to AI scores DB
         conn = sqlite3.connect(AI_SCORES_DB)
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
-        cur.execute("SELECT * FROM scores ORDER BY total_score_percentile_rank DESC")
+        
+        # Attach tickers database to perform join
+        tickers_db_path = os.path.join(os.path.dirname(__file__), 'data', 'tickers.db')
+        cur.execute(f"ATTACH DATABASE '{tickers_db_path}' AS tickers_db")
+        
+        # Select all scores joined with company name
+        cur.execute("""
+            SELECT s.*, t.company_name 
+            FROM scores s
+            LEFT JOIN tickers_db.tickers t ON s.ticker = t.ticker
+            ORDER BY s.total_score_percentile_rank DESC
+        """)
+        
         rows = cur.fetchall()
         scores = [dict(row) for row in rows]
         conn.close()

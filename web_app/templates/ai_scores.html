@@ -26,7 +26,7 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
@@ -66,79 +66,13 @@
             box-shadow: 0 0 12px rgba(125, 211, 252, 0.3);
         }
 
-        .scores-section {
+        .controls-section {
             background: rgba(13, 13, 13, 0.8);
             border-radius: 15px;
             padding: 20px;
+            margin-bottom: 20px;
             border: 1px solid rgba(125, 211, 252, 0.3);
             box-shadow: 0 0 15px rgba(125, 211, 252, 0.15);
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            color: #7dd3fc;
-        }
-
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid rgba(125, 211, 252, 0.1);
-        }
-
-        th {
-            background: rgba(125, 211, 252, 0.05);
-            color: #a5d8ff;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.85em;
-            letter-spacing: 0.05em;
-            cursor: pointer;
-        }
-
-        th:hover {
-            background: rgba(125, 211, 252, 0.1);
-        }
-
-        tr:hover {
-            background: rgba(125, 211, 252, 0.03);
-        }
-
-        .ticker {
-            font-weight: 700;
-            color: #c4b5fd;
-            text-decoration: none;
-        }
-
-        .ticker:hover {
-            text-decoration: underline;
-        }
-
-        .percentile-rank {
-            font-weight: 600;
-            color: #a5d8ff;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: rgba(125, 211, 252, 0.7);
-        }
-
-        .spinner {
-            border: 4px solid rgba(125, 211, 252, 0.2);
-            border-top: 4px solid rgba(125, 211, 252, 0.8);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
         }
 
         .search-container {
@@ -161,6 +95,140 @@
             border-color: rgba(125, 211, 252, 0.6);
             box-shadow: 0 0 10px rgba(125, 211, 252, 0.2);
         }
+
+        .metrics-toggle-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(125, 211, 252, 0.1);
+        }
+
+        .metric-toggle {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(125, 211, 252, 0.05);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid rgba(125, 211, 252, 0.2);
+        }
+
+        .metric-toggle:hover {
+            background: rgba(125, 211, 252, 0.1);
+        }
+
+        .metric-toggle.active {
+            background: rgba(125, 211, 252, 0.2);
+            border-color: rgba(125, 211, 252, 0.5);
+            color: #fff;
+        }
+
+        .scores-section {
+            background: rgba(13, 13, 13, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(125, 211, 252, 0.3);
+            box-shadow: 0 0 15px rgba(125, 211, 252, 0.15);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            color: #7dd3fc;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(125, 211, 252, 0.1);
+            white-space: nowrap;
+        }
+
+        th {
+            background: rgba(125, 211, 252, 0.05);
+            color: #a5d8ff;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th:hover {
+            background: rgba(125, 211, 252, 0.1);
+        }
+
+        th.sort-asc::after {
+            content: " ↑";
+            color: #c4b5fd;
+        }
+
+        th.sort-desc::after {
+            content: " ↓";
+            color: #c4b5fd;
+        }
+
+        tr:hover {
+            background: rgba(125, 211, 252, 0.03);
+        }
+
+        .ticker {
+            font-weight: 700;
+            color: #c4b5fd;
+            text-decoration: none;
+        }
+
+        .ticker:hover {
+            text-decoration: underline;
+        }
+
+        .company-name {
+            color: rgba(125, 211, 252, 0.8);
+            font-size: 0.9em;
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .percentile-rank {
+            font-weight: 600;
+            color: #a5d8ff;
+            text-align: center;
+        }
+
+        .score-val {
+            text-align: center;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: rgba(125, 211, 252, 0.7);
+        }
+
+        .spinner {
+            border: 4px solid rgba(125, 211, 252, 0.2);
+            border-top: 4px solid rgba(125, 211, 252, 0.8);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -170,8 +238,15 @@
             <a href="/" class="back-link">← Main Page</a>
         </div>
 
-        <div class="search-container">
-            <input type="text" id="tickerSearch" class="search-input" placeholder="Search by ticker..." onkeyup="filterTable()">
+        <div class="controls-section">
+            <div class="search-container">
+                <input type="text" id="tickerSearch" class="search-input" placeholder="Search by ticker or company name..." onkeyup="filterAndRender()">
+            </div>
+            
+            <p style="font-size: 0.9em; color: #a5d8ff; margin-bottom: 5px; font-weight: 600;">Select Metrics to Show:</p>
+            <div id="metricsToggle" class="metrics-toggle-container">
+                <!-- Toggle buttons will be generated here -->
+            </div>
         </div>
 
         <div class="scores-section">
@@ -180,17 +255,8 @@
                 <p>Loading scores from AI database...</p>
             </div>
             <table id="scoresTable" style="display: none;">
-                <thead>
-                    <tr>
-                        <th onclick="sortTable(0)">Ticker</th>
-                        <th onclick="sortTable(1)">Percentile Rank</th>
-                        <th onclick="sortTable(2)">Moat</th>
-                        <th onclick="sortTable(3)">Brand</th>
-                        <th onclick="sortTable(4)">Pricing Power</th>
-                        <th onclick="sortTable(5)">Innovativeness</th>
-                        <th onclick="sortTable(6)">Management</th>
-                        <th onclick="sortTable(7)">Culture</th>
-                    </tr>
+                <thead id="tableHead">
+                    <!-- Table header will be generated here -->
                 </thead>
                 <tbody id="scoresBody">
                     <!-- Data will be loaded here -->
@@ -201,10 +267,66 @@
 
     <script>
         let allScores = [];
+        let currentSort = { column: 'total_score_percentile_rank', direction: 'desc' };
+        
+        const METRIC_LABELS = {
+            'moat_score': 'Moat',
+            'barriers_score': 'Barriers',
+            'disruption_risk': 'Disr. Risk',
+            'switching_cost': 'Switching',
+            'brand_strength': 'Brand',
+            'competition_intensity': 'Comp. Int.',
+            'network_effect': 'Network',
+            'product_differentiation': 'Prod. Diff.',
+            'innovativeness_score': 'Innov.',
+            'growth_opportunity': 'Growth',
+            'riskiness_score': 'Bus. Risk',
+            'pricing_power': 'Pricing',
+            'ambition_score': 'Ambition',
+            'bargaining_power_of_customers': 'Cust. Pwr',
+            'bargaining_power_of_suppliers': 'Supp. Pwr',
+            'product_quality_score': 'Prod. Qual.',
+            'culture_employee_satisfaction_score': 'Culture',
+            'trailblazer_score': 'Leadership',
+            'management_quality_score': 'Management',
+            'size_well_known_score': 'Size',
+            'ethical_healthy_environmental_score': 'Ethical',
+            'long_term_orientation_score': 'Long Term'
+        };
+
+        // Default visible metrics
+        let visibleMetrics = [
+            'moat_score', 'brand_strength', 'pricing_power', 
+            'innovativeness_score', 'management_quality_score', 
+            'culture_employee_satisfaction_score'
+        ];
 
         document.addEventListener('DOMContentLoaded', () => {
+            initToggles();
             fetchScores();
         });
+
+        function initToggles() {
+            const container = document.getElementById('metricsToggle');
+            Object.keys(METRIC_LABELS).forEach(key => {
+                const toggle = document.createElement('div');
+                toggle.className = `metric-toggle ${visibleMetrics.includes(key) ? 'active' : ''}`;
+                toggle.textContent = METRIC_LABELS[key];
+                toggle.onclick = () => toggleMetric(key, toggle);
+                container.appendChild(toggle);
+            });
+        }
+
+        function toggleMetric(key, element) {
+            if (visibleMetrics.includes(key)) {
+                visibleMetrics = visibleMetrics.filter(m => m !== key);
+                element.classList.remove('active');
+            } else {
+                visibleMetrics.push(key);
+                element.classList.add('active');
+            }
+            renderTable();
+        }
 
         function fetchScores() {
             fetch('/api/ai_scores')
@@ -212,7 +334,7 @@
                 .then(data => {
                     if (data.success) {
                         allScores = data.scores;
-                        renderTable(allScores);
+                        renderTable();
                         document.getElementById('loading').style.display = 'none';
                         document.getElementById('scoresTable').style.display = 'table';
                     } else {
@@ -224,79 +346,94 @@
                 });
         }
 
-        function renderTable(scores) {
-            const body = document.getElementById('scoresBody');
-            body.innerHTML = '';
-            
-            scores.forEach(score => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td><a href="/?q=${score.ticker}" class="ticker">${score.ticker}</a></td>
-                    <td class="percentile-rank">${score.total_score_percentile_rank || 'N/A'}</td>
-                    <td>${score.moat_score || 'N/A'}</td>
-                    <td>${score.brand_strength || 'N/A'}</td>
-                    <td>${score.pricing_power || 'N/A'}</td>
-                    <td>${score.innovativeness_score || 'N/A'}</td>
-                    <td>${score.management_quality_score || 'N/A'}</td>
-                    <td>${score.culture_employee_satisfaction_score || 'N/A'}</td>
-                `;
-                body.appendChild(row);
+        function sortData(scores) {
+            return [...scores].sort((a, b) => {
+                let valA = a[currentSort.column];
+                let valB = b[currentSort.column];
+
+                // Handle null/undefined
+                if (valA === null || valA === undefined) valA = '';
+                if (valB === null || valB === undefined) valB = '';
+
+                // Handle numeric comparison if both are numbers (or numeric strings)
+                const isNumA = typeof valA === 'number' || (typeof valA === 'string' && valA !== '' && !isNaN(valA));
+                const isNumB = typeof valB === 'number' || (typeof valB === 'string' && valB !== '' && !isNaN(valB));
+
+                if (isNumA && isNumB) {
+                    const numA = parseFloat(valA);
+                    const numB = parseFloat(valB);
+                    if (numA < numB) return currentSort.direction === 'asc' ? -1 : 1;
+                    if (numA > numB) return currentSort.direction === 'asc' ? 1 : -1;
+                    return 0;
+                }
+
+                // Default to string comparison
+                const strA = String(valA).toLowerCase();
+                const strB = String(valB).toLowerCase();
+
+                if (strA < strB) return currentSort.direction === 'asc' ? -1 : 1;
+                if (strA > strB) return currentSort.direction === 'asc' ? 1 : -1;
+                return 0;
             });
         }
 
-        function filterTable() {
-            const input = document.getElementById('tickerSearch');
-            const filter = input.value.toUpperCase();
-            const filtered = allScores.filter(score => score.ticker.toUpperCase().includes(filter));
-            renderTable(filtered);
+        function handleSort(column) {
+            if (currentSort.column === column) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = column;
+                currentSort.direction = 'desc';
+            }
+            renderTable();
         }
 
-        function sortTable(n) {
-            const table = document.getElementById("scoresTable");
-            let switching = true;
-            let dir = "desc";
-            let switchcount = 0;
+        function filterAndRender() {
+            renderTable();
+        }
 
-            while (switching) {
-                switching = false;
-                const rows = table.rows;
-                for (let i = 1; i < (rows.length - 1); i++) {
-                    let shouldSwitch = false;
-                    const x = rows[i].getElementsByTagName("TD")[n];
-                    const y = rows[i + 1].getElementsByTagName("TD")[n];
-                    
-                    let xVal = x.innerHTML.toLowerCase();
-                    let yVal = y.innerHTML.toLowerCase();
+        function renderTable() {
+            const head = document.getElementById('tableHead');
+            const body = document.getElementById('scoresBody');
+            const filter = document.getElementById('tickerSearch').value.toUpperCase();
+            
+            // Filter scores
+            let scoresToDisplay = allScores.filter(score => 
+                score.ticker.toUpperCase().includes(filter) || 
+                (score.company_name && score.company_name.toUpperCase().includes(filter))
+            );
 
-                    // Handle numeric values
-                    if (!isNaN(parseFloat(xVal)) && !isNaN(parseFloat(yVal))) {
-                        xVal = parseFloat(xVal);
-                        yVal = parseFloat(yVal);
-                    }
+            // Sort scores
+            scoresToDisplay = sortData(scoresToDisplay);
 
-                    if (dir === "asc") {
-                        if (xVal > yVal) {
-                            shouldSwitch = true;
-                            break;
-                        }
-                    } else if (dir === "desc") {
-                        if (xVal < yVal) {
-                            shouldSwitch = true;
-                            break;
-                        }
-                    }
-                }
-                if (shouldSwitch) {
-                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-                    switching = true;
-                    switchcount++;
-                } else {
-                    if (switchcount === 0 && dir === "desc") {
-                        dir = "asc";
-                        switching = true;
-                    }
-                }
-            }
+            // Render Header
+            let headHTML = '<tr>';
+            headHTML += `<th class="${currentSort.column === 'ticker' ? 'sort-' + currentSort.direction : ''}" onclick="handleSort('ticker')">Ticker</th>`;
+            headHTML += `<th class="${currentSort.column === 'company_name' ? 'sort-' + currentSort.direction : ''}" onclick="handleSort('company_name')">Company</th>`;
+            headHTML += `<th class="${currentSort.column === 'total_score_percentile_rank' ? 'sort-' + currentSort.direction : ''}" onclick="handleSort('total_score_percentile_rank')">Rank</th>`;
+            
+            visibleMetrics.forEach(m => {
+                headHTML += `<th class="score-val ${currentSort.column === m ? 'sort-' + currentSort.direction : ''}" onclick="handleSort('${m}')">${METRIC_LABELS[m]}</th>`;
+            });
+            headHTML += '</tr>';
+            head.innerHTML = headHTML;
+
+            // Render Body
+            body.innerHTML = '';
+            scoresToDisplay.forEach(score => {
+                let rowHTML = `
+                    <td><a href="/?q=${score.ticker}" class="ticker">${score.ticker}</a></td>
+                    <td class="company-name" title="${score.company_name || ''}">${score.company_name || 'N/A'}</td>
+                    <td class="percentile-rank">${score.total_score_percentile_rank || 'N/A'}</td>
+                `;
+                
+                visibleMetrics.forEach(m => {
+                    rowHTML += `<td class="score-val">${score[m] || 'N/A'}</td>`;
+                });
+                
+                const row = document.createElement('tr');
+                row.innerHTML = rowHTML;
+                body.appendChild(row);
+            });
         }
     </script>
 </body>

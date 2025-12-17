@@ -144,19 +144,17 @@
         }
 
         body.high-contrast .theme-switcher {
-            position: absolute;
-            top: 20px;
-            right: 20px;
             display: flex;
+            justify-content: flex-end;
             gap: 10px;
+            margin-bottom: 20px;
         }
 
         .theme-switcher {
-            position: absolute;
-            top: 20px;
-            right: 20px;
             display: flex;
+            justify-content: flex-end;
             gap: 10px;
+            margin-bottom: 20px;
         }
 
         .theme-button {
@@ -580,11 +578,11 @@
 </head>
 <body>
     <div class="container">
+        <div class="theme-switcher">
+            <button class="theme-button active" id="darkThemeBtn" onclick="setTheme('dark')">🌙 Cyber</button>
+            <button class="theme-button" id="highContrastThemeBtn" onclick="setTheme('high-contrast')">⚫ High Contrast</button>
+        </div>
         <div class="header">
-            <div class="theme-switcher">
-                <button class="theme-button active" id="darkThemeBtn" onclick="setTheme('dark')">🌙 Dark</button>
-                <button class="theme-button" id="highContrastThemeBtn" onclick="setTheme('high-contrast')">⚫ High Contrast</button>
-            </div>
             <h1>📋 Watchlist</h1>
             <p>Your saved tickers with basic stats</p>
             <a href="/" class="back-link">← Back to Search</a>

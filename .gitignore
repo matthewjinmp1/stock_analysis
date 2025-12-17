@@ -47,6 +47,8 @@ dist/
 *.xls
 # But keep config.example.py (it's a Python file, not JSON)
 !config.example.py
+# And keep QuickFS ticker data files
+!quickfs_tickers/*.json
 
 # Database files
 *.db

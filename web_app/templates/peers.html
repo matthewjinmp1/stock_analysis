@@ -202,12 +202,12 @@
             display: inline-block;
             margin-top: 15px;
             color: #a5d8ff;
-            text-decoration: none;
             padding: 10px 20px;
             background: rgba(125, 211, 252, 0.1);
             border-radius: 8px;
             border: 1px solid rgba(125, 211, 252, 0.4);
             transition: all 0.3s;
+            cursor: pointer;
         }
 
         .back-link:hover {
@@ -307,7 +307,7 @@
         <div class="header">
             <h1>Peer Comparison</h1>
             <p>Comparing {{ ticker }} with its peers</p>
-            <a href="/" class="back-link">← Back to Search</a>
+            <button onclick="history.back()" class="back-link">← Back</button>
         </div>
         <div class="content">
             <div id="peer-content">

@@ -190,12 +190,12 @@
             display: inline-block;
             margin-top: 12px;
             color: #a5d8ff;
-            text-decoration: none;
             padding: 8px 16px;
             background: rgba(125, 211, 252, 0.1);
             border-radius: 8px;
             border: 1px solid rgba(125, 211, 252, 0.4);
             transition: all 0.3s;
+            cursor: pointer;
         }
         .back-link:hover { background: rgba(125, 211, 252, 0.2); transform: translateX(-2px); }
         .content { padding: 32px; }
@@ -228,7 +228,7 @@
         <div class="header">
             <h1>Adjusted PE Breakdown</h1>
             <p>{{ ticker }}</p>
-            <a href="/" class="back-link">← Back to Search</a>
+            <button onclick="history.back()" class="back-link">← Back</button>
         </div>
         <div class="content" id="content">
             <div class="loading">Loading...</div>

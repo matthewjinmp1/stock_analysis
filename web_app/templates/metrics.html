@@ -198,7 +198,6 @@
             display: inline-block;
             color: #a5d8ff;
             background: rgba(125, 211, 252, 0.1);
-            text-decoration: none;
             margin-bottom: 20px;
             padding: 10px 20px;
             border-radius: 8px;
@@ -207,6 +206,7 @@
             border: 1px solid rgba(125, 211, 252, 0.4);
             transition: all 0.3s ease;
             box-shadow: 0 0 8px rgba(125, 211, 252, 0.2);
+            cursor: pointer;
         }
 
         .back-link:hover {
@@ -360,7 +360,7 @@
 </head>
 <body>
     <div class="container">
-        <a href="/" class="back-link">← Back to Search</a>
+        <button onclick="history.back()" class="back-link">← Back</button>
 
         <div class="theme-switcher">
             <button class="theme-button active" id="darkThemeBtn" onclick="setTheme('dark')">🌙 Cyber</button>

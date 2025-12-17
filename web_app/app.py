@@ -137,36 +137,53 @@ init_adjusted_pe_db()
 
 def find_best_match(query: str) -> tuple:
     """Find exact ticker match for a query.
-    
-    First checks cache for perfect match. If not in cache, returns the ticker
-    anyway so it can be fetched (company name will be looked up from ticker files).
-    
+
+    Validates against tickers database for exact matches only.
+    No fuzzy matching or fallback allowed.
+
     Args:
         query: User search query (must be exact ticker symbol)
-        
+
     Returns:
-        tuple: (ticker, match_type) where match_type is 'ticker' or 'ticker_not_cached'
+        tuple: (ticker, match_type) where match_type is 'ticker' or None if no exact match
     """
     query_upper = query.strip().upper()
-    
-    # First, check cache for perfect match
-    cache_db_path = os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db')
-    if os.path.exists(cache_db_path):
+
+    # Validate that it's a valid ticker by checking against tickers.db
+    tickers_db_path = os.path.join(os.path.dirname(__file__), 'data', 'tickers.db')
+    if os.path.exists(tickers_db_path):
         try:
-            conn = sqlite3.connect(cache_db_path)
+            conn = sqlite3.connect(tickers_db_path)
             cursor = conn.cursor()
-            cursor.execute('SELECT ticker FROM ui_cache WHERE ticker = ?', (query_upper,))
+            cursor.execute('SELECT ticker FROM tickers WHERE ticker = ?', (query_upper,))
             result = cursor.fetchone()
             conn.close()
-            
+
             if result:
-                return result[0], 'ticker'
+                # Valid ticker found, now check if we have cached data
+                cache_db_path = os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db')
+                if os.path.exists(cache_db_path):
+                    try:
+                        conn = sqlite3.connect(cache_db_path)
+                        cursor = conn.cursor()
+                        cursor.execute('SELECT ticker FROM ui_cache WHERE ticker = ?', (query_upper,))
+                        cache_result = cursor.fetchone()
+                        conn.close()
+
+                        if cache_result:
+                            return result[0], 'ticker'
+                        else:
+                            return result[0], 'ticker_not_cached'
+                    except Exception as e:
+                        print(f"Error querying cache for matching: {e}")
+                        return result[0], 'ticker_not_cached'
+                else:
+                    return result[0], 'ticker_not_cached'
         except Exception as e:
-            print(f"Error querying cache for matching: {e}")
-    
-    # If not in cache, still return the ticker so we can fetch it
-    # The company name will be looked up from ticker files during fetch
-    return query_upper, 'ticker_not_cached'
+            print(f"Error querying tickers database: {e}")
+
+    # No exact match found in tickers database
+    return None, None
 
 @app.route('/')
 def index():
@@ -180,14 +197,14 @@ def search_ticker(query):
     Uses unified cache database. If data is missing, fetches and caches it.
     Only exact ticker matches are supported for speed and unambiguity.
     """
-    # Find ticker (checks cache first, but returns ticker even if not cached)
+    # Find ticker (only exact matches allowed)
     ticker, match_type = find_best_match(query)
-    
+
     if not ticker:
         return jsonify({
             'success': False,
             'query': query,
-            'message': f'Invalid ticker format for "{query}". Please enter a valid ticker symbol (e.g., AAPL).'
+            'message': f'No exact match found for "{query}". Please enter a valid ticker symbol (e.g., AAPL).'
         }), 404
     
     try:
@@ -245,14 +262,14 @@ def search_ticker(query):
 
 @app.route('/api/search_suggestions/<query>')
 def search_suggestions(query):
-    """API endpoint to get search suggestions for tickers and company names containing the query string.
+    """API endpoint to get search suggestions for exact ticker matches only.
 
-    Returns top 10 matches from tickers database where either ticker or company name contains the query.
+    Returns exact matches from tickers database. No fuzzy matching.
     """
     if not query or len(query.strip()) < 1:
         return jsonify({'success': False, 'message': 'Query too short'}), 400
 
-    query_lower = query.lower().strip()
+    query_upper = query.strip().upper()
 
     try:
         # Use tickers.db for search suggestions (contains only real tickers)
@@ -264,51 +281,30 @@ def search_suggestions(query):
         conn = sqlite3.connect(tickers_db_path)
         cur = conn.cursor()
 
-        # Search for tickers and company names containing the query string
-        # Use UNION to combine ticker matches and company name matches, then limit to 10
+        # Only return exact ticker matches
         cur.execute("""
-            SELECT ticker, company_name,
-                   CASE
-                       WHEN LOWER(ticker) LIKE ? THEN 'ticker'
-                       ELSE 'company'
-                   END as match_type,
-                   CASE
-                       WHEN LOWER(ticker) = ? THEN 1  -- Exact ticker match first
-                       WHEN LOWER(company_name) LIKE ? || '%' THEN 2  -- Company name starting with query
-                       ELSE 3  -- Other matches
-                   END as priority,
-                   LENGTH(ticker) as ticker_length
+            SELECT ticker, company_name
             FROM tickers
-            WHERE LOWER(ticker) LIKE ? OR LOWER(company_name) LIKE ?
-            ORDER BY priority, ticker_length, ticker
-            LIMIT 10
-        """, (
-            f'%{query_lower}%',
-            query_lower,
-            query_lower,
-            f'%{query_lower}%',
-            f'%{query_lower}%'
-        ))
+            WHERE ticker = ?
+            LIMIT 1
+        """, (query_upper,))
 
         results = []
-        seen_tickers = set()  # Avoid duplicates
-
-        for row in cur.fetchall():
-            ticker, company_name, match_type, priority, ticker_length = row
-            if ticker not in seen_tickers:
-                results.append({
-                    'ticker': ticker,
-                    'company_name': company_name,
-                    'match_type': match_type
-                })
-                seen_tickers.add(ticker)
+        row = cur.fetchone()
+        if row:
+            ticker, company_name = row
+            results.append({
+                'ticker': ticker,
+                'company_name': company_name,
+                'match_type': 'ticker'
+            })
 
         conn.close()
 
         return jsonify({
             'success': True,
             'query': query,
-            'suggestions': results[:10],  # Ensure max 10 results
+            'suggestions': results,
             'count': len(results)
         })
 

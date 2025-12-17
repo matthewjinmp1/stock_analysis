@@ -85,6 +85,9 @@ def save_peer_analysis(
         conn = sqlite3.connect(PEERS_RESULTS_DB)
         cur = conn.cursor()
 
+        # Delete all existing peer results for this ticker before inserting new ones
+        cur.execute("DELETE FROM peer_results WHERE ticker = ?", (ticker,))
+
         # Convert token usage to JSON for storage
         token_usage_json = json.dumps(token_usage) if token_usage else None
 

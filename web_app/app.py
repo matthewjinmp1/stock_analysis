@@ -612,16 +612,16 @@ Consider factors such as:
 5. Competitive dynamics (direct competitors)
 6. Company size and scale (if relevant)
 
-Return ONLY a semicolon-separated list of exactly 10 FULL company names, starting with the most comparable company first.
+Return ONLY a semicolon-separated list of exactly 10 CLEAN company names, starting with the most comparable company first.
 CRITICAL: Use semicolons (;) to separate company names, NOT commas, because company names often contain commas.
-Each company name must be complete (e.g., "Microsoft Corporation", "Alphabet Inc.", "Meta Platforms Inc.", "Nike, Inc.").
-DO NOT return partial names, suffixes alone (like "Inc" or "Corporation"), or abbreviations.
-Each name should be the full legal company name or commonly used full name.
-Do not include explanations, ticker symbols, ranking numbers, or any other text - just the 10 complete company names separated by semicolons in order from most to least comparable.
+IMPORTANT: Return ONLY the core company name without any generic suffixes like Inc, Corp, Co, Ltd, LLC, Group, Holdings, Corporation, Incorporated, Limited, etc.
+Examples: "Microsoft" (not "Microsoft Corporation"), "Alphabet" (not "Alphabet Inc"), "Apple" (not "Apple Inc"), "Nike" (not "Nike Inc"), "Meta" (not "Meta Platforms Inc").
+DO NOT include legal suffixes, corporate designations, or any generic business terms at the end of company names.
+Do not include explanations, ticker symbols, ranking numbers, or any other text - just the 10 clean company names separated by semicolons in order from most to least comparable.
 
-Example format: "Microsoft Corporation; Alphabet Inc.; Meta Platforms Inc.; Amazon.com Inc.; NVIDIA Corporation; Intel Corporation; Advanced Micro Devices Inc.; Salesforce Inc.; Oracle Corporation; Adobe Inc."
+Example format: "Microsoft; Alphabet; Meta; Amazon; Nvidia; Intel; Advanced Micro Devices; Salesforce; Oracle; Adobe"
 
-Return exactly 10 complete company names in ranked order, separated by semicolons, nothing else."""
+Return exactly 10 clean company names in ranked order, separated by semicolons, nothing else."""
 
         # Query AI
         grok = get_api_client()

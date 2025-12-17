@@ -1,0 +1,47 @@
+{
+  "Country": [
+    "United States",
+    "United States",
+    "United States",
+    "United States",
+    "United States",
+    "United States",
+    "Canada",
+    "Canada",
+    "Canada",
+    "Australia",
+    "New Zealand",
+    "Mexico",
+    "London"
+  ],
+  "Code": [
+    "US",
+    "US",
+    "US",
+    "US",
+    "US",
+    "US",
+    "CA",
+    "CA",
+    "CA",
+    "AU",
+    "NZ",
+    "MM",
+    "LN"
+  ],
+  "Exchanges": [
+    "NYSE",
+    "NASDAQ",
+    "OTC",
+    "NYSEARCA",
+    "BATS",
+    "NYSEAMERICAN",
+    "TORONTO",
+    "CSE",
+    "TSXVENTURE",
+    "ASX",
+    "NZX",
+    "BMV",
+    "LONDON"
+  ]
+}

@@ -17,6 +17,9 @@ PROJECT_ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
+# Change to project root directory so config.py can be found
+os.chdir(PROJECT_ROOT)
+
 # Try to import config, fallback to environment variable
 try:
     from config import QUICKFS_API_KEY

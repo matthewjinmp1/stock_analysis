@@ -85,9 +85,10 @@ def get_revenue_growth_estimates(ticker: str) -> Tuple[Optional[Dict], Optional[
             - error_message: Error message string or None if successful
 
     The returned data includes:
-    - next_year: Next year revenue growth estimate (%)
-    - next_5_years: Next 5 years revenue growth estimate (%)
-    - past_5_year: Past 5 year actual revenue growth (%)
+    - next_year_growth: Next year revenue growth estimate (%)
+    - next_2_years_growth: Next 2 years revenue growth estimate (%)
+    - next_5_years_growth: Next 5 years revenue growth estimate (%)
+    - past_5_year_growth: Past 5 year actual revenue growth (%)
     - company_name: Company name from yfinance
     - analyst_count: Number of analysts providing estimates
     """
@@ -113,6 +114,7 @@ def get_revenue_growth_estimates(ticker: str) -> Tuple[Optional[Dict], Optional[
             'ticker': ticker.upper(),
             'company_name': company_name,
             'next_year_growth': None,
+            'next_2_years_growth': None,
             'next_5_years_growth': None,
             'past_5_year_growth': None,
             'analyst_count': None,
@@ -131,12 +133,39 @@ def get_revenue_growth_estimates(ticker: str) -> Tuple[Optional[Dict], Optional[
                 pass
 
             try:
+                # Get next 2 years revenue growth estimate (+2y row, growth column)
+                if '+2y' in revenue_estimate.index:
+                    next_2_years_growth = revenue_estimate.loc['+2y', 'growth']
+                    if next_2_years_growth is not None and not str(next_2_years_growth).lower() in ['nan', 'none', '']:
+                        data['next_2_years_growth'] = float(next_2_years_growth) * 100  # Convert to percentage
+            except (KeyError, ValueError, TypeError):
+                pass
+
+            try:
                 # For long-term growth, check if 'LTG' exists in growth_estimates
                 if hasattr(growth_estimates, 'loc') and 'LTG' in growth_estimates.index:
                     ltg_growth = growth_estimates.loc['LTG', 'stockTrend']
                     if ltg_growth is not None and not str(ltg_growth).lower() in ['nan', 'none', '']:
                         data['next_5_years_growth'] = float(ltg_growth) * 100  # Convert to percentage
             except (KeyError, ValueError, TypeError):
+                pass
+
+        # Calculate estimated 2-year growth if we have next year growth but no direct 2-year data
+        if data['next_2_years_growth'] is None and data['next_year_growth'] is not None:
+            try:
+                next_year_growth = data['next_year_growth'] / 100  # Convert back to decimal
+
+                if data['next_5_years_growth'] is not None:
+                    # If we have LTG, interpolate between year 1 and long-term growth
+                    ltg_growth = data['next_5_years_growth'] / 100  # Convert back to decimal
+                    # Simple interpolation: year 2 growth is closer to LTG than year 1
+                    estimated_2yr_growth = next_year_growth * 0.7 + ltg_growth * 0.3
+                else:
+                    # If no LTG, assume some mean reversion (growth slows slightly)
+                    estimated_2yr_growth = next_year_growth * 0.85
+
+                data['next_2_years_growth'] = estimated_2yr_growth * 100  # Convert to percentage
+            except (ValueError, TypeError):
                 pass
 
         # Try to get analyst count from revenue_estimate or info
@@ -167,7 +196,7 @@ def get_revenue_growth_estimates(ticker: str) -> Tuple[Optional[Dict], Optional[
                 print(f"Warning: Could not calculate past 5-year growth: {e}")
 
         # If we got at least one growth estimate, return the data
-        if any([data['next_year_growth'], data['next_5_years_growth'], data['past_5_year_growth']]):
+        if any([data['next_year_growth'], data['next_2_years_growth'], data['next_5_years_growth'], data['past_5_year_growth']]):
             return data, None
         else:
             return None, "No revenue growth estimates found in the data"
@@ -199,6 +228,9 @@ def format_growth_data(data: Dict) -> str:
 
     if data.get('next_year_growth') is not None:
         lines.append(f"Next Year Growth:       {data['next_year_growth']:.1f}%")
+
+    if data.get('next_2_years_growth') is not None:
+        lines.append(f"Next 2 Years Growth:    {data['next_2_years_growth']:.1f}%")
 
     if data.get('next_5_years_growth') is not None:
         lines.append(f"Next 5 Years Growth:    {data['next_5_years_growth']:.1f}%")

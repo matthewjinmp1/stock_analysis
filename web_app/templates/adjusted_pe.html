@@ -19,6 +19,154 @@
             padding: 20px;
             color: #7dd3fc;
         }
+
+        /* High Contrast Black Background & White Text Theme */
+        body.high-contrast {
+            background: #000000;
+            background-image: none;
+            color: #ffffff;
+        }
+
+        body.high-contrast .container {
+            background: #111111;
+            border: 2px solid #ffffff;
+            box-shadow:
+                0 0 15px rgba(255, 255, 255, 0.1),
+                0 0 30px rgba(255, 255, 255, 0.05),
+                inset 0 0 15px rgba(255, 255, 255, 0.02);
+        }
+
+        body.high-contrast .header {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            color: #ffffff;
+            border-bottom: 2px solid #ffffff;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        }
+
+        body.high-contrast .header h1 {
+            color: #ffffff;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+        }
+
+        body.high-contrast .header p {
+            color: #ffffff;
+            text-shadow: 0 0 3px rgba(255, 255, 255, 0.2);
+        }
+
+        body.high-contrast .content {
+            background: #111111;
+        }
+
+        body.high-contrast .card {
+            background: #1a1a1a;
+            border: 2px solid #ffffff;
+            color: #ffffff;
+        }
+
+        body.high-contrast .card h2 {
+            color: #ffffff;
+        }
+
+        body.high-contrast .value {
+            color: #ffffff;
+        }
+
+        body.high-contrast th {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+        }
+
+        body.high-contrast td {
+            color: #ffffff;
+            background: rgba(26, 26, 26, 0.8);
+        }
+
+        body.high-contrast tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        body.high-contrast .label {
+            color: #cccccc;
+        }
+
+        body.high-contrast .muted {
+            color: #aaaaaa;
+        }
+
+        body.high-contrast .error {
+            color: #ffaaaa;
+        }
+
+        body.high-contrast .loading {
+            color: #ffffff;
+        }
+
+        body.high-contrast a {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+
+        body.high-contrast a:hover {
+            color: #cccccc;
+        }
+
+        body.high-contrast .theme-switcher {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .theme-switcher {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .theme-button {
+            padding: 8px 16px;
+            font-size: 0.9em;
+            background: rgba(125, 211, 252, 0.1);
+            color: #7dd3fc;
+            border: 1px solid rgba(125, 211, 252, 0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+
+        .theme-button:hover {
+            background: rgba(125, 211, 252, 0.2);
+            border-color: rgba(125, 211, 252, 0.5);
+            box-shadow: 0 0 8px rgba(125, 211, 252, 0.3);
+        }
+
+        .theme-button.active {
+            background: rgba(125, 211, 252, 0.3);
+            border-color: #7dd3fc;
+        }
+
+        body.high-contrast .theme-button {
+            background: #222222;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+        }
+
+        body.high-contrast .theme-button:hover {
+            background: #333333;
+            border-color: #ffffff;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+        }
+
+        body.high-contrast .theme-button.active {
+            background: #ffffff;
+            color: #000000;
+            border-color: #ffffff;
+        }
+
         .container {
             max-width: 1100px;
             margin: 0 auto;
@@ -76,6 +224,10 @@
 <body>
     <div class="container">
         <div class="header">
+            <div class="theme-switcher">
+                <button class="theme-button active" id="darkThemeBtn" onclick="setTheme('dark')">🌙 Dark</button>
+                <button class="theme-button" id="highContrastThemeBtn" onclick="setTheme('high-contrast')">⚫ High Contrast</button>
+            </div>
             <h1>Adjusted PE Breakdown</h1>
             <p>{{ ticker }}</p>
             <a href="/" class="back-link">← Back to Search</a>
@@ -182,6 +334,36 @@
             .catch(err => {
                 document.getElementById('content').innerHTML = `<div class="error">Error: ${err.message}</div>`;
             });
+
+        // Theme switching functionality
+        function setTheme(theme) {
+            const body = document.body;
+            const darkBtn = document.getElementById('darkThemeBtn');
+            const highContrastBtn = document.getElementById('highContrastThemeBtn');
+
+            // Remove existing theme classes
+            body.classList.remove('high-contrast');
+
+            // Add new theme class if needed
+            if (theme === 'high-contrast') {
+                body.classList.add('high-contrast');
+            }
+
+            // Update button states
+            darkBtn.classList.toggle('active', theme === 'dark');
+            highContrastBtn.classList.toggle('active', theme === 'high-contrast');
+
+            // Save preference to localStorage
+            localStorage.setItem('theme', theme);
+        }
+
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            setTheme(savedTheme);
+        }
+
+        // Load saved theme on page load
+        document.addEventListener('DOMContentLoaded', loadTheme);
     </script>
 </body>
 </html>

@@ -26,98 +26,131 @@
             color: #7dd3fc;
         }
 
-        /* High Contrast Black & White Theme */
+        /* High Contrast Black Background & White Text Theme */
         body.high-contrast {
-            background: #ffffff;
+            background: #000000;
             background-image: none;
-            color: #000000;
+            color: #ffffff;
         }
 
         body.high-contrast .container {
-            background: #f8f8f8;
-            border: 2px solid #000000;
+            background: #111111;
+            border: 2px solid #ffffff;
             box-shadow:
-                0 0 15px rgba(0, 0, 0, 0.3),
-                0 0 30px rgba(0, 0, 0, 0.1),
-                inset 0 0 15px rgba(0, 0, 0, 0.05);
+                0 0 15px rgba(255, 255, 255, 0.1),
+                0 0 30px rgba(255, 255, 255, 0.05),
+                inset 0 0 15px rgba(255, 255, 255, 0.02);
         }
 
         body.high-contrast .header {
-            background: linear-gradient(135deg, #e0e0e0 0%, #f0f0f0 100%);
-            color: #000000;
-            border-bottom: 2px solid #000000;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            color: #ffffff;
+            border-bottom: 2px solid #ffffff;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
         }
 
         body.high-contrast .header h1 {
-            color: #000000;
-            text-shadow: none;
+            color: #ffffff;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
         }
 
         body.high-contrast .header p {
-            color: #000000;
-            text-shadow: none;
+            color: #ffffff;
+            text-shadow: 0 0 3px rgba(255, 255, 255, 0.2);
         }
 
         body.high-contrast .search-section {
-            background: #f8f8f8;
+            background: #111111;
         }
 
         body.high-contrast .search-input,
         body.high-contrast .search-button,
         body.high-contrast .theme-button {
-            background: #ffffff;
-            color: #000000;
-            border: 2px solid #000000;
+            background: #222222;
+            color: #ffffff;
+            border: 2px solid #ffffff;
         }
 
         body.high-contrast .search-input:focus {
-            border-color: #000000;
-            box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+            border-color: #ffffff;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
         }
 
         body.high-contrast .results-section {
-            background: #f0f0f0;
-            border: 1px solid #000000;
+            background: #0a0a0a;
+            border: 1px solid #ffffff;
         }
 
         body.high-contrast .metric-card,
         body.high-contrast .peer-card {
-            background: #ffffff;
-            border: 2px solid #000000;
-            color: #000000;
+            background: #1a1a1a;
+            border: 2px solid #ffffff;
+            color: #ffffff;
         }
 
         body.high-contrast .metric-name,
         body.high-contrast .metric-value,
         body.high-contrast .peer-name,
         body.high-contrast .peer-ticker {
-            color: #000000;
-        }
-
-        body.high-contrast .watchlist-button {
-            background: #ffffff;
-            color: #000000;
-            border: 2px solid #000000;
-        }
-
-        body.high-contrast .watchlist-button:hover {
-            background: #e0e0e0;
-        }
-
-        body.high-contrast .watchlist-button.active {
-            background: #000000;
             color: #ffffff;
         }
 
-        body.high-contrast .error-message {
-            background: #ffe6e6;
+        body.high-contrast .watchlist-button {
+            background: #222222;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+        }
+
+        body.high-contrast .watchlist-button:hover {
+            background: #333333;
+            border-color: #ffffff;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+        }
+
+        body.high-contrast .watchlist-button.active {
+            background: #ffffff;
             color: #000000;
-            border: 2px solid #cc0000;
+            border-color: #ffffff;
+        }
+
+        body.high-contrast .error-message {
+            background: #330000;
+            color: #ffffff;
+            border: 2px solid #ff6666;
         }
 
         body.high-contrast .loading {
-            color: #000000;
+            color: #ffffff;
+        }
+
+        /* Additional high contrast elements */
+        body.high-contrast a {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+
+        body.high-contrast a:hover {
+            color: #cccccc;
+        }
+
+        body.high-contrast .detail-label {
+            color: #cccccc;
+        }
+
+        body.high-contrast .score-link {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+
+        body.high-contrast .peer-button {
+            background: #222222;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+        }
+
+        body.high-contrast .peer-button:hover {
+            background: #333333;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
         }
 
         .container {
@@ -191,18 +224,21 @@
         }
 
         body.high-contrast .theme-button {
-            background: #ffffff;
-            color: #000000;
-            border: 2px solid #000000;
+            background: #222222;
+            color: #ffffff;
+            border: 2px solid #ffffff;
         }
 
         body.high-contrast .theme-button:hover {
-            background: #e0e0e0;
+            background: #333333;
+            border-color: #ffffff;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
         }
 
         body.high-contrast .theme-button.active {
-            background: #000000;
-            color: #ffffff;
+            background: #ffffff;
+            color: #000000;
+            border-color: #ffffff;
         }
 
         .header h1 {

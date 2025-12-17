@@ -13,16 +13,191 @@
             box-sizing: border-box;
         }
 
+        /* Default Dark Theme */
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: #0a0a0a;
-            background-image: 
+            background-image:
                 radial-gradient(circle at 20% 50%, rgba(0, 200, 220, 0.03) 0%, transparent 50%),
                 radial-gradient(circle at 80% 80%, rgba(200, 0, 200, 0.03) 0%, transparent 50%),
                 radial-gradient(circle at 40% 20%, rgba(120, 0, 200, 0.03) 0%, transparent 50%);
             min-height: 100vh;
             padding: 20px;
             color: #7dd3fc;
+        }
+
+        /* High Contrast Black Background & White Text Theme */
+        body.high-contrast {
+            background: #000000;
+            background-image: none;
+            color: #ffffff;
+        }
+
+        body.high-contrast .container {
+            background: #111111;
+            border: 2px solid #ffffff;
+            box-shadow:
+                0 0 15px rgba(255, 255, 255, 0.1),
+                0 0 30px rgba(255, 255, 255, 0.05),
+                inset 0 0 15px rgba(255, 255, 255, 0.02);
+        }
+
+        body.high-contrast .header {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            color: #ffffff;
+            border-bottom: 2px solid #ffffff;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        }
+
+        body.high-contrast .header h1 {
+            color: #ffffff;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+        }
+
+        body.high-contrast .header p {
+            color: #ffffff;
+            text-shadow: 0 0 3px rgba(255, 255, 255, 0.2);
+        }
+
+        body.high-contrast .search-section,
+        body.high-contrast .watchlist-section {
+            background: #111111;
+        }
+
+        body.high-contrast .search-input,
+        body.high-contrast .search-button,
+        body.high-contrast .theme-button,
+        body.high-contrast .add-ticker-button {
+            background: #222222;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+        }
+
+        body.high-contrast .search-input:focus {
+            border-color: #ffffff;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+        }
+
+        body.high-contrast .results-section,
+        body.high-contrast .watchlist-grid {
+            background: #0a0a0a;
+            border: 1px solid #ffffff;
+        }
+
+        body.high-contrast .metric-card,
+        body.high-contrast .peer-card,
+        body.high-contrast .watchlist-item {
+            background: #1a1a1a;
+            border: 2px solid #ffffff;
+            color: #ffffff;
+        }
+
+        body.high-contrast .metric-name,
+        body.high-contrast .metric-value,
+        body.high-contrast .peer-name,
+        body.high-contrast .peer-ticker,
+        body.high-contrast .company-name,
+        body.high-contrast .ticker,
+        body.high-contrast th,
+        body.high-contrast td {
+            color: #ffffff;
+        }
+
+        body.high-contrast .watchlist-button,
+        body.high-contrast .remove-button {
+            background: #222222;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+        }
+
+        body.high-contrast .watchlist-button:hover,
+        body.high-contrast .remove-button:hover {
+            background: #333333;
+            border-color: #ffffff;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+        }
+
+        body.high-contrast .watchlist-button.active {
+            background: #ffffff;
+            color: #000000;
+            border-color: #ffffff;
+        }
+
+        body.high-contrast .error-message {
+            background: #330000;
+            color: #ffffff;
+            border: 2px solid #ff6666;
+        }
+
+        body.high-contrast .loading,
+        body.high-contrast .message {
+            color: #ffffff;
+        }
+
+        body.high-contrast a {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+
+        body.high-contrast a:hover {
+            color: #cccccc;
+        }
+
+        body.high-contrast .theme-switcher {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .theme-switcher {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .theme-button {
+            padding: 8px 16px;
+            font-size: 0.9em;
+            background: rgba(125, 211, 252, 0.1);
+            color: #7dd3fc;
+            border: 1px solid rgba(125, 211, 252, 0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+
+        .theme-button:hover {
+            background: rgba(125, 211, 252, 0.2);
+            border-color: rgba(125, 211, 252, 0.5);
+            box-shadow: 0 0 8px rgba(125, 211, 252, 0.3);
+        }
+
+        .theme-button.active {
+            background: rgba(125, 211, 252, 0.3);
+            border-color: #7dd3fc;
+        }
+
+        body.high-contrast .theme-button {
+            background: #222222;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+        }
+
+        body.high-contrast .theme-button:hover {
+            background: #333333;
+            border-color: #ffffff;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+        }
+
+        body.high-contrast .theme-button.active {
+            background: #ffffff;
+            color: #000000;
+            border-color: #ffffff;
         }
 
         .container {
@@ -61,6 +236,7 @@
             text-align: center;
             border-bottom: 1px solid rgba(125, 211, 252, 0.3);
             box-shadow: 0 0 15px rgba(125, 211, 252, 0.15);
+            position: relative;
         }
 
         .header h1 {
@@ -405,6 +581,10 @@
 <body>
     <div class="container">
         <div class="header">
+            <div class="theme-switcher">
+                <button class="theme-button active" id="darkThemeBtn" onclick="setTheme('dark')">🌙 Dark</button>
+                <button class="theme-button" id="highContrastThemeBtn" onclick="setTheme('high-contrast')">⚫ High Contrast</button>
+            </div>
             <h1>📋 Watchlist</h1>
             <p>Your saved tickers with basic stats</p>
             <a href="/" class="back-link">← Back to Search</a>
@@ -672,6 +852,36 @@
 
         // Load watchlist on page load
         loadWatchlist();
+
+        // Theme switching functionality
+        function setTheme(theme) {
+            const body = document.body;
+            const darkBtn = document.getElementById('darkThemeBtn');
+            const highContrastBtn = document.getElementById('highContrastThemeBtn');
+
+            // Remove existing theme classes
+            body.classList.remove('high-contrast');
+
+            // Add new theme class if needed
+            if (theme === 'high-contrast') {
+                body.classList.add('high-contrast');
+            }
+
+            // Update button states
+            if (darkBtn) darkBtn.classList.toggle('active', theme === 'dark');
+            if (highContrastBtn) highContrastBtn.classList.toggle('active', theme === 'high-contrast');
+
+            // Save preference to localStorage
+            localStorage.setItem('theme', theme);
+        }
+
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            setTheme(savedTheme);
+        }
+
+        // Load saved theme on page load
+        document.addEventListener('DOMContentLoaded', loadTheme);
     </script>
 </body>
 </html>

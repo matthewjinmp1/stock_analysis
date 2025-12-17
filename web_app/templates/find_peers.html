@@ -234,6 +234,9 @@
             <div id="resultsContent">
                 <!-- Results will be loaded here -->
             </div>
+            <div id="statsSection" class="stats-section" style="display: none; margin-top: 20px; padding: 15px; background: rgba(10, 10, 10, 0.6); border-radius: 8px; border: 1px solid rgba(125, 211, 252, 0.2);">
+                <!-- Stats will be loaded here -->
+            </div>
         </div>
     </div>
 
@@ -275,6 +278,7 @@
 
         function displayResults(data) {
             const resultsContent = document.getElementById('resultsContent');
+            const statsSection = document.getElementById('statsSection');
 
             let html = `
                 <div class="company-info">
@@ -298,6 +302,21 @@
             `;
 
             resultsContent.innerHTML = html;
+
+            // Display stats if available
+            if (data.elapsed_time || data.token_usage) {
+                let statsHtml = '<h3 style="color: #a5d8ff; margin-bottom: 10px;">Query Statistics</h3>';
+                if (data.elapsed_time) {
+                    statsHtml += `<p style="color: rgba(125, 211, 252, 0.7); margin: 5px 0;">Time taken: ${data.elapsed_time.toFixed(2)} seconds</p>`;
+                }
+                if (data.token_usage) {
+                    statsHtml += `<p style="color: rgba(125, 211, 252, 0.7); margin: 5px 0;">Token usage: ${JSON.stringify(data.token_usage)}</p>`;
+                }
+                statsSection.innerHTML = statsHtml;
+                statsSection.style.display = 'block';
+            } else {
+                statsSection.style.display = 'none';
+            }
         }
 
         function showError(message) {

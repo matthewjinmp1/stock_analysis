@@ -88,6 +88,8 @@ Return exactly 10 complete company names in ranked order, separated by semicolon
         elapsed_time = time.time() - start_time
 
         print(f"AI query completed in {elapsed_time:.2f} seconds")
+        if token_usage:
+            print(f"Token usage: {token_usage}")
         print(f"Response: {response[:200]}...")
 
         # Parse company names

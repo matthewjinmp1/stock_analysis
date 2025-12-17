@@ -534,7 +534,9 @@ Return exactly 10 complete company names in ranked order, separated by semicolon
         # Query AI
         grok = get_api_client()
         model = get_model_for_ticker(ticker)
-        response, _ = grok.simple_query_with_tokens(prompt, model=model)
+        start_time = time.time()
+        response, token_usage = grok.simple_query_with_tokens(prompt, model=model)
+        elapsed_time = time.time() - start_time
 
         # Parse company names
         response_clean = response.strip()
@@ -651,7 +653,9 @@ def find_peers_api(ticker):
             'success': True,
             'ticker': ticker,
             'company_name': company_name,
-            'peers': peers
+            'peers': peers,
+            'elapsed_time': elapsed_time,
+            'token_usage': token_usage
         })
 
     except Exception as e:

@@ -3468,47 +3468,17 @@ Do not include any explanations, company names, or other text - just the ticker 
     try:
         grok = get_api_client()
         model = get_model_for_ticker("AAPL")  # Use default model
-        
+
         response, token_usage = grok.simple_query_with_tokens(prompt, model=model)
         # response is the full raw AI response - save this, not response_clean
         response_clean = response.strip().upper()  # Only used for parsing, not saved
-        
+
         # Check if response is "PRIVATE"
         if "PRIVATE" in response_clean:
-            # Generate a ticker for the private company
-            # Use first letters of words in company name, up to 5 characters
-            words = company_name.split()
-            ticker = ""
-            for word in words:
-                if word and word[0].isalpha():
-                    ticker += word[0].upper()
-                    if len(ticker) >= 5:
-                        break
-            
-            # If we don't have enough letters, pad with X
-            while len(ticker) < 3:
-                ticker += "X"
-            
-            ticker = ticker[:5]  # Limit to 5 characters
-            
-            # Make sure it's unique by checking if it exists
-            original_ticker = ticker
-            counter = 1
-            while ticker in ticker_lookup:
-                # Append a number if it conflicts
-                ticker = (original_ticker[:4] + str(counter))[:5]
-                counter += 1
-                if counter > 9:
-                    # Fallback: use first 5 chars of company name
-                    ticker = company_name.replace(" ", "").upper()[:5]
-                    break
-            
-            # Add to ticker definitions
-            add_ticker_definition(ticker, company_name)
-            
-            # Record conversion
-            save_ticker_conversion(company_name, ticker, False, "ai_private", ai_response=response, prompt=prompt, token_usage=token_usage)
-            
+            # Company is private - do not create fake ticker
+            # Record that no ticker was found
+            save_ticker_conversion(company_name, None, False, "ai_private_no_ticker", ai_response=response, prompt=prompt, token_usage=token_usage)
+
             # Calculate cost if requested
             cost_info = None
             if return_cost and token_usage:
@@ -3519,10 +3489,11 @@ Do not include any explanations, company names, or other text - just the ticker 
                     'tokens': token_usage.get('total_tokens', 0),
                     'token_usage': token_usage
                 }
-            
+
+            # Return None to indicate no ticker found
             if return_cost:
-                return (ticker, False, cost_info)
-            return (ticker, False)
+                return (None, False, cost_info)
+            return (None, False)
         else:
             # Extract ticker from response
             # Look for a valid ticker format (1-5 uppercase letters)
@@ -3531,11 +3502,8 @@ Do not include any explanations, company names, or other text - just the ticker 
                 ticker = ticker_match.group(1)
                 # Verify it's a valid ticker by checking if it exists in our lookup
                 is_public = ticker in ticker_lookup
-                # If it's not in our lookup, add it to ticker definitions
-                if not is_public:
-                    add_ticker_definition(ticker, company_name)
-                
-                # Record conversion
+
+                # Record conversion (but don't add to definitions for unknown tickers)
                 save_ticker_conversion(company_name, ticker, is_public, "ai_public", ai_response=response, prompt=prompt, token_usage=token_usage)
                 
                 # Calculate cost if requested
@@ -3897,21 +3865,26 @@ def get_peers_for_ticker(ticker, force_redo=False):
                 tu = cost_info.get('token_usage', {})
                 ticker_conversion_token_usage_combined['input_tokens'] += tu.get('input_tokens', tu.get('prompt_tokens', 0) or 0)
                 ticker_conversion_token_usage_combined['output_tokens'] += tu.get('output_tokens', tu.get('completion_tokens', 0) or 0)
-                cached = tu.get('cached_tokens', 0) or tu.get('cached_input_tokens', 0) or tu.get('prompt_cache_hit_tokens', 0) or 0
+                cached = tu.get('cached_tokens', 0) or tu.get('cached_input_tokens', 0) or tu.get('cached_cache_hit_tokens', 0) or 0
                 ticker_conversion_token_usage_combined['cached_tokens'] += cached
                 ticker_conversion_token_usage_combined['thinking_tokens'] += tu.get('thinking_tokens', 0) or 0
                 ticker_conversion_token_usage_combined['total_tokens'] += tu.get('total_tokens', 0) or 0
         else:
             peer_ticker, is_public = result
-        
+
+        # Skip if no ticker was found (company is private or not publicly traded)
+        if peer_ticker is None:
+            print(f"Skipping peer '{peer_name_clean}' - no public ticker found")
+            continue
+
         # Skip if we've already seen this ticker (duplicate)
         if peer_ticker in seen_tickers:
             continue
-        
+
         # Skip if it's the same as the target ticker
         if peer_ticker == ticker_upper:
             continue
-        
+
         seen_tickers.add(peer_ticker)
         peer_tickers.append(peer_ticker)
         

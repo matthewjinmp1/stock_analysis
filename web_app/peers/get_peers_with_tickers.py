@@ -213,12 +213,14 @@ def get_peers_with_tickers(ticker: str, include_details: bool = False, analysis_
     peer_tickers = []
     unmatched_peers = []
     matching_details = []
+    ticker_mapping = {}  # peer_name -> ticker
 
     for peer_name in peers:
         ticker_found = find_ticker_for_company(peer_name, ticker_map)
 
         if ticker_found:
             peer_tickers.append(ticker_found)
+            ticker_mapping[peer_name] = ticker_found
             if include_details:
                 matching_details.append({
                     "peer_name": peer_name,
@@ -226,8 +228,9 @@ def get_peers_with_tickers(ticker: str, include_details: bool = False, analysis_
                     "matched": True
                 })
         else:
-            peer_tickers.append(peer_name)  # Keep original name if no ticker found
+            # Skip peers that don't have real tickers - don't keep as fake tickers
             unmatched_peers.append(peer_name)
+            ticker_mapping[peer_name] = None
             if include_details:
                 matching_details.append({
                     "peer_name": peer_name,
@@ -237,9 +240,16 @@ def get_peers_with_tickers(ticker: str, include_details: bool = False, analysis_
 
     # Display results
     print("\nPeer tickers found:")
-    for i, (original, ticker_result) in enumerate(zip(peers, peer_tickers), 1):
-        status = "[OK]" if ticker_result != original else "[FAIL]"
-        print(f"  {i}. {original} -> {ticker_result} {status}")
+    for i, peer_name in enumerate(peers, 1):
+        ticker_result = ticker_mapping.get(peer_name)
+        if ticker_result:
+            status = "[OK]"
+            display_result = ticker_result
+        else:
+            status = "[NO TICKER]"
+            display_result = "SKIPPED"
+
+        print(f"  {i}. {peer_name} -> {display_result} {status}")
 
     if unmatched_peers:
         print(f"\nWarning: {len(unmatched_peers)} peers could not be matched to tickers:")

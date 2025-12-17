@@ -17,35 +17,6 @@ PROJECT_ROOT = os.path.dirname(parent_dir)  # project root
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-def save_peers_to_json(ticker, company_name, peers, token_usage=None, cost=None):
-    """Save peer results to JSON file."""
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-    result_data = {
-        "timestamp": datetime.now().isoformat(),
-        "ticker": ticker,
-        "company_name": company_name,
-        "peers": peers,
-        "peer_count": len(peers)
-    }
-
-    if token_usage:
-        result_data["token_usage"] = token_usage
-    if cost is not None:
-        result_data["estimated_cost_cents"] = cost
-
-    filename = f"peers_{ticker}_{timestamp}.json"
-    filepath = os.path.join(os.path.dirname(__file__), filename)
-
-    try:
-        with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(result_data, f, indent=2, ensure_ascii=False)
-        print(f"\nResults saved to JSON: {filename}")
-        return True
-    except Exception as e:
-        print(f"Error saving to JSON: {e}")
-        return False
-
 def save_peers_to_database(ticker, company_name, peers, token_usage=None, cost=None, analysis_timestamp=None):
     """Save peer results to database."""
     try:
@@ -72,7 +43,7 @@ def test_peer_finder():
     """Test the AI peer finding functionality."""
     print("AI Peer Finder Test")
     print("=" * 50)
-    print("Results will be saved as JSON files and to the database in the peers folder.")
+    print("Results will be saved to the database in the peers folder.")
 
     # Import required modules
     try:
@@ -111,7 +82,7 @@ def test_peer_finder():
             print(f"Finding peers for: {ticker} ({company_name})")
 
             # Create AI prompt
-            prompt = f"""You are analyzing companies to find the 10 most comparable companies to {company_name} ({ticker}).
+            prompt = f"""You are analyzing companies to find the 10 most comparable companies to {company_name}.
 
 Your task is to find the 10 MOST comparable companies to {company_name}.
 
@@ -221,22 +192,15 @@ Return exactly 10 complete company names in ranked order, separated by semicolon
         print("Test completed successfully!")
 
         # Ask user if they want to save results
-        save_choice = input("\nSave results to JSON file and database? (y/n): ").strip().lower()
+        save_choice = input("\nSave results to database? (y/n): ").strip().lower()
         if save_choice in ['y', 'yes']:
-            # Save to JSON
-            json_success = save_peers_to_json(ticker, company_name, peers, token_usage, cost_cents)
-
             # Save to database
             db_success = save_peers_to_database(ticker, company_name, peers, token_usage, cost_cents)
 
-            if json_success and db_success:
-                print("Results saved successfully to both JSON and database!")
-            elif json_success:
-                print("Results saved to JSON, but database save failed.")
-            elif db_success:
-                print("Results saved to database, but JSON save failed.")
+            if db_success:
+                print("Results saved successfully to database!")
             else:
-                print("Failed to save results to both JSON and database.")
+                print("Failed to save results to database.")
         else:
             print("Results not saved.")
 

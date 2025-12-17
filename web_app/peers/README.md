@@ -16,8 +16,7 @@ This folder contains tools for finding comparable companies (peers) using AI ana
 - Analyzes industry, business model, products, and market overlap
 - Returns 10 most comparable companies ranked by similarity
 
-### Dual Storage
-- **JSON Files**: Timestamped files for individual analyses
+### Database Storage
 - **SQLite Database**: Structured storage for querying and analysis
 
 ### Cost Tracking
@@ -57,7 +56,7 @@ The script will prompt you to enter ticker symbols. For each ticker, it will:
 1. Look up the company name from cached data
 2. Query AI to find 10 comparable companies
 3. Display results with timing and cost information
-4. Ask if you want to save to both JSON file and database
+4. Ask if you want to save to the database
 
 ### Example Session
 
@@ -95,9 +94,8 @@ AI-Generated Peer Recommendations:
 Total peers found: 10
 Test completed successfully!
 
-Save results to JSON file and database? (y/n): y
+Save results to database? (y/n): y
 
-Results saved to JSON: peers_AAPL_20241220_145623.json
 Results saved to database successfully!
 ```
 
@@ -121,47 +119,11 @@ print(f"Total cost: ${stats['total_cost_dollars']:.4f}")
 
 ## File Naming
 
-### JSON Files
-```
-peers_{TICKER}_{YYYYMMDD_HHMMSS}.json
-```
-Example: `peers_AAPL_20241220_145623.json`
-
 ### Database Records
 - Primary key: auto-incrementing ID
 - Unique constraint: (ticker, analysis_timestamp)
 - Allows multiple analyses per ticker over time
 
-## JSON Output Format
-
-```json
-{
-  "timestamp": "2024-12-20T14:56:23.123456",
-  "ticker": "AAPL",
-  "company_name": "Apple Inc.",
-  "peers": [
-    "Samsung Electronics Co., Ltd.",
-    "Alphabet Inc.",
-    "Microsoft Corporation",
-    "Amazon.com, Inc.",
-    "Meta Platforms, Inc.",
-    "Sony Group Corporation",
-    "NVIDIA Corporation",
-    "Dell Technologies Inc.",
-    "HP Inc.",
-    "Lenovo Group Limited"
-  ],
-  "peer_count": 10,
-  "token_usage": {
-    "prompt_tokens": 456,
-    "completion_tokens": 2560,
-    "total_tokens": 3016,
-    "thinking_tokens": 2523,
-    "output_tokens": 2560
-  },
-  "estimated_cost_cents": 0.2633
-}
-```
 
 ## Cost Information
 
@@ -175,7 +137,7 @@ Example: `peers_AAPL_20241220_145623.json`
 - Valid XAI API key in config
 - Access to company data cache
 - Python dependencies installed
-- Write permissions for database and JSON files
+- Write permissions for database
 
 ## Database Maintenance
 

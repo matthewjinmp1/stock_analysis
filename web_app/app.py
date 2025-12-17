@@ -136,53 +136,57 @@ init_peers_database()
 init_adjusted_pe_db()
 
 def find_best_match(query: str) -> tuple:
-    """Find exact ticker match for a query.
+    """Find ticker match using exact prefix matching.
 
-    Validates against tickers database for exact matches only.
-    No fuzzy matching or fallback allowed.
+    Validates against tickers database for exact prefix matches only.
+    Allows partial input (e.g., "A" matches "AAPL", "AMD", etc.)
 
     Args:
-        query: User search query (must be exact ticker symbol)
+        query: User search query (prefix of ticker symbol)
 
     Returns:
-        tuple: (ticker, match_type) where match_type is 'ticker' or None if no exact match
+        tuple: (ticker, match_type) where match_type is 'ticker' or None if no prefix match
     """
     query_upper = query.strip().upper()
 
-    # Validate that it's a valid ticker by checking against tickers.db
+    # Validate that it's a valid ticker prefix by checking against tickers.db
     tickers_db_path = os.path.join(os.path.dirname(__file__), 'data', 'tickers.db')
     if os.path.exists(tickers_db_path):
         try:
             conn = sqlite3.connect(tickers_db_path)
             cursor = conn.cursor()
-            cursor.execute('SELECT ticker FROM tickers WHERE ticker = ?', (query_upper,))
+            # Use LIKE with prefix matching (query + '%')
+            cursor.execute('SELECT ticker FROM tickers WHERE ticker LIKE ? ORDER BY ticker LIMIT 1', (query_upper + '%',))
             result = cursor.fetchone()
             conn.close()
 
             if result:
-                # Valid ticker found, now check if we have cached data
+                # Valid ticker prefix found, use the first matching ticker
+                ticker = result[0]
+
+                # Check if we have cached data for this ticker
                 cache_db_path = os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db')
                 if os.path.exists(cache_db_path):
                     try:
                         conn = sqlite3.connect(cache_db_path)
                         cursor = conn.cursor()
-                        cursor.execute('SELECT ticker FROM ui_cache WHERE ticker = ?', (query_upper,))
+                        cursor.execute('SELECT ticker FROM ui_cache WHERE ticker = ?', (ticker,))
                         cache_result = cursor.fetchone()
                         conn.close()
 
                         if cache_result:
-                            return result[0], 'ticker'
+                            return ticker, 'ticker'
                         else:
-                            return result[0], 'ticker_not_cached'
+                            return ticker, 'ticker_not_cached'
                     except Exception as e:
                         print(f"Error querying cache for matching: {e}")
-                        return result[0], 'ticker_not_cached'
+                        return ticker, 'ticker_not_cached'
                 else:
-                    return result[0], 'ticker_not_cached'
+                    return ticker, 'ticker_not_cached'
         except Exception as e:
             print(f"Error querying tickers database: {e}")
 
-    # No exact match found in tickers database
+    # No prefix match found in tickers database
     return None, None
 
 @app.route('/')
@@ -204,7 +208,7 @@ def search_ticker(query):
         return jsonify({
             'success': False,
             'query': query,
-            'message': f'No exact match found for "{query}". Please enter a valid ticker symbol (e.g., AAPL).'
+            'message': f'No tickers found starting with "{query}". Please enter a valid ticker prefix (e.g., AAPL).'
         }), 404
     
     try:
@@ -262,9 +266,9 @@ def search_ticker(query):
 
 @app.route('/api/search_suggestions/<query>')
 def search_suggestions(query):
-    """API endpoint to get search suggestions for exact ticker matches only.
+    """API endpoint to get search suggestions for ticker prefix matches.
 
-    Returns exact matches from tickers database. No fuzzy matching.
+    Returns tickers that start with the query string.
     """
     if not query or len(query.strip()) < 1:
         return jsonify({'success': False, 'message': 'Query too short'}), 400
@@ -281,17 +285,17 @@ def search_suggestions(query):
         conn = sqlite3.connect(tickers_db_path)
         cur = conn.cursor()
 
-        # Only return exact ticker matches
+        # Return tickers that start with the query (prefix matching)
         cur.execute("""
             SELECT ticker, company_name
             FROM tickers
-            WHERE ticker = ?
-            LIMIT 1
-        """, (query_upper,))
+            WHERE ticker LIKE ?
+            ORDER BY ticker
+            LIMIT 10
+        """, (query_upper + '%',))
 
         results = []
-        row = cur.fetchone()
-        if row:
+        for row in cur.fetchall():
             ticker, company_name = row
             results.append({
                 'ticker': ticker,

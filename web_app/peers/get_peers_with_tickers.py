@@ -22,23 +22,23 @@ if PROJECT_ROOT not in sys.path:
 
 def get_ticker_database() -> Dict[str, str]:
     """
-    Load ticker to company name mapping from tickers.db.
+    Load ticker to company name mapping from ui_cache.db.
 
     Returns:
         Dict mapping ticker symbols to company names
     """
-    tickers_db = os.path.join(PROJECT_ROOT, 'web_app', 'data', 'tickers.db')
+    ui_cache_db = os.path.join(PROJECT_ROOT, 'web_app', 'data', 'ui_cache.db')
 
-    if not os.path.exists(tickers_db):
-        print(f"Warning: Tickers database not found at {tickers_db}")
+    if not os.path.exists(ui_cache_db):
+        print(f"Warning: UI cache database not found at {ui_cache_db}")
         return {}
 
     try:
-        conn = sqlite3.connect(tickers_db)
+        conn = sqlite3.connect(ui_cache_db)
         cur = conn.cursor()
 
         # Get all ticker-company mappings
-        cur.execute("SELECT ticker, company_name FROM tickers")
+        cur.execute("SELECT ticker, company_name FROM ui_cache")
         rows = cur.fetchall()
 
         ticker_map = {}
@@ -51,7 +51,7 @@ def get_ticker_database() -> Dict[str, str]:
         return ticker_map
 
     except Exception as e:
-        print(f"Error loading ticker database: {e}")
+        print(f"Error loading UI cache database: {e}")
         return {}
 
 def normalize_company_name(name: str) -> str:

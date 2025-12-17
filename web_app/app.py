@@ -48,6 +48,46 @@ from web_app.adjusted_pe_db import get_adjusted_pe, init_adjusted_pe_db
 # Import score calculator for weights and definitions
 from web_app.score_calculator import SCORE_WEIGHTS, SCORE_DEFINITIONS
 
+def find_ticker_for_company(company_name: str) -> str:
+    """Find ticker for a company name by searching available databases."""
+    # Check UI cache
+    try:
+        conn = sqlite3.connect(os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db'))
+        cur = conn.cursor()
+        cur.execute("SELECT ticker FROM ui_cache WHERE company_name = ?", (company_name,))
+        result = cur.fetchone()
+        conn.close()
+        if result:
+            return result[0]
+    except:
+        pass
+
+    # Check financial scores
+    try:
+        conn = sqlite3.connect(os.path.join(os.path.dirname(__file__), 'data', 'financial_scores.db'))
+        cur = conn.cursor()
+        cur.execute("SELECT ticker FROM financial_scores WHERE company_name = ?", (company_name,))
+        result = cur.fetchone()
+        conn.close()
+        if result:
+            return result[0]
+    except:
+        pass
+
+    # Check AI scores
+    try:
+        conn = sqlite3.connect(os.path.join(os.path.dirname(__file__), 'data', 'ai_scores.db'))
+        cur = conn.cursor()
+        cur.execute("SELECT ticker FROM scores WHERE company_name = ?", (company_name,))
+        result = cur.fetchone()
+        conn.close()
+        if result:
+            return result[0]
+    except:
+        pass
+
+    return None
+
 # Import AI client for peer finding
 try:
     from src.clients.grok_client import GrokClient
@@ -225,13 +265,13 @@ def search_suggestions(query):
     query_lower = query.lower().strip()
 
     try:
-        # Path to tickers database
-        tickers_db_path = os.path.join(os.path.dirname(__file__), 'data', 'tickers.db')
+        # Use UI cache database instead of tickers.db
+        ui_cache_db_path = os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db')
 
-        if not os.path.exists(tickers_db_path):
-            return jsonify({'success': False, 'message': 'Tickers database not found'}), 500
+        if not os.path.exists(ui_cache_db_path):
+            return jsonify({'success': False, 'message': 'UI cache database not found'}), 500
 
-        conn = sqlite3.connect(tickers_db_path)
+        conn = sqlite3.connect(ui_cache_db_path)
         cur = conn.cursor()
 
         # Search for tickers and company names containing the query string
@@ -248,7 +288,7 @@ def search_suggestions(query):
                        ELSE 3  -- Other matches
                    END as priority,
                    LENGTH(ticker) as ticker_length
-            FROM tickers
+            FROM ui_cache
             WHERE LOWER(ticker) LIKE ? OR LOWER(company_name) LIKE ?
             ORDER BY priority, ticker_length, ticker
             LIMIT 10
@@ -637,8 +677,16 @@ def get_peers_api(ticker):
     try:
         ticker = ticker.strip().upper()
 
-        # Get peer tickers from peers.db
-        peer_tickers = get_peers_for_ticker(ticker)
+        # Get peer company names from peers.db, then convert back to tickers for data lookup
+        peer_company_names = get_peers_for_ticker(ticker)  # This now returns company names
+
+        # Convert peer company names back to tickers for data lookup
+        peer_tickers = []
+        for peer_company in peer_company_names:
+            # Find ticker for this company name by searching the databases
+            ticker_found = find_ticker_for_company(peer_company)
+            if ticker_found:
+                peer_tickers.append(ticker_found)
 
         if not peer_tickers:
             return jsonify({

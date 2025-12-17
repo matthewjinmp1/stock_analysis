@@ -24,140 +24,171 @@ PEERS_FILE = os.path.join(PROJECT_ROOT, "AI_stock_scorer", "data", "peers.json")
 def init_peers_database():
     """Initialize the peers database."""
     os.makedirs(os.path.dirname(PEERS_DB), exist_ok=True)
-    
+
     conn = sqlite3.connect(PEERS_DB)
     cursor = conn.cursor()
-    
+
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS peers (
-            ticker TEXT NOT NULL,
-            peer_ticker TEXT NOT NULL,
+            company_name TEXT NOT NULL,
+            peer_company_name TEXT NOT NULL,
             rank INTEGER NOT NULL,
-            PRIMARY KEY (ticker, peer_ticker)
+            PRIMARY KEY (company_name, peer_company_name)
         )
     ''')
-    
+
     # Create index for faster lookups
     cursor.execute('''
-        CREATE INDEX IF NOT EXISTS idx_ticker ON peers(ticker)
+        CREATE INDEX IF NOT EXISTS idx_company_name ON peers(company_name)
     ''')
-    
+
     conn.commit()
     conn.close()
 
 
 def import_peers_from_json():
     """Import peers data from the JSON file into the database.
-    
+
     Returns:
         int: Number of peer relationships imported
     """
     if not os.path.exists(PEERS_FILE):
         print(f"Warning: Peers file not found at {PEERS_FILE}")
         return 0
-    
+
     try:
         with open(PEERS_FILE, 'r', encoding='utf-8') as f:
             peers_data = json.load(f)
     except (json.JSONDecodeError, FileNotFoundError) as e:
         print(f"Warning: Could not load peers file: {e}")
         return 0
-    
+
+    # Get ticker to company mapping from UI cache
+    ui_cache_db = os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db')
+    ticker_to_company = {}
+    if os.path.exists(ui_cache_db):
+        conn_ui = sqlite3.connect(ui_cache_db)
+        cur_ui = conn_ui.cursor()
+        cur_ui.execute("SELECT ticker, company_name FROM ui_cache")
+        ticker_to_company = {row[0]: row[1] for row in cur_ui.fetchall()}
+        conn_ui.close()
+
     init_peers_database()
-    
+
     conn = sqlite3.connect(PEERS_DB)
     cursor = conn.cursor()
-    
+
     # Clear existing data
     cursor.execute('DELETE FROM peers')
-    
+
     # Import all peer relationships
     count = 0
     for ticker, peer_list in peers_data.items():
         ticker_upper = ticker.strip().upper()
-        if not isinstance(peer_list, list):
+        company_name = ticker_to_company.get(ticker_upper)
+        if not company_name or not isinstance(peer_list, list):
             continue
-        
+
         for rank, peer_ticker in enumerate(peer_list[:10], start=1):  # Limit to top 10
             peer_ticker_upper = peer_ticker.strip().upper()
-            if peer_ticker_upper:
+            peer_company_name = ticker_to_company.get(peer_ticker_upper)
+            if peer_company_name:
                 try:
                     cursor.execute('''
-                        INSERT INTO peers (ticker, peer_ticker, rank)
+                        INSERT INTO peers (company_name, peer_company_name, rank)
                         VALUES (?, ?, ?)
-                    ''', (ticker_upper, peer_ticker_upper, rank))
+                    ''', (company_name, peer_company_name, rank))
                     count += 1
                 except sqlite3.IntegrityError:
                     # Skip duplicates
                     pass
-    
+
     conn.commit()
     conn.close()
-    
+
     return count
 
 
-def get_peers_for_ticker(ticker: str) -> List[str]:
-    """Get peer tickers for a given ticker.
-    
+def get_peers_for_company(company_name: str) -> List[str]:
+    """Get peer company names for a given company.
+
     Args:
-        ticker: Stock ticker symbol (uppercase)
-        
+        company_name: Company name
+
     Returns:
-        list: List of peer ticker symbols (up to 10), ordered by rank
+        list: List of peer company names (up to 10), ordered by rank
     """
-    ticker_upper = ticker.strip().upper()
     init_peers_database()
-    
+
     conn = sqlite3.connect(PEERS_DB)
     cursor = conn.cursor()
-    
+
     cursor.execute('''
-        SELECT peer_ticker 
-        FROM peers 
-        WHERE ticker = ? 
+        SELECT peer_company_name
+        FROM peers
+        WHERE company_name = ?
         ORDER BY rank ASC
         LIMIT 10
-    ''', (ticker_upper,))
-    
+    ''', (company_name,))
+
     peers = [row[0] for row in cursor.fetchall()]
     conn.close()
-    
+
     return peers
 
+def get_peers_for_ticker(ticker: str) -> List[str]:
+    """Get peer company names for a given ticker (legacy compatibility).
 
-def add_peer(ticker: str, peer_ticker: str, rank: Optional[int] = None) -> bool:
-    """Add a peer relationship.
-    
     Args:
-        ticker: Main ticker symbol
-        peer_ticker: Peer ticker symbol
+        ticker: Stock ticker symbol (uppercase)
+
+    Returns:
+        list: List of peer company names (up to 10), ordered by rank
+    """
+    # Get company name from ticker using UI cache
+    ui_cache_db = os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db')
+    if os.path.exists(ui_cache_db):
+        conn_ui = sqlite3.connect(ui_cache_db)
+        cur_ui = conn_ui.cursor()
+        cur_ui.execute("SELECT company_name FROM ui_cache WHERE ticker = ?", (ticker.upper(),))
+        result = cur_ui.fetchone()
+        conn_ui.close()
+        if result:
+            return get_peers_for_company(result[0])
+
+    return []
+
+
+def add_peer_company(company_name: str, peer_company_name: str, rank: Optional[int] = None) -> bool:
+    """Add a peer relationship using company names.
+
+    Args:
+        company_name: Main company name
+        peer_company_name: Peer company name
         rank: Optional rank (if None, will be set to next available rank)
-        
+
     Returns:
         True if added, False if already exists
     """
-    ticker_upper = ticker.strip().upper()
-    peer_ticker_upper = peer_ticker.strip().upper()
     init_peers_database()
-    
+
     conn = sqlite3.connect(PEERS_DB)
     cursor = conn.cursor()
-    
+
     # If rank not provided, get the next rank
     if rank is None:
         cursor.execute('''
-            SELECT COALESCE(MAX(rank), 0) + 1 
-            FROM peers 
-            WHERE ticker = ?
-        ''', (ticker_upper,))
+            SELECT COALESCE(MAX(rank), 0) + 1
+            FROM peers
+            WHERE company_name = ?
+        ''', (company_name,))
         rank = cursor.fetchone()[0]
-    
+
     try:
         cursor.execute('''
-            INSERT INTO peers (ticker, peer_ticker, rank)
+            INSERT INTO peers (company_name, peer_company_name, rank)
             VALUES (?, ?, ?)
-        ''', (ticker_upper, peer_ticker_upper, rank))
+        ''', (company_name, peer_company_name, rank))
         conn.commit()
         added = True
     except sqlite3.IntegrityError:
@@ -165,74 +196,176 @@ def add_peer(ticker: str, peer_ticker: str, rank: Optional[int] = None) -> bool:
         added = False
     finally:
         conn.close()
-    
+
     return added
 
+def add_peer(ticker: str, peer_ticker: str, rank: Optional[int] = None) -> bool:
+    """Add a peer relationship (legacy compatibility).
 
-def remove_peer(ticker: str, peer_ticker: str) -> bool:
-    """Remove a peer relationship.
-    
     Args:
         ticker: Main ticker symbol
-        peer_ticker: Peer ticker symbol to remove
-        
+        peer_ticker: Peer ticker symbol
+        rank: Optional rank (if None, will be set to next available rank)
+
+    Returns:
+        True if added, False if already exists
+    """
+    # Convert tickers to company names using UI cache
+    ui_cache_db = os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db')
+    if os.path.exists(ui_cache_db):
+        conn_ui = sqlite3.connect(ui_cache_db)
+        cur_ui = conn_ui.cursor()
+
+        cur_ui.execute("SELECT company_name FROM ui_cache WHERE ticker = ?", (ticker.upper(),))
+        main_result = cur_ui.fetchone()
+        cur_ui.execute("SELECT company_name FROM ui_cache WHERE ticker = ?", (peer_ticker.upper(),))
+        peer_result = cur_ui.fetchone()
+
+        conn_ui.close()
+
+        if main_result and peer_result:
+            return add_peer_company(main_result[0], peer_result[0], rank)
+
+    return False
+
+
+def remove_peer_company(company_name: str, peer_company_name: str) -> bool:
+    """Remove a peer relationship using company names.
+
+    Args:
+        company_name: Main company name
+        peer_company_name: Peer company name to remove
+
     Returns:
         True if removed, False if not found
     """
-    ticker_upper = ticker.strip().upper()
-    peer_ticker_upper = peer_ticker.strip().upper()
     init_peers_database()
-    
+
     conn = sqlite3.connect(PEERS_DB)
     cursor = conn.cursor()
-    
+
     cursor.execute('''
-        DELETE FROM peers 
-        WHERE ticker = ? AND peer_ticker = ?
-    ''', (ticker_upper, peer_ticker_upper))
-    
+        DELETE FROM peers
+        WHERE company_name = ? AND peer_company_name = ?
+    ''', (company_name, peer_company_name))
+
     removed = cursor.rowcount > 0
     conn.commit()
     conn.close()
-    
+
     return removed
 
+def remove_peer(ticker: str, peer_ticker: str) -> bool:
+    """Remove a peer relationship (legacy compatibility).
+
+    Args:
+        ticker: Main ticker symbol
+        peer_ticker: Peer ticker symbol to remove
+
+    Returns:
+        True if removed, False if not found
+    """
+    # Convert tickers to company names
+    tickers_db = os.path.join(os.path.dirname(__file__), 'data', 'tickers.db')
+    if os.path.exists(tickers_db):
+        conn_tickers = sqlite3.connect(tickers_db)
+        cur_tickers = conn_tickers.cursor()
+
+        cur_tickers.execute("SELECT company_name FROM tickers WHERE ticker = ?", (ticker.upper(),))
+        main_result = cur_tickers.fetchone()
+        cur_tickers.execute("SELECT company_name FROM tickers WHERE ticker = ?", (peer_ticker.upper(),))
+        peer_result = cur_tickers.fetchone()
+
+        conn_tickers.close()
+
+        if main_result and peer_result:
+            return remove_peer_company(main_result[0], peer_result[0])
+
+    return False
+
+
+def has_peers_company(company_name: str) -> bool:
+    """Check if a company has any peers in the database.
+
+    Args:
+        company_name: Company name to check
+
+    Returns:
+        True if company has peers, False otherwise
+    """
+    init_peers_database()
+
+    conn = sqlite3.connect(PEERS_DB)
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT 1 FROM peers WHERE company_name = ? LIMIT 1', (company_name,))
+    result = cursor.fetchone()
+    conn.close()
+
+    return result is not None
 
 def has_peers(ticker: str) -> bool:
-    """Check if a ticker has any peers in the database.
-    
+    """Check if a ticker has any peers in the database (legacy compatibility).
+
     Args:
         ticker: Ticker symbol to check
-        
+
     Returns:
         True if ticker has peers, False otherwise
     """
-    ticker_upper = ticker.strip().upper()
+    # Convert ticker to company name using UI cache
+    ui_cache_db = os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db')
+    if os.path.exists(ui_cache_db):
+        conn_ui = sqlite3.connect(ui_cache_db)
+        cur_ui = conn_ui.cursor()
+        cur_ui.execute("SELECT company_name FROM ui_cache WHERE ticker = ?", (ticker.upper(),))
+        result = cur_ui.fetchone()
+        conn_ui.close()
+        if result:
+            return has_peers_company(result[0])
+
+    return False
+
+
+def get_all_companies_with_peers() -> List[str]:
+    """Get all companies that have peers.
+
+    Returns:
+        List of company names
+    """
     init_peers_database()
-    
+
     conn = sqlite3.connect(PEERS_DB)
     cursor = conn.cursor()
-    
-    cursor.execute('SELECT 1 FROM peers WHERE ticker = ? LIMIT 1', (ticker_upper,))
-    result = cursor.fetchone()
-    conn.close()
-    
-    return result is not None
 
+    cursor.execute('SELECT DISTINCT company_name FROM peers ORDER BY company_name')
+    companies = [row[0] for row in cursor.fetchall()]
+    conn.close()
+
+    return companies
 
 def get_all_tickers_with_peers() -> List[str]:
-    """Get all tickers that have peers.
-    
+    """Get all tickers that have peers (legacy compatibility).
+
     Returns:
         List of ticker symbols
     """
-    init_peers_database()
-    
-    conn = sqlite3.connect(PEERS_DB)
-    cursor = conn.cursor()
-    
-    cursor.execute('SELECT DISTINCT ticker FROM peers ORDER BY ticker')
-    tickers = [row[0] for row in cursor.fetchall()]
-    conn.close()
-    
-    return tickers
+    companies = get_all_companies_with_peers()
+
+    # Convert company names back to tickers using UI cache
+    ui_cache_db = os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db')
+    if os.path.exists(ui_cache_db):
+        conn_ui = sqlite3.connect(ui_cache_db)
+        cur_ui = conn_ui.cursor()
+
+        tickers = []
+        for company in companies:
+            cur_ui.execute("SELECT ticker FROM ui_cache WHERE company_name = ?", (company,))
+            result = cur_ui.fetchone()
+            if result:
+                tickers.append(result[0])
+
+        conn_ui.close()
+        return tickers
+
+    return []

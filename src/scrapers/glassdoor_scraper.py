@@ -45,64 +45,51 @@ except ImportError:
 def get_company_name_from_ticker(ticker):
     """
     Get company name from ticker symbol.
-    First checks ticker_definitions.json, then tickers.db.
+    Checks UI cache database.
     Does not use yfinance.
-    
+
     Args:
         ticker: Stock ticker symbol (e.g., 'AAPL')
-        
+
     Returns:
         str: Company name, or None if not found
     """
     ticker_upper = ticker.strip().upper()
     
-    # First, check ticker_definitions.json
+    # Check UI cache database
     try:
-        with open('data/ticker_definitions.json', 'r') as f:
-            definitions = json.load(f)
-            if ticker_upper in definitions.get('definitions', {}):
-                return definitions['definitions'][ticker_upper]
-    except FileNotFoundError:
-        pass
-    except Exception as e:
-        print(f"Warning: Could not read ticker_definitions.json: {e}")
-    
-    # Check tickers.db
-    try:
-        # Try multiple possible paths for tickers.db
+        # Try multiple possible paths for ui_cache.db
         # Get project root (assuming this file is in src/scrapers/)
         current_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))
-        
+
         possible_paths = [
-            os.path.join(project_root, 'web_app', 'data', 'tickers.db'),
-            os.path.join(project_root, 'data', 'tickers.db'),
+            os.path.join(project_root, 'web_app', 'data', 'ui_cache.db'),
         ]
-        
+
         # Also try relative paths from current working directory
         cwd = os.getcwd()
         possible_paths.extend([
-            os.path.join(cwd, 'web_app', 'data', 'tickers.db'),
-            os.path.join(cwd, 'data', 'tickers.db'),
+            os.path.join(cwd, 'web_app', 'data', 'ui_cache.db'),
         ])
-        
-        tickers_db_path = None
+
+        ui_cache_db_path = None
         for path in possible_paths:
             if os.path.exists(path):
-                tickers_db_path = path
+                ui_cache_db_path = path
                 break
-        
-        if tickers_db_path:
-            conn = sqlite3.connect(tickers_db_path)
+
+        if ui_cache_db_path:
+            conn = sqlite3.connect(ui_cache_db_path)
             cursor = conn.cursor()
-            cursor.execute('SELECT company_name FROM tickers WHERE ticker = ?', (ticker_upper,))
+            cursor.execute('SELECT company_name FROM ui_cache WHERE ticker = ?', (ticker_upper,))
             result = cursor.fetchone()
             conn.close()
-            
+
             if result:
                 return result[0]
     except Exception as e:
-        print(f"Warning: Could not get company name from tickers.db: {e}")
+        print(f"Warning: Could not get company name from ui_cache.db: {e}")
     
     return None
 

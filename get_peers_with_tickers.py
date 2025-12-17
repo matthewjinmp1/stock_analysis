@@ -276,7 +276,8 @@ def main():
         print(f"   Peers found: {result['total_peers']}")
         print(f"   Tickers matched: {result['matched_peers']}")
         if result['estimated_cost_cents']:
-            print(".4f"        print(f"   Peer tickers: {', '.join(result['peer_tickers'])}")
+            print(f"   Cost: ${result['estimated_cost_cents']:.4f}")
+        print(f"   Peer tickers: {', '.join(result['peer_tickers'])}")
 
         # Ask to save results
         save_choice = input("\nSave results to JSON file? (y/n): ").strip().lower()

@@ -3468,17 +3468,17 @@ Do not include any explanations, company names, or other text - just the ticker 
     try:
         grok = get_api_client()
         model = get_model_for_ticker("AAPL")  # Use default model
-
+        
         response, token_usage = grok.simple_query_with_tokens(prompt, model=model)
         # response is the full raw AI response - save this, not response_clean
         response_clean = response.strip().upper()  # Only used for parsing, not saved
-
+        
         # Check if response is "PRIVATE"
         if "PRIVATE" in response_clean:
             # Company is private - do not create fake ticker
             # Record that no ticker was found
             save_ticker_conversion(company_name, None, False, "ai_private_no_ticker", ai_response=response, prompt=prompt, token_usage=token_usage)
-
+            
             # Calculate cost if requested
             cost_info = None
             if return_cost and token_usage:
@@ -3489,7 +3489,7 @@ Do not include any explanations, company names, or other text - just the ticker 
                     'tokens': token_usage.get('total_tokens', 0),
                     'token_usage': token_usage
                 }
-
+            
             # Return None to indicate no ticker found
             if return_cost:
                 return (None, False, cost_info)
@@ -3502,7 +3502,7 @@ Do not include any explanations, company names, or other text - just the ticker 
                 ticker = ticker_match.group(1)
                 # Verify it's a valid ticker by checking if it exists in our lookup
                 is_public = ticker in ticker_lookup
-
+                
                 # Record conversion (but don't add to definitions for unknown tickers)
                 save_ticker_conversion(company_name, ticker, is_public, "ai_public", ai_response=response, prompt=prompt, token_usage=token_usage)
                 
@@ -3871,7 +3871,7 @@ def get_peers_for_ticker(ticker, force_redo=False):
                 ticker_conversion_token_usage_combined['total_tokens'] += tu.get('total_tokens', 0) or 0
         else:
             peer_ticker, is_public = result
-
+        
         # Skip if no ticker was found (company is private or not publicly traded)
         if peer_ticker is None:
             print(f"Skipping peer '{peer_name_clean}' - no public ticker found")
@@ -3880,11 +3880,11 @@ def get_peers_for_ticker(ticker, force_redo=False):
         # Skip if we've already seen this ticker (duplicate)
         if peer_ticker in seen_tickers:
             continue
-
+        
         # Skip if it's the same as the target ticker
         if peer_ticker == ticker_upper:
             continue
-
+        
         seen_tickers.add(peer_ticker)
         peer_tickers.append(peer_ticker)
         

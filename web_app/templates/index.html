@@ -234,6 +234,84 @@
             color: #007bff;
         }
 
+        body.light .company-name {
+            color: #333333;
+            text-shadow: none;
+        }
+
+        body.light .ticker {
+            color: #007bff;
+            background: rgba(0, 123, 255, 0.1);
+            border: 1px solid rgba(0, 123, 255, 0.3);
+            text-shadow: none;
+            box-shadow: 0 0 4px rgba(0, 123, 255, 0.2);
+        }
+
+        body.light .header-actions {
+            color: #666666;
+        }
+
+        body.light .stats {
+            color: #666666;
+            background: #f8f9fa;
+        }
+
+        body.light .dropdown-ticker {
+            color: #007bff;
+            font-weight: 600;
+        }
+
+        body.light .dropdown-item {
+            color: #333333;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        body.light .dropdown-item:hover,
+        body.light .dropdown-item.highlighted {
+            background: rgba(0, 123, 255, 0.1);
+            border-left: 3px solid #007bff;
+        }
+
+        body.light .result-header {
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        body.light .detail-item {
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        body.light .watchlist-button.active {
+            background: #28a745;
+            color: #ffffff;
+            border-color: #28a745;
+        }
+
+        body.light .watchlist-button.remove {
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+            border-color: rgba(220, 53, 69, 0.3);
+        }
+
+        body.light .watchlist-button.remove:hover {
+            background: rgba(220, 53, 69, 0.2);
+            box-shadow: 0 0 8px rgba(220, 53, 69, 0.3);
+        }
+
+        body.light .search-dropdown {
+            background: #ffffff;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Disable glowing animations in light theme */
+        body.light .container {
+            animation: none;
+        }
+
+        body.light .result-card {
+            animation: slideIn 0.3s ease-out;
+        }
+
         body.high-contrast .results-section {
             background: #0a0a0a;
             border: 1px solid #ffffff;

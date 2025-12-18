@@ -227,7 +227,7 @@ const WatchlistPage: React.FC = () => {
           <div className="text-2xl font-black text-text-secondary mb-8 uppercase tracking-widest text-center opacity-70">
             Add Ticker to Watchlist
           </div>
-          <div className="max-w-2xl mx-auto relative z-[10000]">
+          <div className="max-w-[600px] mx-auto relative z-[10000]">
             <div className="relative">
               <input
                 ref={inputRef}
@@ -236,7 +236,7 @@ const WatchlistPage: React.FC = () => {
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 placeholder="Enter ticker symbol (e.g., AAPL)"
-                className="w-full p-5 text-xl border border-border-color outline-none transition-all bg-input-bg text-text-secondary focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 shadow-sm font-medium"
+                className="w-full p-5 text-xl border border-border-color outline-none transition-all bg-input-bg text-text-secondary focus:border-accent-secondary focus:ring-2 focus:ring-accent-secondary/10 shadow-sm font-medium"
                 autoComplete="off"
               />
 

@@ -106,7 +106,7 @@ const PeersPage: React.FC = () => {
   return (
     <div className="flex flex-col">
       {/* Header */}
-      <div className="p-10 text-center border-b border-border-color bg-header-bg rounded-t-[15px]">
+      <div className="p-10 text-center border-b border-border-color bg-header-bg">
         <h1 className="text-[2.5em] font-bold mb-2.5 text-text-secondary [text-shadow:0_0_8px_var(--glow-primary)]">
           Peer Comparison
         </h1>
@@ -115,7 +115,7 @@ const PeersPage: React.FC = () => {
         </p>
         <button 
           onClick={() => navigate(-1)} 
-          className="mt-5 flex items-center gap-2 px-5 py-2.5 bg-button-bg text-text-secondary border border-border-color rounded-lg transition-all hover:bg-opacity-80 hover:text-accent-primary hover:border-accent-primary hover:-translate-x-1 mx-auto"
+          className="mt-5 flex items-center gap-2 px-5 py-2.5 bg-button-bg text-text-secondary border border-border-color transition-all hover:bg-opacity-80 hover:text-accent-primary hover:border-accent-primary hover:-translate-x-1 mx-auto"
         >
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
@@ -128,17 +128,17 @@ const PeersPage: React.FC = () => {
             <p>{loadingMessage}</p>
           </div>
         ) : error ? (
-          <div className="bg-bg-tertiary p-10 rounded-[15px] border border-border-color text-center text-accent-danger">
+          <div className="bg-bg-tertiary p-10 border border-border-color text-center text-accent-danger">
             <AlertCircle className="w-10 h-10 mx-auto mb-4" />
             <p>{error}</p>
           </div>
         ) : sortedCompanies.length === 0 ? (
-          <div className="text-center p-[80px_20px] text-text-muted bg-bg-tertiary rounded-[15px] border border-border-color shadow-[0_0_15px_var(--shadow-color)]">
+          <div className="text-center p-[80px_20px] text-text-muted bg-bg-tertiary border border-border-color shadow-[0_0_15px_var(--shadow-color)]">
             <p>No peers found for {ticker}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse mt-5 bg-bg-primary rounded-[10px] overflow-hidden shadow-[0_0_15px_var(--shadow-color)]">
+            <table className="w-full border-collapse mt-5 bg-bg-primary overflow-hidden shadow-[0_0_15px_var(--shadow-color)]">
               <thead>
                 <tr className="bg-table-header-bg">
                   <th className="p-[15px] text-left font-semibold border-b-2 border-border-color cursor-pointer select-none transition-all hover:bg-table-hover-bg text-text-secondary" onClick={() => handleSort('ticker')}>

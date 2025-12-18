@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2, Loader2, AlertCircle } from 'lucide-react';
+import { useTheme } from '../components/ThemeContext';
 import * as api from '../api';
 
 interface WatchlistItem {
@@ -12,15 +13,28 @@ interface WatchlistItem {
   adjusted_pe_ratio: number | null;
 }
 
+interface SearchSuggestion {
+  ticker: string;
+  company_name: string;
+  match_type: string;
+}
+
 const WatchlistPage: React.FC = () => {
+  const { theme } = useTheme();
   const navigate = useNavigate();
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newTicker, setNewTicker] = useState('');
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const [addMessage, setAddMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [sortColumn, setSortColumn] = useState<keyof WatchlistItem | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const fetchWatchlist = async () => {
     try {
@@ -41,6 +55,79 @@ const WatchlistPage: React.FC = () => {
     fetchWatchlist();
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
+          inputRef.current && !inputRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setNewTicker(val);
+    setSelectedIndex(-1);
+
+    if (val.trim().length < 1) {
+      setSuggestions([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    try {
+      const data = await api.getSearchSuggestions(val);
+      if (data.success && data.suggestions.length > 0) {
+        setSuggestions(data.suggestions);
+        setShowDropdown(true);
+      } else {
+        setSuggestions([]);
+        setShowDropdown(false);
+      }
+    } catch (err) {
+      console.error('Error fetching suggestions:', err);
+      setShowDropdown(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showDropdown) {
+      if (e.key === 'Enter') handleAddTicker();
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex(prev => Math.min(prev + 1, suggestions.length - 1));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex(prev => Math.max(prev - 1, -1));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedIndex >= 0) {
+          selectSuggestion(suggestions[selectedIndex]);
+        } else {
+          handleAddTicker();
+        }
+        break;
+      case 'Escape':
+        setShowDropdown(false);
+        break;
+    }
+  };
+
+  const selectSuggestion = (suggestion: SearchSuggestion) => {
+    setNewTicker(suggestion.ticker);
+    setShowDropdown(false);
+    handleAddTicker();
+  };
+
   const handleAddTicker = async () => {
     const ticker = newTicker.trim().toUpperCase();
     if (!ticker) {
@@ -54,6 +141,8 @@ const WatchlistPage: React.FC = () => {
       if (data.success) {
         setAddMessage({ type: 'success', text: `${ticker} added to watchlist` });
         setNewTicker('');
+        setSuggestions([]);
+        setShowDropdown(false);
         fetchWatchlist();
       } else {
         setAddMessage({ type: 'error', text: data.message || 'Error adding ticker' });
@@ -138,16 +227,54 @@ const WatchlistPage: React.FC = () => {
           <div className="text-2xl font-black text-text-secondary mb-8 uppercase tracking-widest text-center opacity-70">
             Add Ticker to Watchlist
           </div>
-          <div className="flex gap-4 justify-center max-w-2xl mx-auto">
-            <input 
-              type="text" 
-              value={newTicker}
-              onChange={(e) => setNewTicker(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddTicker()}
-              placeholder="Enter ticker symbol (e.g., AAPL)"
-              className="flex-1 p-5 text-xl border border-border-color outline-none transition-all bg-input-bg text-text-secondary focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 shadow-sm font-medium"
-            />
-            <button 
+          <div className="flex gap-4 justify-center max-w-2xl mx-auto relative z-[10000]">
+            <div className="relative flex-1">
+              <input
+                ref={inputRef}
+                type="text"
+                value={newTicker}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder="Enter ticker symbol (e.g., AAPL)"
+                className="w-full p-5 text-xl border border-border-color outline-none transition-all bg-input-bg text-text-secondary focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 shadow-sm font-medium"
+                autoComplete="off"
+              />
+
+              {showDropdown && suggestions.length > 0 && (
+                <div
+                  ref={dropdownRef}
+                  className="absolute top-full left-0 right-0 mt-2 border-2 border-border-color shadow-[0_30px_60px_rgba(0,0,0,0.9)] max-h-[400px] overflow-y-auto z-[11000]"
+                  style={{
+                    backgroundColor: theme === 'light' ? '#ffffff' : theme === 'high-contrast' ? '#000000' : '#0a0a0a',
+                    opacity: 1,
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)'
+                  }}
+                >
+                  {suggestions.map((suggestion, index) => (
+                    <div
+                      key={suggestion.ticker}
+                      onClick={() => selectSuggestion(suggestion)}
+                      className={`p-5 border-b border-border-color last:border-b-0 cursor-pointer transition-all flex justify-between items-center text-text-secondary hover:bg-table-hover-bg ${
+                        index === selectedIndex ? 'bg-table-hover-bg border-l-8 border-accent-secondary' : ''
+                      }`}
+                      style={{
+                        backgroundColor: theme === 'light' ? '#ffffff' : theme === 'high-contrast' ? '#000000' : '#0a0a0a',
+                        opacity: 1
+                      }}
+                    >
+                      <div className="font-bold text-xl text-accent-secondary flex-shrink-0 min-w-[80px]">
+                        {suggestion.ticker}
+                      </div>
+                      <div className="text-base opacity-80 flex-1 ml-10 text-right truncate font-medium">
+                        {suggestion.company_name}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button
               onClick={handleAddTicker}
               className="px-10 bg-accent-primary text-bg-primary font-black text-xl transition-all hover:opacity-90 active:scale-95 shadow-lg"
             >

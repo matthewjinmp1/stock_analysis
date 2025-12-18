@@ -103,34 +103,37 @@ const AIScoresPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col w-full min-h-screen">
       {/* Header */}
-      <div className="p-10 text-center border-b border-border-color bg-header-bg rounded-t-[15px]">
-        <h1 className="text-[2.5em] font-bold mb-2.5 text-text-secondary [text-shadow:0_0_8px_var(--glow-primary)]">
+      <div className="p-10 text-center border-b border-border-color bg-header-bg">
+        <h1 className="text-4xl md:text-5xl font-black mb-6 text-text-secondary [text-shadow:0_0_8px_var(--glow-primary)]">
           📊 AI Analysis Scores
         </h1>
-        <div className="mt-4 flex justify-center">
+        <div className="flex justify-center mt-6">
           <button 
             onClick={() => navigate(-1)} 
-            className="flex items-center gap-2 px-5 py-2.5 bg-button-bg text-text-secondary border border-border-color rounded-lg transition-all hover:bg-opacity-80 hover:text-accent-primary hover:border-accent-primary hover:-translate-x-1"
+            className="flex items-center gap-3 px-8 py-3 bg-button-bg text-text-secondary border border-border-color rounded-full font-black text-lg transition-all hover:bg-accent-primary hover:text-bg-primary hover:border-accent-primary shadow-lg active:scale-95"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to Main Page
+            <ArrowLeft className="w-5 h-5" /> Back to Search
           </button>
         </div>
       </div>
 
-      <div className="p-10 bg-bg-secondary">
+      <div className="p-12 bg-bg-secondary flex-1">
         {/* Controls Section */}
-        <div className="bg-bg-secondary rounded-2xl p-8 mb-8 border border-border-color shadow-lg">
-          <div className="mb-8 text-center">
-            <div className="relative max-w-xl mx-auto group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-text-muted group-focus-within:text-accent-secondary transition-colors z-10" />
+        <div className="bg-bg-secondary rounded-[32px] p-10 mb-10 border border-border-color shadow-2xl">
+          <div className="mb-10 text-center">
+            <div className="relative max-w-2xl mx-auto group">
+              <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center justify-center z-20 pointer-events-none">
+                <Search className="w-6 h-6 text-text-muted group-focus-within:text-accent-secondary transition-colors" />
+              </div>
               <input 
                 type="text" 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by ticker or company name..." 
-                className="w-full pl-14 pr-6 py-4 bg-input-bg border border-border-color rounded-2xl text-text-secondary text-lg outline-none transition-all focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 relative"
+                className="w-full pr-8 py-5 bg-input-bg border border-border-color rounded-2xl text-text-secondary text-xl outline-none transition-all focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 shadow-sm relative z-10"
+                style={{ paddingLeft: '4.5rem' }}
               />
             </div>
           </div>

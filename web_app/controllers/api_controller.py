@@ -9,6 +9,8 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from services.data_service import DataService
 from services.watchlist_service import WatchlistService
+from services.peers_service import PeersService
+from repositories.peers_repository import PeersRepository
 
 class ApiController:
     """Controller for API endpoints."""
@@ -16,6 +18,15 @@ class ApiController:
     def __init__(self, data_service: DataService, watchlist_service: WatchlistService):
         self.data_service = data_service
         self.watchlist_service = watchlist_service
+
+        # Initialize peers components
+        from repositories.data_repository import DataRepository
+        peers_repo = PeersRepository()
+        data_repo = DataRepository()
+        self.peers_service = PeersService(peers_repo, data_repo)
+
+        # Track ongoing peer finding operations to prevent duplicate requests
+        self.ongoing_peer_finding = set()
 
     def search_ticker(self, query: str):
         """Handle ticker search requests."""
@@ -84,7 +95,7 @@ class ApiController:
     def get_adjusted_pe(self, ticker: str):
         """Handle adjusted PE requests."""
         try:
-            from ..repositories.adjusted_pe_repository import AdjustedPERepository
+            from repositories.adjusted_pe_repository import AdjustedPERepository
             repo = AdjustedPERepository()
             ratio, breakdown = repo.get_adjusted_pe_with_breakdown(ticker)
             if ratio is None or breakdown is None:
@@ -98,7 +109,7 @@ class ApiController:
     def get_ai_scores(self):
         """Handle AI scores list requests."""
         try:
-            from ..repositories.ai_scores_repository import AIScoresRepository
+            from repositories.ai_scores_repository import AIScoresRepository
             repo = AIScoresRepository()
             scores = repo.get_all_ai_scores()
             return jsonify({'success': True, 'scores': scores})
@@ -107,9 +118,80 @@ class ApiController:
 
     # Placeholder methods for future implementation
     def get_peers(self, ticker: str):
-        """Handle peer requests (placeholder)."""
-        return jsonify({'success': False, 'message': 'Peers functionality not yet implemented'}), 501
+        """Handle peer requests."""
+        result = self.peers_service.get_peers(ticker)
+
+        # If no peers found, automatically trigger peer finding (but only once per ticker)
+        if not result['success'] and 'No peer analysis found' in result.get('message', ''):
+            if ticker.upper() in self.ongoing_peer_finding:
+                # Peer finding already in progress for this ticker
+                print(f"Peer finding already in progress for {ticker}")
+                return jsonify({
+                    'success': True,
+                    'finding_peers': True,
+                    'message': 'Peer finding is already in progress...',
+                    'main_ticker': {
+                        'ticker': ticker,
+                        'company_name': None,
+                        'total_score_percentile_rank': None,
+                        'financial_total_percentile': None,
+                        'adjusted_pe_ratio': None,
+                        'short_float': None
+                    },
+                    'peers': []
+                }), 202
+
+            print(f"No existing peers found for {ticker}, triggering automatic peer finding...")
+            # Mark peer finding as in progress
+            self.ongoing_peer_finding.add(ticker.upper())
+
+            # Trigger peer finding in background
+            try:
+                import threading
+                def find_peers_background():
+                    try:
+                        self.peers_service.find_peers(ticker)
+                        print(f"Background peer finding completed for {ticker}")
+                    except Exception as e:
+                        print(f"Background peer finding failed for {ticker}: {e}")
+                    finally:
+                        # Remove from ongoing set regardless of success/failure
+                        self.ongoing_peer_finding.discard(ticker.upper())
+
+                # Start background peer finding
+                thread = threading.Thread(target=find_peers_background, daemon=True)
+                thread.start()
+
+                # Return a "finding peers" response
+                return jsonify({
+                    'success': True,
+                    'finding_peers': True,
+                    'message': 'No existing peers found. Automatically finding peers...',
+                    'main_ticker': {
+                        'ticker': ticker,
+                        'company_name': None,  # Will be filled when peers are found
+                        'total_score_percentile_rank': None,
+                        'financial_total_percentile': None,
+                        'adjusted_pe_ratio': None,
+                        'short_float': None
+                    },
+                    'peers': []
+                }), 202  # 202 Accepted - processing request
+
+            except Exception as e:
+                print(f"Failed to start background peer finding: {e}")
+                # Remove from ongoing set if thread creation failed
+                self.ongoing_peer_finding.discard(ticker.upper())
+                return jsonify({
+                    'success': False,
+                    'message': f'Failed to find peers: {str(e)}'
+                }), 500
+
+        status_code = 404 if not result['success'] else 200
+        return jsonify(result), status_code
 
     def find_peers(self, ticker: str):
-        """Handle find peers requests (placeholder)."""
-        return jsonify({'success': False, 'message': 'Find peers functionality not yet implemented'}), 501
+        """Handle find peers requests."""
+        result = self.peers_service.find_peers(ticker)
+        status_code = 400 if not result['success'] else 200
+        return jsonify(result), status_code

@@ -1,0 +1,11 @@
+# Cursor AI Ignore Patterns
+# This file tells Cursor AI assistants to completely ignore these folders/files
+# They should be treated as non-existent for all AI operations
+# DO NOT ACCESS, READ, OR CONSIDER THESE PATHS IN ANY WAY
+
+.cursor/
+
+# Add any other folders/files you want Cursor AI to ignore:
+# .cache/
+# temp/
+# private/

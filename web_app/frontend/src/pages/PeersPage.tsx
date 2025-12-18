@@ -15,6 +15,7 @@ interface PeerCompany {
 interface PeerDataResponse {
   main_ticker: PeerCompany;
   peers: PeerCompany[];
+  finding_peers?: boolean;
 }
 
 const PeersPage: React.FC = () => {
@@ -27,6 +28,7 @@ const PeersPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [pendingPeers, setPendingPeers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!ticker) return;
@@ -36,12 +38,23 @@ const PeersPage: React.FC = () => {
     }, 2000);
 
     const fetchPeers = async () => {
+      let response: any = null;
       try {
-        const response = await api.getPeers(ticker);
+        response = await api.getPeers(ticker);
         clearTimeout(aiTimeout);
         if (response.success) {
-          setData(response);
-          setSortedCompanies([response.main_ticker, ...(response.peers || [])]);
+          if (response.finding_peers) {
+            // Peers are being found - show loading state and start polling
+            setLoadingMessage('Finding peers using AI analysis... (This may take 20-30 seconds)');
+            setData(response);
+            setSortedCompanies([response.main_ticker, ...(response.peers || [])]);
+            // Don't set loading to false - keep loading state for polling
+            return;
+          } else {
+            // Normal response with peers
+            setData(response);
+            setSortedCompanies([response.main_ticker, ...(response.peers || [])]);
+          }
         } else {
           setError(response.message || 'Error loading peer data');
         }
@@ -49,12 +62,112 @@ const PeersPage: React.FC = () => {
         clearTimeout(aiTimeout);
         setError(err.response?.data?.message || 'Error loading peer data');
       } finally {
-        setLoading(false);
+        // Only set loading to false if we didn't start peer finding
+        if (!response?.finding_peers) {
+          setLoading(false);
+        }
       }
     };
 
     fetchPeers();
   }, [ticker]);
+
+  // Poll for updated data (both peer finding completion and adjusted PE data)
+  useEffect(() => {
+    if (!data) return;
+
+    let peersWithPendingPE: PeerCompany[] = [];
+    let pendingTickers = new Set<string>();
+
+    // Determine what we're waiting for
+    if (data.finding_peers && (!data.peers || data.peers.length === 0)) {
+      // We're waiting for initial peer finding to complete
+      pendingTickers.add('__finding_peers__'); // Special marker
+    } else if (data.peers && data.peers.length > 0) {
+      // Find peers with pending adjusted PE data
+      peersWithPendingPE = data.peers.filter((peer: PeerCompany) =>
+        peer.adjusted_pe_ratio === null || peer.adjusted_pe_ratio === undefined
+      );
+
+      if (peersWithPendingPE.length === 0) return;
+
+      // We're waiting for adjusted PE data
+      peersWithPendingPE.forEach((peer: PeerCompany) => {
+        if (peer.ticker) {
+          pendingTickers.add(peer.ticker);
+        }
+      });
+    } else {
+      return; // No peers to process
+    }
+
+    setPendingPeers(pendingTickers);
+
+    // Set up polling interval
+    const pollInterval = setInterval(async () => {
+      if (pendingTickers.size === 0) {
+        clearInterval(pollInterval);
+        setLoading(false); // Stop loading when polling completes
+        return;
+      }
+
+      try {
+        const response = await api.getPeers(ticker!);
+        if (response.success) {
+          if (response.finding_peers) {
+            // Still finding peers, continue polling
+            setLoadingMessage('Finding peers using AI analysis... (This may take 20-30 seconds)');
+            return;
+          }
+
+            if (response.peers && response.peers.length > 0) {
+              // We have peers now
+              if (pendingTickers.has('__finding_peers__')) {
+                // Peer finding completed, now check for adjusted PE data
+                pendingTickers.delete('__finding_peers__');
+                const peersWithPendingPE = response.peers.filter((peer: PeerCompany) =>
+                  peer.adjusted_pe_ratio === null || peer.adjusted_pe_ratio === undefined
+                );
+                const newPendingTickers: Set<string> = new Set(
+                  peersWithPendingPE
+                    .map((peer: PeerCompany) => peer.ticker)
+                    .filter((ticker: string | null): ticker is string => ticker !== null && ticker !== undefined)
+                );
+                pendingTickers = newPendingTickers;
+                setPendingPeers(new Set(pendingTickers));
+              }
+
+            // Check if any pending peers now have adjusted PE data
+            const updatedPeers = response.peers.map((peer: PeerCompany) => {
+              if (peer.ticker && pendingTickers.has(peer.ticker!) && peer.adjusted_pe_ratio !== null && peer.adjusted_pe_ratio !== undefined) {
+                // This peer now has data - remove from pending set
+                pendingTickers.delete(peer.ticker!);
+                setPendingPeers(new Set(pendingTickers));
+              }
+              return peer;
+            });
+
+            // Update the data and sorted companies
+            const updatedData = { ...response, peers: updatedPeers };
+            setData(updatedData);
+            setSortedCompanies([updatedData.main_ticker, ...updatedPeers]);
+
+            // If no more pending peers, stop polling
+            if (pendingTickers.size === 0) {
+              clearInterval(pollInterval);
+              setLoading(false);
+            }
+          }
+        }
+      } catch (error) {
+        // Silently continue on poll errors
+        console.warn('Error polling for updated data:', error);
+      }
+    }, 5000); // Poll every 5 seconds
+
+    // Cleanup interval on unmount or when ticker changes
+    return () => clearInterval(pollInterval);
+  }, [data, ticker]);
 
   const handleSort = (column: string) => {
     if (!data) return;
@@ -181,7 +294,7 @@ const PeersPage: React.FC = () => {
                       <td className="p-[15px] border-b border-border-color">
                         {company.total_score_percentile_rank !== null ? (
                           <Link to={`/metrics/${linkTicker}`} className="text-accent-secondary hover:text-accent-primary hover:underline transition-all">
-                            {company.total_score_percentile_rank}%
+                            {Math.round(company.total_score_percentile_rank)}%
                           </Link>
                         ) : 'N/A'}
                       </td>
@@ -197,7 +310,15 @@ const PeersPage: React.FC = () => {
                           <Link to={`/adjusted-pe/${linkTicker}`} className="text-accent-secondary hover:text-accent-primary hover:underline transition-all">
                             {company.adjusted_pe_ratio.toFixed(2)}
                           </Link>
-                        ) : 'N/A'}
+                        ) : (
+                          <span className="text-text-muted italic text-sm">
+                            {pendingPeers.has(company.ticker || '') ? (
+                              'Calculating...'
+                            ) : (
+                              'Pending'
+                            )}
+                          </span>
+                        )}
                       </td>
                       <td className="p-[15px] border-b border-border-color text-text-secondary">
                         {company.short_float || 'N/A'}

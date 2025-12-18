@@ -1,74 +1,195 @@
-# API Keys and sensitive configuration
-config.py
+# Cursor-specific ignore directory
+.cursor/
 
-# Python cache files
+# Cursor AI ignore patterns file
+.cursorignore
+
+# Python
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
+*.pyc
+*.pyo
+*.pyd
 .Python
-
-# Virtual environments
-venv/
 env/
-ENV/
-.venv
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git
+.mypy_cache
+.pytest_cache
+.hypothesis
 
-# IDE files
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS files
+# OS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
-
-# Logs
-*.log
-
-# Test coverage
-htmlcov/
-.coverage
-.coverage.*
-.pytest_cache/
-
-# Build artifacts
-build/
-dist/
-!web_app/frontend/dist/
-*.egg-info/ 
- 
-# Data files - exclude all JSON, JSONL, CSV, XLSX files
-*.json
-*.jsonl
-*.csv
-*.xlsx
-*.xls
-# But keep config.example.py (it's a Python file, not JSON)
-!config.example.py
-# And keep QuickFS ticker data files
-!quickfs_tickers/*.json
 
 # Database files
 *.db
 *.sqlite
 *.sqlite3
 
-# Image files - exclude all image formats
+# Temporary files
+*.tmp
+*.temp
+
+# Data files (JSON, CSV, etc.)
+*.json
+*.csv
+*.xlsx
+*.xls
+*.parquet
+*.feather
+*.pkl
+*.pickle
+
+# Image files
 *.png
 *.jpg
 *.jpeg
 *.gif
 *.bmp
+*.tiff
 *.svg
 *.ico
-*.webp
-*.tiff
-*.tif
-*.heic
-*.heif
 
-# Old project directories are now included as regular directories
-# (not submodules)
+# Log files
+*.log
+logs/
+
+# Cache and temp directories
+.cache/
+temp/
+tmp/
+.cache
+__pycache__/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Python virtual environments
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+
+# Configuration files that might contain secrets
+config.py
+*.env
+.env.*
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Output directories
+output/
+outputs/
+results/
+backtest_results/
+rebalancing_backtest_results/
+glassdoor/
+
+# Data directories
+data/
+*.jsonl
+
+# Exception: Keep package.json and other essential config
+!package.json
+!package-lock.json
+!tsconfig.json
+!requirements.txt
+!README.md
+!.gitignore
+!.cursorignore

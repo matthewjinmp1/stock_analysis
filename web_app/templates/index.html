@@ -65,7 +65,7 @@
 
         body.high-contrast .search-input,
         body.high-contrast .search-button,
-        body.high-contrast .theme-button {
+        body.high-contrast .theme-dropdown {
             background: #222222;
             color: #ffffff;
             border: 2px solid #ffffff;
@@ -200,8 +200,8 @@
             margin-bottom: 20px;
         }
 
-        .theme-button {
-            padding: 8px 16px;
+        .theme-dropdown {
+            padding: 8px 12px;
             font-size: 0.9em;
             background: rgba(125, 211, 252, 0.1);
             color: #7dd3fc;
@@ -209,36 +209,37 @@
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s;
-            text-decoration: none;
+            min-width: 140px;
+            font-family: 'Inter', sans-serif;
         }
 
-        .theme-button:hover {
+        .theme-dropdown:hover {
             background: rgba(125, 211, 252, 0.2);
             border-color: rgba(125, 211, 252, 0.5);
             box-shadow: 0 0 8px rgba(125, 211, 252, 0.3);
         }
 
-        .theme-button.active {
-            background: rgba(125, 211, 252, 0.3);
-            border-color: #7dd3fc;
+        .theme-dropdown:focus {
+            outline: none;
+            border-color: rgba(196, 181, 253, 0.6);
+            box-shadow: 0 0 15px rgba(196, 181, 253, 0.3);
         }
 
-        body.high-contrast .theme-button {
+        body.high-contrast .theme-dropdown {
             background: #222222;
             color: #ffffff;
             border: 2px solid #ffffff;
         }
 
-        body.high-contrast .theme-button:hover {
+        body.high-contrast .theme-dropdown:hover {
             background: #333333;
             border-color: #ffffff;
             box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
         }
 
-        body.high-contrast .theme-button.active {
-            background: #ffffff;
-            color: #000000;
+        body.high-contrast .theme-dropdown:focus {
             border-color: #ffffff;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
         }
 
         .header h1 {
@@ -639,8 +640,10 @@
 <body>
     <div class="container">
         <div class="theme-switcher">
-            <button class="theme-button active" id="darkThemeBtn" onclick="setTheme('dark')">🌙 Cyber</button>
-            <button class="theme-button" id="highContrastThemeBtn" onclick="setTheme('high-contrast')">⚫ High Contrast</button>
+            <select class="theme-dropdown" id="themeSelect" onchange="setTheme(this.value)">
+                <option value="dark">🌙 Cyber</option>
+                <option value="high-contrast">⚫ High Contrast</option>
+            </select>
         </div>
         <div class="header">
             <h1>📊 Stock Analysis</h1>
@@ -979,8 +982,7 @@
         // Theme switching functionality
         function setTheme(theme) {
             const body = document.body;
-            const darkBtn = document.getElementById('darkThemeBtn');
-            const highContrastBtn = document.getElementById('highContrastThemeBtn');
+            const themeSelect = document.getElementById('themeSelect');
 
             // Remove existing theme classes
             body.classList.remove('high-contrast');
@@ -990,9 +992,8 @@
                 body.classList.add('high-contrast');
             }
 
-            // Update button states
-            darkBtn.classList.toggle('active', theme === 'dark');
-            highContrastBtn.classList.toggle('active', theme === 'high-contrast');
+            // Update dropdown selection
+            themeSelect.value = theme;
 
             // Save preference to localStorage
             localStorage.setItem('theme', theme);

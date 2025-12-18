@@ -185,11 +185,11 @@ const SearchPage: React.FC = () => {
         <p className="opacity-80 text-lg text-text-primary mb-6 font-medium">
           Analyze stocks with AI scores, financial metrics, and short interest data
         </p>
-        <div className="flex justify-center flex-wrap gap-6 mt-4">
-          <Link to="/watchlist" className="px-6 py-2.5 bg-button-bg text-text-secondary border border-border-color rounded-full transition-all hover:bg-accent-primary hover:text-bg-primary hover:border-accent-primary shadow-sm text-base font-bold">
+        <div className="flex justify-center flex-wrap gap-12 mt-6">
+          <Link to="/watchlist" className="px-8 py-3 bg-button-bg text-text-secondary border border-border-color rounded-full transition-all hover:bg-accent-primary hover:text-bg-primary hover:border-accent-primary shadow-md text-base font-bold">
             View Watchlist
           </Link>
-          <Link to="/ai-scores" className="px-6 py-2.5 bg-button-bg text-text-secondary border border-border-color rounded-full transition-all hover:bg-accent-primary hover:text-bg-primary hover:border-accent-primary shadow-sm text-base font-bold">
+          <Link to="/ai-scores" className="px-8 py-3 bg-button-bg text-text-secondary border border-border-color rounded-full transition-all hover:bg-accent-primary hover:text-bg-primary hover:border-accent-primary shadow-md text-base font-bold">
             AI Analysis Scores
           </Link>
         </div>

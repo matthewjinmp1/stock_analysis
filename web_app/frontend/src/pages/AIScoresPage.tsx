@@ -103,9 +103,9 @@ const AIScoresPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col w-full min-h-screen">
+    <div className="flex flex-col w-full min-h-screen pb-20">
       {/* Header */}
-      <div className="p-10 text-center border-b border-border-color bg-header-bg">
+      <div className="p-8 md:p-12 text-center border-b border-border-color bg-header-bg">
         <h1 className="text-4xl md:text-5xl font-black mb-6 text-text-secondary [text-shadow:0_0_8px_var(--glow-primary)]">
           📊 AI Analysis Scores
         </h1>
@@ -119,11 +119,11 @@ const AIScoresPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="p-12 bg-bg-secondary flex-1">
+      <div className="p-4 md:p-12 bg-bg-secondary flex-1 flex flex-col items-center">
         {/* Controls Section */}
-        <div className="bg-bg-secondary rounded-[32px] p-10 mb-10 border border-border-color shadow-2xl">
+        <div className="w-full max-w-[1000px] bg-bg-secondary rounded-[32px] p-6 md:p-10 mb-10 border border-border-color shadow-2xl">
           <div className="mb-10 text-center">
-            <div className="relative max-w-2xl mx-auto group">
+            <div className="relative w-full max-w-2xl mx-auto group">
               <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center justify-center z-20 pointer-events-none">
                 <Search className="w-6 h-6 text-text-muted group-focus-within:text-accent-secondary transition-colors" />
               </div>
@@ -157,7 +157,7 @@ const AIScoresPage: React.FC = () => {
         </div>
 
         {/* Scores Section */}
-        <div className="bg-bg-secondary rounded-3xl p-4 border border-border-color shadow-2xl overflow-hidden min-h-[500px]">
+        <div className="w-full max-w-[1400px] bg-bg-secondary rounded-3xl p-4 border border-border-color shadow-2xl overflow-hidden min-h-[500px]">
           {loading ? (
             <div className="text-center p-20 text-text-muted">
               <Loader2 className="w-12 h-12 animate-spin mx-auto mb-6 text-accent-primary" />

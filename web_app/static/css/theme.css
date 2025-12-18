@@ -36,19 +36,19 @@ body.light {
     --bg-tertiary: #ffffff;
     --bg-gradient: none;
     --text-primary: #1a1a1a;
-    --text-secondary: #4a4a4a;
-    --text-muted: #6c757d;
+    --text-secondary: #2d3436;
+    --text-muted: #636e72;
     --accent-primary: #2d3436;
     --accent-secondary: #636e72;
-    --accent-success: #2ecc71;
-    --accent-danger: #e74c3c;
-    --accent-warning: #f1c40f;
-    --border-color: #e0e0e0;
-    --border-light: #eeeeee;
-    --shadow-color: rgba(0, 0, 0, 0.05);
+    --accent-success: #27ae60;
+    --accent-danger: #c0392b;
+    --accent-warning: #f39c12;
+    --border-color: #d1d8e0;
+    --border-light: #e1e8f0;
+    --shadow-color: rgba(0, 0, 0, 0.08);
     --shadow-inset: rgba(0, 0, 0, 0.02);
-    --glow-primary: rgba(0, 0, 0, 0.05);
-    --glow-secondary: rgba(0, 0, 0, 0.1);
+    --glow-primary: rgba(0, 0, 0, 0.04);
+    --glow-secondary: rgba(0, 0, 0, 0.06);
     --input-bg: #ffffff;
     --button-bg: #f1f2f6;
     --card-bg: #ffffff;
@@ -92,13 +92,13 @@ body.high-contrast {
 @keyframes pulse-glow {
     0%, 100% {
         box-shadow: 
-            0 0 15px rgba(125, 211, 252, 0.15),
+            0 0 15px var(--glow-primary),
             0 0 30px rgba(125, 211, 252, 0.05),
-            inset 0 0 15px rgba(125, 211, 252, 0.03);
+            inset 0 0 15px var(--shadow-inset);
     }
     50% {
         box-shadow: 
-            0 0 20px rgba(125, 211, 252, 0.25),
+            0 0 20px var(--glow-secondary),
             0 0 40px rgba(125, 211, 252, 0.1),
             inset 0 0 20px rgba(125, 211, 252, 0.05);
     }
@@ -141,7 +141,8 @@ body {
 }
 
 .theme-dropdown:hover {
-    background: rgba(from var(--accent-primary) r g b / 0.2);
+    background: var(--button-bg);
+    opacity: 0.8;
     border-color: var(--accent-primary);
     box-shadow: 0 0 8px var(--glow-primary);
 }
@@ -178,4 +179,103 @@ body.high-contrast .theme-dropdown {
     background: #222222;
     color: #ffffff;
     border: 2px solid #ffffff;
+}
+
+/* Shared Components */
+.header {
+    background: var(--header-bg);
+    color: var(--text-primary);
+    padding: 40px;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 0 15px var(--shadow-color);
+    position: relative;
+    border-radius: 15px 15px 0 0;
+}
+
+.header h1 {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+    text-shadow: 0 0 8px var(--glow-primary);
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.nav-link {
+    color: var(--text-secondary);
+    text-decoration: none;
+    margin: 5px;
+    display: inline-block;
+    padding: 8px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    transition: all 0.3s;
+    box-shadow: 0 0 8px var(--shadow-color);
+    font-size: 0.9em;
+    font-weight: 500;
+}
+
+.nav-link:hover {
+    background: var(--button-bg);
+    box-shadow: 0 0 12px var(--glow-primary);
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+/* Card Styles */
+.result-card, .card {
+    background: var(--card-bg);
+    border-radius: 15px;
+    padding: 30px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 0 15px var(--shadow-color);
+}
+
+.detail-item {
+    background: var(--bg-primary);
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 0 8px var(--shadow-color);
+}
+
+.detail-label {
+    font-size: 0.9em;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+}
+
+.detail-value {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.score-link {
+    color: var(--accent-secondary);
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.score-link:hover {
+    color: var(--accent-primary);
+    text-decoration: underline;
+}
+
+/* Spinner */
+.spinner {
+    border: 4px solid var(--border-color);
+    border-top: 4px solid var(--accent-primary);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }

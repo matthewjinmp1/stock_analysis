@@ -6,61 +6,15 @@
 
 {% block extra_css %}
 <style>
-    .header {
-        background: var(--header-bg);
-        border-radius: 15px;
-        padding: 30px;
-        margin-bottom: 20px;
-        border: 1px solid var(--border-color);
-        box-shadow: 0 0 15px var(--shadow-color);
-        text-align: center;
-    }
-
-    .header h1 {
-        font-size: 2.5em;
-        margin-bottom: 10px;
-        text-shadow: 
-            0 0 8px var(--glow-primary),
-            0 0 15px var(--glow-secondary);
-        font-weight: 700;
-        letter-spacing: 1px;
-        color: var(--text-secondary);
-    }
-
     .header .ticker {
         font-size: 1.2em;
         color: var(--accent-secondary);
         margin-bottom: 20px;
-        text-shadow: 0 0 6px var(--glow-secondary);
-        background: rgba(from var(--accent-secondary) r g b / 0.1);
+        background: var(--button-bg);
         padding: 5px 15px;
         border-radius: 8px;
         display: inline-block;
-        border: 1px solid rgba(from var(--accent-secondary) r g b / 0.4);
-    }
-
-    .back-link {
-        display: inline-block;
-        color: var(--text-secondary);
-        background: var(--button-bg);
-        margin-bottom: 20px;
-        padding: 10px 20px;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 1em;
         border: 1px solid var(--border-color);
-        transition: all 0.3s ease;
-        box-shadow: 0 0 8px var(--glow-primary);
-        cursor: pointer;
-        text-decoration: none;
-    }
-
-    .back-link:hover {
-        background: rgba(from var(--accent-primary) r g b / 0.2);
-        border-color: var(--accent-primary);
-        box-shadow: 0 0 12px var(--glow-primary);
-        transform: translateX(-3px);
-        color: var(--accent-primary);
     }
 
     .summary {
@@ -71,7 +25,7 @@
     }
 
     .summary-item {
-        background: var(--card-bg);
+        background: var(--bg-primary);
         padding: 15px;
         border-radius: 8px;
         border: 1px solid var(--border-color);
@@ -89,11 +43,10 @@
         font-size: 1.5em;
         font-weight: bold;
         color: var(--text-secondary);
-        text-shadow: 0 0 6px var(--glow-primary);
     }
 
     .metrics-table {
-        background: var(--card-bg);
+        background: var(--bg-primary);
         border-radius: 15px;
         overflow: hidden;
         border: 1px solid var(--border-color);
@@ -116,12 +69,11 @@
         text-align: left;
         font-weight: 600;
         border-bottom: 1px solid var(--border-color);
-        text-shadow: 0 0 6px var(--glow-primary);
     }
 
     td {
         padding: 12px 15px;
-        border-bottom: 1px solid rgba(from var(--border-color) r g b / 0.3);
+        border-bottom: 1px solid var(--border-color);
         color: var(--text-secondary);
         background: var(--bg-primary);
     }
@@ -145,27 +97,25 @@
         border-radius: 12px;
         font-weight: 600;
         font-size: 0.9em;
+        border: 1px solid var(--border-color);
     }
 
     .score-high {
-        background: rgba(from var(--accent-success) r g b / 0.2);
+        background: var(--bg-secondary);
         color: var(--accent-success);
-        border: 1px solid rgba(from var(--accent-success) r g b / 0.4);
-        box-shadow: 0 0 8px rgba(from var(--accent-success) r g b / 0.2);
+        border-color: var(--accent-success);
     }
 
     .score-medium {
-        background: rgba(from var(--accent-warning) r g b / 0.2);
+        background: var(--bg-secondary);
         color: var(--accent-warning);
-        border: 1px solid rgba(from var(--accent-warning) r g b / 0.4);
-        box-shadow: 0 0 8px rgba(from var(--accent-warning) r g b / 0.2);
+        border-color: var(--accent-warning);
     }
 
     .score-low {
-        background: rgba(from var(--accent-danger) r g b / 0.2);
+        background: var(--bg-secondary);
         color: var(--accent-danger);
-        border: 1px solid rgba(from var(--accent-danger) r g b / 0.4);
-        box-shadow: 0 0 8px rgba(from var(--accent-danger) r g b / 0.2);
+        border-color: var(--accent-danger);
     }
 
     .weight-cell {
@@ -187,23 +137,22 @@
 
     .reverse-badge {
         display: inline-block;
-        background: rgba(from var(--accent-secondary) r g b / 0.2);
+        background: var(--button-bg);
         color: var(--accent-secondary);
         padding: 2px 8px;
         border-radius: 4px;
         font-size: 0.75em;
         margin-left: 8px;
-        border: 1px solid rgba(from var(--accent-secondary) r g b / 0.4);
+        border: 1px solid var(--border-color);
     }
 
     .error-message {
-        background: rgba(from var(--accent-danger) r g b / 0.1);
+        background: var(--button-bg);
         border-radius: 12px;
         padding: 30px;
         text-align: center;
         color: var(--accent-danger);
-        border: 1px solid rgba(from var(--accent-danger) r g b / 0.3);
-        box-shadow: 0 0 12px rgba(from var(--accent-danger) r g b / 0.2);
+        border: 1px solid var(--accent-danger);
     }
 </style>
 {% endblock %}

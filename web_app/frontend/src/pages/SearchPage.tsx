@@ -198,9 +198,9 @@ const SearchPage: React.FC = () => {
       </div>
 
       {/* Search Section */}
-      <div className="p-12 bg-bg-secondary flex flex-col items-center border-b border-border-color relative z-[1000]">
-        <div className="flex gap-4 w-full max-w-[700px]">
-          <div className="relative flex-1 z-[1100]">
+      <div className="p-12 bg-bg-secondary flex flex-col items-center border-b border-border-color relative z-[2000]">
+        <div className="flex gap-4 w-full max-w-[700px] relative z-[2100]">
+          <div className="relative flex-1">
             <input
               ref={inputRef}
               type="text"
@@ -215,8 +215,11 @@ const SearchPage: React.FC = () => {
             {showDropdown && suggestions.length > 0 && (
               <div 
                 ref={dropdownRef}
-                className="absolute top-full left-0 right-0 mt-2 border-2 border-border-color shadow-[0_30px_60px_rgba(0,0,0,0.8)] max-h-[400px] overflow-y-auto z-[2000] !opacity-100"
-                style={{ backgroundColor: theme === 'light' ? '#ffffff' : '#0a0a0a' }}
+                className="absolute top-full left-0 right-0 mt-2 border-2 border-border-color shadow-[0_30px_60px_rgba(0,0,0,1)] max-h-[400px] overflow-y-auto z-[9999] bg-white dark:bg-black"
+                style={{ 
+                  backgroundColor: theme === 'light' ? '#ffffff' : theme === 'high-contrast' ? '#000000' : '#0a0a0a',
+                  opacity: 1
+                }}
               >
                 {suggestions.map((suggestion, index) => (
                   <div
@@ -225,7 +228,9 @@ const SearchPage: React.FC = () => {
                     className={`p-5 border-b border-border-color last:border-b-0 cursor-pointer transition-all flex justify-between items-center text-text-secondary hover:bg-table-hover-bg ${
                       index === selectedIndex ? 'bg-table-hover-bg border-l-8 border-accent-secondary' : ''
                     }`}
-                    style={{ backgroundColor: theme === 'light' ? '#ffffff' : '#0a0a0a' }}
+                    style={{ 
+                      backgroundColor: theme === 'light' ? '#ffffff' : theme === 'high-contrast' ? '#000000' : '#0a0a0a'
+                    }}
                   >
                     <div className="font-bold text-xl text-accent-secondary flex-shrink-0 min-w-[80px]">
                       {suggestion.ticker}
@@ -265,7 +270,7 @@ const SearchPage: React.FC = () => {
 
         {/* Result Card */}
         {result && (
-          <div className="w-full max-w-[1000px] bg-card-bg p-10 mt-10 border border-border-color shadow-2xl animate-[slideIn_0.3s_ease-out] relative z-[1]">
+          <div className="w-full max-w-[1000px] bg-card-bg p-10 mt-10 border border-border-color shadow-2xl animate-[slideIn_0.3s_ease-out]">
             <div className="flex justify-between items-center mb-10 flex-wrap gap-8 text-left">
               <div className="flex flex-wrap items-baseline gap-4 flex-1 min-w-[200px]">
                 <h2 className="text-4xl font-black text-text-secondary">

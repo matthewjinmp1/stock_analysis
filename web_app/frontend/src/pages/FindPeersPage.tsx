@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, AlertCircle, Cpu, Clock, DollarSign, ListOrdered } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertCircle, Cpu, Clock, DollarSign } from 'lucide-react';
 import * as api from '../api';
 
 const FindPeersPage: React.FC = () => {

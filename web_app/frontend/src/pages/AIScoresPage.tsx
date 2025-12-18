@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import * as api from '../api';
 
 const METRIC_LABELS: Record<string, string> = {
@@ -122,17 +122,13 @@ const AIScoresPage: React.FC = () => {
       <div className="p-4 md:p-12 bg-bg-secondary flex-1 flex flex-col items-center">
         {/* Search Bar Section */}
         <div className="w-full max-w-[1000px] bg-bg-secondary p-8 md:p-10 mb-6 border border-border-color shadow-2xl">
-          <div className="relative w-full max-w-2xl mx-auto group">
-            <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center justify-center z-20 pointer-events-none">
-              <Search className="w-6 h-6 text-text-muted group-focus-within:text-accent-secondary transition-colors" />
-            </div>
-            <input 
-              type="text" 
+          <div className="relative w-full max-w-[600px] mx-auto">
+            <input
+              type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by ticker or company name..." 
-              className="w-full pr-8 py-5 bg-input-bg border border-border-color text-text-secondary text-xl outline-none transition-all focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 shadow-sm relative z-10 font-medium"
-              style={{ paddingLeft: '4.5rem' }}
+              placeholder="Search by ticker or company name..."
+              className="w-full px-5 py-5 bg-input-bg border border-border-color text-text-secondary text-xl outline-none transition-all focus:border-accent-secondary focus:ring-2 focus:ring-accent-secondary/10 shadow-sm font-medium"
             />
           </div>
         </div>

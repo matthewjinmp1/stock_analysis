@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, AlertCircle, Check } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import * as api from '../api';
 
 const METRIC_LABELS: Record<string, string> = {
@@ -143,13 +143,10 @@ const AIScoresPage: React.FC = () => {
                 onClick={() => toggleMetric(key)}
                 className={`flex items-center gap-2 px-5 py-2.5 font-black cursor-pointer transition-all border shadow-sm ${
                   visibleMetrics.includes(key)
-                    ? 'bg-accent-primary border-accent-primary text-bg-primary scale-110 shadow-[0_0_15px_rgba(125,211,252,0.3)]'
+                    ? 'bg-red-500 border-red-500 text-white'
                     : 'bg-bg-primary text-text-secondary border-border-color hover:border-accent-primary hover:text-accent-primary'
                 }`}
               >
-                {visibleMetrics.includes(key) && (
-                  <Check className="w-4 h-4 flex-shrink-0" />
-                )}
                 {METRIC_LABELS[key]}
               </button>
             ))}

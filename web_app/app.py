@@ -136,34 +136,44 @@ init_peers_database()
 init_adjusted_pe_db()
 
 def find_best_match(query: str) -> tuple:
-    """Find ticker match using exact prefix matching.
+    """Find ticker match using exact prefix matching on tickers and company names.
 
-    Validates against tickers database for exact prefix matches only.
-    Allows partial input (e.g., "A" matches "AAPL", "AMD", etc.)
+    Validates against tickers database for exact prefix matches on both tickers and company names.
+    Allows partial input (e.g., "A" matches "AAPL", "AMD", "Apple Inc.", etc.)
 
     Args:
-        query: User search query (prefix of ticker symbol)
+        query: User search query (prefix of ticker symbol or company name)
 
     Returns:
         tuple: (ticker, match_type) where match_type is 'ticker' or None if no prefix match
     """
     query_upper = query.strip().upper()
 
-    # Validate that it's a valid ticker prefix by checking against tickers.db
+    # Validate that it's a valid ticker or company name prefix by checking against tickers.db
     tickers_db_path = os.path.join(os.path.dirname(__file__), 'data', 'tickers.db')
     if os.path.exists(tickers_db_path):
         try:
             conn = sqlite3.connect(tickers_db_path)
             cursor = conn.cursor()
-            # Use LIKE with prefix matching (query + '%')
+
+            # First, try exact ticker prefix match
             cursor.execute('SELECT ticker FROM tickers WHERE ticker LIKE ? ORDER BY ticker LIMIT 1', (query_upper + '%',))
-            result = cursor.fetchone()
+            ticker_result = cursor.fetchone()
+
+            if ticker_result:
+                ticker = ticker_result[0]
+            else:
+                # If no ticker match, try company name prefix match
+                cursor.execute('SELECT ticker FROM tickers WHERE UPPER(company_name) LIKE ? ORDER BY ticker LIMIT 1', (query_upper + '%',))
+                company_result = cursor.fetchone()
+                if company_result:
+                    ticker = company_result[0]
+                else:
+                    ticker = None
+
             conn.close()
 
-            if result:
-                # Valid ticker prefix found, use the first matching ticker
-                ticker = result[0]
-
+            if ticker:
                 # Check if we have cached data for this ticker
                 cache_db_path = os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db')
                 if os.path.exists(cache_db_path):
@@ -266,9 +276,9 @@ def search_ticker(query):
 
 @app.route('/api/search_suggestions/<query>')
 def search_suggestions(query):
-    """API endpoint to get search suggestions for ticker prefix matches.
+    """API endpoint to get search suggestions for ticker and company name prefix matches.
 
-    Returns tickers that start with the query string.
+    Returns tickers and company names that start with the query string.
     """
     if not query or len(query.strip()) < 1:
         return jsonify({'success': False, 'message': 'Query too short'}), 400
@@ -285,23 +295,42 @@ def search_suggestions(query):
         conn = sqlite3.connect(tickers_db_path)
         cur = conn.cursor()
 
-        # Return tickers that start with the query (prefix matching)
+        # Search for both ticker and company name matches
         cur.execute("""
-            SELECT ticker, company_name
+            SELECT ticker, company_name,
+                   CASE
+                       WHEN ticker LIKE ? THEN 'ticker'
+                       WHEN UPPER(company_name) LIKE ? THEN 'company'
+                   END as match_type,
+                   CASE
+                       WHEN ticker LIKE ? THEN 1  -- Exact ticker match first
+                       WHEN UPPER(company_name) LIKE ? THEN 2  -- Company name match second
+                   END as priority
             FROM tickers
-            WHERE ticker LIKE ?
-            ORDER BY ticker
+            WHERE ticker LIKE ? OR UPPER(company_name) LIKE ?
+            ORDER BY priority, ticker
             LIMIT 10
-        """, (query_upper + '%',))
+        """, (
+            query_upper + '%',  # ticker LIKE for match_type
+            query_upper + '%',  # company LIKE for match_type
+            query_upper + '%',  # ticker priority
+            query_upper + '%',  # company priority
+            query_upper + '%',  # ticker WHERE
+            query_upper + '%'   # company WHERE
+        ))
 
         results = []
+        seen_tickers = set()  # Avoid duplicates
+
         for row in cur.fetchall():
-            ticker, company_name = row
-            results.append({
-                'ticker': ticker,
-                'company_name': company_name,
-                'match_type': 'ticker'
-            })
+            ticker, company_name, match_type, priority = row
+            if ticker not in seen_tickers:
+                results.append({
+                    'ticker': ticker,
+                    'company_name': company_name,
+                    'match_type': match_type
+                })
+                seen_tickers.add(ticker)
 
         conn.close()
 

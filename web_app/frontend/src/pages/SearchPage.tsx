@@ -199,8 +199,8 @@ const SearchPage: React.FC = () => {
 
       {/* Search Section */}
       <div className="p-12 bg-bg-secondary flex flex-col items-center border-b border-border-color relative z-[2000]">
-        <div className="flex gap-4 w-full max-w-[700px] relative z-[10000]">
-          <div className="relative flex-1">
+        <div className="w-full max-w-[700px] relative z-[10000]">
+          <div className="relative">
             <input
               ref={inputRef}
               type="text"
@@ -211,7 +211,7 @@ const SearchPage: React.FC = () => {
               className="w-full p-5 text-xl bg-input-bg text-text-secondary border border-border-color outline-none transition-all focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 shadow-sm"
               autoComplete="off"
             />
-            
+
             {showDropdown && suggestions.length > 0 && (
               <div
                 ref={dropdownRef}
@@ -246,13 +246,6 @@ const SearchPage: React.FC = () => {
               </div>
             )}
           </div>
-          <button 
-            onClick={handleSearch}
-            disabled={loading}
-            className="px-10 bg-accent-primary text-bg-primary font-black text-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 whitespace-nowrap shadow-lg"
-          >
-            {loading ? '...' : 'Search'}
-          </button>
         </div>
 
         {/* Loading State */}

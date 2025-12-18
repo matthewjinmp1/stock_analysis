@@ -47,10 +47,10 @@ body.light {
     --accent-warning: #f39c12;
     --border-color: #d1d8e0;
     --border-light: #e1e8f0;
-    --shadow-color: rgba(0, 0, 0, 0.05);
+    --shadow-color: rgba(0, 0, 0, 0.03);
     --shadow-inset: rgba(0, 0, 0, 0.01);
-    --glow-primary: rgba(0, 0, 0, 0.02);
-    --glow-secondary: rgba(0, 0, 0, 0.04);
+    --glow-primary: rgba(0, 0, 0, 0.01);
+    --glow-secondary: rgba(0, 0, 0, 0.02);
     --input-bg: #ffffff;
     --button-bg: #f1f2f6;
     --card-bg: #ffffff;

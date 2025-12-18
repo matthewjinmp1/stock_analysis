@@ -227,8 +227,8 @@ const WatchlistPage: React.FC = () => {
           <div className="text-2xl font-black text-text-secondary mb-8 uppercase tracking-widest text-center opacity-70">
             Add Ticker to Watchlist
           </div>
-          <div className="flex gap-4 justify-center max-w-2xl mx-auto relative z-[10000]">
-            <div className="relative flex-1">
+          <div className="max-w-2xl mx-auto relative z-[10000]">
+            <div className="relative">
               <input
                 ref={inputRef}
                 type="text"
@@ -274,12 +274,6 @@ const WatchlistPage: React.FC = () => {
                 </div>
               )}
             </div>
-            <button
-              onClick={handleAddTicker}
-              className="px-10 bg-accent-primary text-bg-primary font-black text-xl transition-all hover:opacity-90 active:scale-95 shadow-lg"
-            >
-              Add
-            </button>
           </div>
           {addMessage && (
             <div className={`mt-6 p-4 border text-center font-bold text-lg ${

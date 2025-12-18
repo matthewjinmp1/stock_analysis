@@ -120,33 +120,34 @@ const AIScoresPage: React.FC = () => {
       </div>
 
       <div className="p-4 md:p-12 bg-bg-secondary flex-1 flex flex-col items-center">
-        {/* Controls Section */}
-        <div className="w-full max-w-[1000px] bg-bg-secondary rounded-[32px] p-6 md:p-10 mb-10 border border-border-color shadow-2xl">
-          <div className="mb-10 text-center">
-            <div className="relative w-full max-w-2xl mx-auto group">
-              <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center justify-center z-20 pointer-events-none">
-                <Search className="w-6 h-6 text-text-muted group-focus-within:text-accent-secondary transition-colors" />
-              </div>
-              <input 
-                type="text" 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by ticker or company name..." 
-                className="w-full pr-8 py-5 bg-input-bg border border-border-color rounded-2xl text-text-secondary text-xl outline-none transition-all focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 shadow-sm relative z-10"
-                style={{ paddingLeft: '4.5rem' }}
-              />
+        {/* Search Bar Section */}
+        <div className="w-full max-w-[1000px] bg-bg-secondary rounded-[32px] p-8 md:p-10 mb-6 border border-border-color shadow-2xl">
+          <div className="relative w-full max-w-2xl mx-auto group">
+            <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center justify-center z-20 pointer-events-none">
+              <Search className="w-6 h-6 text-text-muted group-focus-within:text-accent-secondary transition-colors" />
             </div>
+            <input 
+              type="text" 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by ticker or company name..." 
+              className="w-full pr-8 py-5 bg-input-bg border border-border-color rounded-2xl text-text-secondary text-xl outline-none transition-all focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 shadow-sm relative z-10 font-medium"
+              style={{ paddingLeft: '4.5rem' }}
+            />
           </div>
-          
-          <p className="text-sm text-text-muted mb-4 font-black uppercase tracking-widest opacity-70">Select Metrics to Show:</p>
-          <div className="flex flex-wrap gap-3 mt-4 pt-6 border-t border-border-color/50">
+        </div>
+
+        {/* Metric Selection Section */}
+        <div className="w-full max-w-[1000px] bg-bg-secondary rounded-[32px] p-8 md:p-10 mb-10 border border-border-color shadow-2xl">
+          <p className="text-sm text-text-muted mb-6 font-black uppercase tracking-widest opacity-70 text-center md:text-left">Select Metrics to Show:</p>
+          <div className="flex flex-wrap justify-center md:justify-start gap-3">
             {Object.keys(METRIC_LABELS).map(key => (
               <button
                 key={key}
                 onClick={() => toggleMetric(key)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold cursor-pointer transition-all border shadow-sm ${
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-black cursor-pointer transition-all border shadow-sm ${
                   visibleMetrics.includes(key) 
-                    ? 'bg-accent-primary border-accent-primary text-bg-primary' 
+                    ? 'bg-accent-primary border-accent-primary text-bg-primary scale-105' 
                     : 'bg-bg-primary text-text-secondary border-border-color hover:border-accent-primary hover:text-accent-primary'
                 }`}
               >

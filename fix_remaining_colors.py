@@ -111,3 +111,6 @@ for template in templates:
 print('All remaining hardcoded colors replaced with CSS variables')
 
 
+
+
+

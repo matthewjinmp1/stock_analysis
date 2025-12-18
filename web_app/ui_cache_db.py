@@ -809,6 +809,39 @@ def get_complete_data(ticker: str) -> Optional[Dict[str, Any]]:
     return cached
 
 
+def calculate_two_year_annualized_growth(current_year_growth: float, next_year_growth: float) -> Optional[float]:
+    """
+    Calculate the 2-year annualized growth rate from analyst estimates.
+
+    Args:
+        current_year_growth: Current year growth estimate (as percentage)
+        next_year_growth: Next year growth estimate (as percentage)
+
+    Returns:
+        Annualized growth rate over 2 years (as percentage), or None if calculation fails
+    """
+    try:
+        if current_year_growth is None or next_year_growth is None:
+            return None
+
+        # Convert percentages to decimal multipliers
+        current_multiplier = 1 + (current_year_growth / 100)
+        next_multiplier = 1 + (next_year_growth / 100)
+
+        # Calculate compound growth over 2 years
+        total_growth = current_multiplier * next_multiplier
+
+        # Calculate annualized growth rate (CAGR)
+        # CAGR = (total_growth)^(1/2) - 1
+        cagr = (total_growth ** 0.5) - 1
+
+        # Convert back to percentage
+        return cagr * 100
+
+    except (TypeError, ValueError, ZeroDivisionError):
+        return None
+
+
 if __name__ == '__main__':
     # Initialize database
     init_database()

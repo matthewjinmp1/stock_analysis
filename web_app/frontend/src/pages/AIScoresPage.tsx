@@ -143,7 +143,7 @@ const AIScoresPage: React.FC = () => {
                 onClick={() => toggleMetric(key)}
                 className={`flex items-center gap-2 px-5 py-2.5 font-black cursor-pointer transition-all border shadow-sm ${
                   visibleMetrics.includes(key)
-                    ? 'bg-red-500 border-red-500 text-white ring-2 ring-red-500'
+                    ? 'bg-red-500 border-red-500 text-white ring-2 ring-red-500 relative z-10'
                     : 'bg-bg-primary text-text-secondary border-border-color hover:border-accent-primary hover:text-accent-primary'
                 }`}
               >

@@ -1,6 +1,33 @@
 """
 Program to check remaining QuickFS API credits for the day
 """
+import sys
+import os
+import warnings
+import urllib3
+
+# Disable SSL warnings for expired certificate
+warnings.filterwarnings('ignore', message='.*certificate.*')
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# Monkey-patch requests to disable SSL verification
+import requests
+original_get = requests.get
+original_post = requests.post
+
+def patched_get(*args, **kwargs):
+    kwargs['verify'] = False
+    return original_get(*args, **kwargs)
+
+def patched_post(*args, **kwargs):
+    kwargs['verify'] = False
+    return original_post(*args, **kwargs)
+
+requests.get = patched_get
+requests.post = patched_post
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+
 from quickfs import QuickFS
 from datetime import datetime
 import json
@@ -16,7 +43,7 @@ def check_credits():
     try:
         print("Checking QuickFS API credits...")
         print("=" * 60)
-        
+
         client = QuickFS(API_KEY)
         usage = client.get_usage()
         

@@ -4,6 +4,14 @@ import { ArrowLeft, Trash2, Loader2, AlertCircle } from 'lucide-react';
 import { useTheme } from '../components/ThemeContext';
 import * as api from '../api';
 
+const COLUMN_LABELS: Record<string, string> = {
+  'total_score_percentile_rank': 'Total Score',
+  'financial_total_percentile': 'Financial',
+  'adjusted_pe_ratio': 'Adj PE',
+  'two_year_annualized_growth': '2Y Growth',
+  'short_float': 'Short Float'
+};
+
 interface WatchlistItem {
   ticker: string;
   company_name: string | null;
@@ -11,6 +19,7 @@ interface WatchlistItem {
   total_score_percentile_rank: number | null;
   financial_total_percentile: number | null;
   adjusted_pe_ratio: number | null;
+  two_year_annualized_growth: number | null;
 }
 
 interface SearchSuggestion {
@@ -30,6 +39,7 @@ const WatchlistPage: React.FC = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [addMessage, setAddMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(['total_score_percentile_rank', 'financial_total_percentile', 'adjusted_pe_ratio', 'two_year_annualized_growth', 'short_float']);
   const [sortColumn, setSortColumn] = useState<keyof WatchlistItem | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -150,6 +160,12 @@ const WatchlistPage: React.FC = () => {
     } catch (err: any) {
       setAddMessage({ type: 'error', text: err.response?.data?.message || 'Error adding ticker' });
     }
+  };
+
+  const toggleColumn = (key: string) => {
+    setVisibleColumns(prev =>
+      prev.includes(key) ? prev.filter(c => c !== key) : [...prev, key]
+    );
   };
 
   const handleRemoveTicker = async (ticker: string) => {
@@ -280,6 +296,26 @@ const WatchlistPage: React.FC = () => {
           )}
         </div>
 
+        {/* Column Selection Section */}
+        <div className="w-full max-w-[1000px] bg-bg-secondary p-8 md:p-10 mb-10 border border-border-color shadow-2xl">
+          <p className="text-sm text-text-muted mb-6 font-black uppercase tracking-widest opacity-70 text-center md:text-left">Select Columns to Show:</p>
+          <div className="flex flex-wrap justify-center md:justify-start gap-3">
+            {Object.keys(COLUMN_LABELS).map(key => (
+              <button
+                key={key}
+                onClick={() => toggleColumn(key)}
+                className={`flex items-center gap-2 px-5 py-2.5 font-black cursor-pointer transition-all border shadow-sm ${
+                  visibleColumns.includes(key)
+                    ? 'bg-red-500 border-red-500 text-white ring-2 ring-red-500 relative z-10'
+                    : 'bg-bg-primary text-text-secondary border-border-color hover:border-accent-primary hover:text-accent-primary'
+                }`}
+              >
+                {COLUMN_LABELS[key]}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Watchlist Content */}
         <div id="watchlist-content" className="w-full max-w-[1400px]">
           {loading ? (
@@ -308,18 +344,11 @@ const WatchlistPage: React.FC = () => {
                     <th className="p-5 text-left font-black uppercase text-xs tracking-[0.2em] border-b border-border-color cursor-pointer hover:bg-table-hover-bg transition-all text-text-secondary" onClick={() => handleSort('company_name')}>
                       Company {getSortIcon('company_name')}
                     </th>
-                    <th className="p-5 text-center font-black uppercase text-xs tracking-[0.2em] border-b border-border-color cursor-pointer hover:bg-table-hover-bg transition-all text-text-secondary" onClick={() => handleSort('total_score_percentile_rank')}>
-                      Total Score {getSortIcon('total_score_percentile_rank')}
-                    </th>
-                    <th className="p-5 text-center font-black uppercase text-xs tracking-[0.2em] border-b border-border-color cursor-pointer hover:bg-table-hover-bg transition-all text-text-secondary" onClick={() => handleSort('financial_total_percentile')}>
-                      Financial {getSortIcon('financial_total_percentile')}
-                    </th>
-                    <th className="p-5 text-center font-black uppercase text-xs tracking-[0.2em] border-b border-border-color cursor-pointer hover:bg-table-hover-bg transition-all text-text-secondary" onClick={() => handleSort('adjusted_pe_ratio')}>
-                      Adj PE {getSortIcon('adjusted_pe_ratio')}
-                    </th>
-                    <th className="p-5 text-center font-black uppercase text-xs tracking-[0.2em] border-b border-border-color cursor-pointer hover:bg-table-hover-bg transition-all text-text-secondary" onClick={() => handleSort('short_float')}>
-                      Short Float {getSortIcon('short_float')}
-                    </th>
+                    {visibleColumns.map(column => (
+                      <th key={column} className="p-5 text-center font-black uppercase text-xs tracking-[0.2em] border-b border-border-color cursor-pointer hover:bg-table-hover-bg transition-all text-text-secondary" onClick={() => handleSort(column as keyof WatchlistItem)}>
+                        {COLUMN_LABELS[column]} {getSortIcon(column as keyof WatchlistItem)}
+                      </th>
+                    ))}
                     <th className="p-5 text-center font-black uppercase text-xs tracking-[0.2em] border-b border-border-color text-text-secondary">Actions</th>
                   </tr>
                 </thead>
@@ -334,32 +363,60 @@ const WatchlistPage: React.FC = () => {
                       <td className="p-5 text-text-secondary font-bold truncate max-w-[200px]">
                         {item.company_name || item.ticker}
                       </td>
+                      {visibleColumns.map(column => {
+                        switch (column) {
+                          case 'total_score_percentile_rank':
+                            return (
+                              <td key={column} className="p-5 text-center">
+                                {item.total_score_percentile_rank !== null ? (
+                                  <Link to={`/metrics/${item.ticker}`} className="text-accent-secondary font-black text-lg hover:underline decoration-2 underline-offset-4">
+                                    {item.total_score_percentile_rank}%
+                                  </Link>
+                                ) : 'N/A'}
+                              </td>
+                            );
+                          case 'financial_total_percentile':
+                            return (
+                              <td key={column} className="p-5 text-center">
+                                {item.financial_total_percentile !== null ? (
+                                  <Link to={`/financial/${item.ticker}`} className="text-accent-secondary font-black text-lg hover:underline decoration-2 underline-offset-4">
+                                    {Math.round(item.financial_total_percentile)}%
+                                  </Link>
+                                ) : 'N/A'}
+                              </td>
+                            );
+                          case 'adjusted_pe_ratio':
+                            return (
+                              <td key={column} className="p-5 text-center">
+                                {item.adjusted_pe_ratio !== null ? (
+                                  <Link to={`/adjusted-pe/${item.ticker}`} className="text-accent-secondary font-black text-lg hover:underline decoration-2 underline-offset-4">
+                                    {item.adjusted_pe_ratio.toFixed(2)}
+                                  </Link>
+                                ) : 'N/A'}
+                              </td>
+                            );
+                          case 'two_year_annualized_growth':
+                            return (
+                              <td key={column} className="p-5 text-center">
+                                {item.two_year_annualized_growth !== null ? (
+                                  <span className="text-accent-secondary font-black text-lg">
+                                    {item.two_year_annualized_growth.toFixed(1)}%
+                                  </span>
+                                ) : 'N/A'}
+                              </td>
+                            );
+                          case 'short_float':
+                            return (
+                              <td key={column} className="p-5 text-center text-text-primary font-bold">
+                                {item.short_float || 'N/A'}
+                              </td>
+                            );
+                          default:
+                            return null;
+                        }
+                      })}
                       <td className="p-5 text-center">
-                        {item.total_score_percentile_rank !== null ? (
-                          <Link to={`/metrics/${item.ticker}`} className="text-accent-secondary font-black text-lg hover:underline decoration-2 underline-offset-4">
-                            {item.total_score_percentile_rank}%
-                          </Link>
-                        ) : 'N/A'}
-                      </td>
-                      <td className="p-5 text-center">
-                        {item.financial_total_percentile !== null ? (
-                          <Link to={`/financial/${item.ticker}`} className="text-accent-secondary font-black text-lg hover:underline decoration-2 underline-offset-4">
-                            {Math.round(item.financial_total_percentile)}%
-                          </Link>
-                        ) : 'N/A'}
-                      </td>
-                      <td className="p-5 text-center">
-                        {item.adjusted_pe_ratio !== null ? (
-                          <Link to={`/adjusted-pe/${item.ticker}`} className="text-accent-secondary font-black text-lg hover:underline decoration-2 underline-offset-4">
-                            {item.adjusted_pe_ratio.toFixed(2)}
-                          </Link>
-                        ) : 'N/A'}
-                      </td>
-                      <td className="p-5 text-center text-text-primary font-bold">
-                        {item.short_float || 'N/A'}
-                      </td>
-                      <td className="p-5 text-center">
-                        <button 
+                        <button
                           onClick={() => handleRemoveTicker(item.ticker)}
                           className="px-4 py-2 bg-accent-danger/10 text-accent-danger border border-accent-danger/30 font-black text-xs uppercase tracking-widest transition-all hover:bg-accent-danger hover:text-bg-primary active:scale-95"
                         >

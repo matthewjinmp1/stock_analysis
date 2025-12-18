@@ -23,6 +23,7 @@ from web_app.ui_cache_db import (
     init_database,
     get_cached_data,
     fetch_adjusted_pe_ratio_and_breakdown,
+    calculate_two_year_annualized_growth,
 )
 
 # Import company name lookup function
@@ -388,14 +389,20 @@ def get_watchlist_api():
             data = get_complete_data(ticker)
             financial_scores = get_financial_scores(ticker)
             if data:
+                # Calculate 2-year annualized growth from analyst estimates
+                current_year_growth = data.get('current_year_growth')
+                next_year_growth = data.get('next_year_growth')
+                two_year_annualized_growth = calculate_two_year_annualized_growth(current_year_growth, next_year_growth) if current_year_growth is not None and next_year_growth is not None else None
+
                 watchlist_data.append({
                     'ticker': ticker, 'company_name': data.get('company_name'),
                     'short_float': data.get('short_float'), 'total_score_percentile_rank': data.get('total_score_percentile_rank'),
                     'financial_total_percentile': financial_scores.get('total_percentile') if financial_scores else None,
                     'adjusted_pe_ratio': data.get('adjusted_pe_ratio'),
+                    'two_year_annualized_growth': two_year_annualized_growth,
                 })
             else:
-                watchlist_data.append({'ticker': ticker, 'company_name': None, 'short_float': None, 'total_score_percentile_rank': None, 'financial_total_percentile': None, 'adjusted_pe_ratio': None})
+                watchlist_data.append({'ticker': ticker, 'company_name': None, 'short_float': None, 'total_score_percentile_rank': None, 'financial_total_percentile': None, 'adjusted_pe_ratio': None, 'two_year_annualized_growth': None})
         return jsonify({'success': True, 'watchlist': watchlist_data})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500

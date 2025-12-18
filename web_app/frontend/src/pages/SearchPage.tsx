@@ -213,15 +213,17 @@ const SearchPage: React.FC = () => {
             {showDropdown && suggestions.length > 0 && (
               <div 
                 ref={dropdownRef}
-                className="absolute top-full left-0 right-0 mt-2 bg-bg-primary border border-border-color shadow-[0_20px_50px_rgba(0,0,0,0.3)] max-h-[400px] overflow-y-auto z-[2000] opacity-100 ring-1 ring-black/5"
+                className="absolute top-full left-0 right-0 mt-2 bg-bg-primary border-2 border-border-color shadow-[0_20px_50px_rgba(0,0,0,0.5)] max-h-[400px] overflow-y-auto z-[3000] !opacity-100"
+                style={{ backgroundColor: 'var(--bg-primary)' }}
               >
                 {suggestions.map((suggestion, index) => (
                   <div
                     key={suggestion.ticker}
                     onClick={() => selectSuggestion(suggestion)}
                     className={`p-5 border-b border-border-color last:border-b-0 cursor-pointer transition-all flex justify-between items-center text-text-secondary bg-bg-primary hover:bg-table-hover-bg ${
-                      index === selectedIndex ? 'bg-table-hover-bg border-l-4 border-accent-secondary' : ''
+                      index === selectedIndex ? 'bg-table-hover-bg border-l-8 border-accent-secondary' : ''
                     }`}
+                    style={{ backgroundColor: 'var(--bg-primary)' }}
                   >
                     <div className="font-bold text-xl text-accent-secondary flex-shrink-0 min-w-[80px]">
                       {suggestion.ticker}

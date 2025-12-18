@@ -1,531 +1,335 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Find Peers - Stock Analysis</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+{% extends "base.html" %}
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        /* CSS Custom Properties for Theming */
-        :root {
-            /* Default (Cyber) Theme Variables */
-            --bg-primary: #0a0a0a;
-            --bg-secondary: #0d0d0d;
-            --bg-tertiary: #0a0a0a;
-            --bg-gradient: radial-gradient(circle at 20% 50%, rgba(0, 200, 220, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(200, 0, 200, 0.03) 0%, transparent 50%), radial-gradient(circle at 40% 20%, rgba(120, 0, 200, 0.03) 0%, transparent 50%);
-            --text-primary: #7dd3fc;
-            --text-secondary: #a5d8ff;
-            --text-muted: #7dd3fc;
-            --accent-primary: #7dd3fc;
-            --accent-secondary: #c4b5fd;
-            --accent-success: #4ade80;
-            --accent-danger: #f87171;
-            --accent-warning: #fbbf24;
-            --border-color: rgba(125, 211, 252, 0.3);
-            --border-light: rgba(125, 211, 252, 0.4);
-            --shadow-color: rgba(125, 211, 252, 0.15);
-            --shadow-inset: rgba(125, 211, 252, 0.03);
-            --glow-primary: rgba(125, 211, 252, 0.15);
-            --glow-secondary: rgba(196, 181, 253, 0.3);
-            --input-bg: #0a0a0a;
-            --button-bg: rgba(125, 211, 252, 0.1);
-            --card-bg: #0a0a0a;
-            --header-bg: linear-gradient(135deg, #0a0a0a 0%, #1a0a1a 100%);
-            --animation-glow: pulse-glow 4s ease-in-out infinite;
-            --table-hover-bg: rgba(125, 211, 252, 0.05);
-            --table-header-bg: rgba(125, 211, 252, 0.1);
-            --container-bg: #111111;
-        }
+{% block title %}Find Peers - Stock Analysis{% endblock %}
 
-        /* Light Theme Variables */
-        body.light {
-            --bg-primary: #ffffff;
-            --bg-secondary: #f8f9fa;
-            --bg-tertiary: #ffffff;
-            --bg-gradient: none;
-            --text-primary: #1a1a1a;
-            --text-secondary: #4a4a4a;
-            --text-muted: #6c757d;
-            --accent-primary: #2d3436;
-            --accent-secondary: #636e72;
-            --accent-success: #28a745;
-            --accent-danger: #dc3545;
-            --accent-warning: #fbbf24;
-            --border-color: #dee2e6;
-            --border-light: #ced4da;
-            --shadow-color: rgba(0, 0, 0, 0.1);
-            --shadow-inset: rgba(255, 255, 255, 0.8);
-            --glow-primary: rgba(0, 0, 0, 0.05);
-            --glow-secondary: rgba(0, 0, 0, 0.1);
-            --input-bg: #ffffff;
-            --button-bg: #f1f2f6;
-            --card-bg: #f8f9fa;
-            --header-bg: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-            --animation-glow: none;
-            --table-hover-bg: #f8f9fa;
-            --table-header-bg: #f1f2f6;
-            --container-bg: #ffffff;
-        }
+{% block container_style %}max-width: 800px;{% endblock %}
 
-        /* High Contrast Theme Variables */
-        body.high-contrast {
-            --bg-primary: #000000;
-            --bg-secondary: #111111;
-            --bg-tertiary: #000000;
-            --bg-gradient: none;
-            --text-primary: #ffffff;
-            --text-secondary: #cccccc;
-            --text-muted: #cccccc;
-            --accent-primary: #ffffff;
-            --accent-secondary: #ffffff;
-            --accent-success: #ffffff;
-            --accent-danger: #ff6666;
-            --accent-warning: #cccccc;
-            --border-color: #ffffff;
-            --border-light: #ffffff;
-            --shadow-color: rgba(255, 255, 255, 0.1);
-            --shadow-inset: rgba(255, 255, 255, 0.02);
-            --glow-primary: rgba(255, 255, 255, 0.1);
-            --glow-secondary: rgba(255, 255, 255, 0.3);
-            --input-bg: #000000;
-            --button-bg: #222222;
-            --card-bg: #1a1a1a;
-            --header-bg: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-            --animation-glow: pulse-glow 4s ease-in-out infinite;
-            --table-hover-bg: rgba(255, 255, 255, 0.05);
-            --table-header-bg: rgba(255, 255, 255, 0.1);
-            --container-bg: #111111;
-        }
+{% block extra_css %}
+<style>
+    .header {
+        background: var(--header-bg);
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 20px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 0 15px var(--shadow-color);
+        text-align: center;
+    }
 
-        @keyframes pulse-glow {
-            0%, 100% {
-                box-shadow: 
-                    0 0 15px rgba(125, 211, 252, 0.15),
-                    0 0 30px rgba(125, 211, 252, 0.05),
-                    inset 0 0 15px rgba(125, 211, 252, 0.03);
-            }
-            50% {
-                box-shadow: 
-                    0 0 20px rgba(125, 211, 252, 0.25),
-                    0 0 40px rgba(125, 211, 252, 0.1),
-                    inset 0 0 20px rgba(125, 211, 252, 0.05);
-            }
-        }
+    .header h1 {
+        font-size: 2em;
+        color: var(--text-secondary);
+        margin-bottom: 10px;
+        text-shadow: 0 0 8px var(--glow-primary);
+    }
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: var(--bg-primary);
-            background-image: var(--bg-gradient);
-            min-height: 100vh;
-            padding: 20px;
-            color: var(--text-primary);
-        }
+    .header p {
+        color: var(--text-muted);
+    }
 
-        .theme-switcher {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
+    .search-section {
+        background: var(--bg-secondary);
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 20px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 0 15px var(--shadow-color);
+        text-align: center;
+    }
 
-        .theme-dropdown {
-            padding: 8px 12px;
-            font-size: 0.9em;
-            background: var(--button-bg);
-            color: var(--accent-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-            min-width: 140px;
-            font-family: 'Inter', sans-serif;
-        }
+    .input-group {
+        margin-bottom: 20px;
+        max-width: 500px;
+        margin-left: auto;
+        margin-right: auto;
+    }
 
-        .theme-dropdown:hover {
-            background: rgba(from var(--accent-primary) r g b / 0.2);
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 8px var(--glow-primary);
-        }
+    .input-group label {
+        display: block;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+        font-weight: 500;
+    }
 
-        .theme-dropdown:focus {
-            outline: none;
-            border-color: var(--accent-secondary);
-            box-shadow: 0 0 15px var(--glow-secondary);
-        }
+    .input-group input {
+        width: 100%;
+        padding: 12px;
+        background: var(--input-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        color: var(--text-secondary);
+        font-size: 1em;
+        box-shadow: 0 0 8px var(--shadow-inset);
+    }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
+    .input-group input:focus {
+        outline: none;
+        border-color: var(--accent-secondary);
+        box-shadow: 0 0 8px var(--glow-primary);
+    }
 
-        .header {
-            background: var(--header-bg);
-            border-radius: 15px;
-            padding: 30px;
-            margin-bottom: 20px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 0 15px var(--shadow-color);
-            text-align: center;
-        }
+    .button {
+        background: var(--button-bg);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 12px 24px;
+        font-size: 1em;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: 600;
+    }
 
-        .header h1 {
-            font-size: 2em;
-            color: var(--text-secondary);
-            margin-bottom: 10px;
-            text-shadow: 0 0 8px var(--glow-primary);
-        }
+    .button:hover {
+        background: rgba(from var(--accent-primary) r g b / 0.2);
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 12px var(--glow-primary);
+        color: var(--accent-primary);
+    }
 
-        .header p {
-            color: var(--text-muted);
-        }
+    .back-link {
+        display: inline-block;
+        color: var(--text-secondary);
+        text-decoration: none;
+        margin-bottom: 20px;
+        padding: 10px 20px;
+        background: var(--button-bg);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        transition: all 0.3s;
+        cursor: pointer;
+        box-shadow: 0 0 8px var(--shadow-color);
+    }
 
-        .search-section {
-            background: var(--bg-secondary);
-            border-radius: 15px;
-            padding: 30px;
-            margin-bottom: 20px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 0 15px var(--shadow-color);
-            text-align: center;
-        }
+    .back-link:hover {
+        background: rgba(from var(--accent-primary) r g b / 0.2);
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 12px var(--glow-primary);
+        color: var(--accent-primary);
+    }
 
-        .input-group {
-            margin-bottom: 20px;
-            max-width: 500px;
-            margin-left: auto;
-            margin-right: auto;
-        }
+    .results-section {
+        background: var(--bg-secondary);
+        border-radius: 15px;
+        padding: 30px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 0 15px var(--shadow-color);
+        display: none;
+    }
 
-        .input-group label {
-            display: block;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
+    .results-section.show {
+        display: block;
+    }
 
-        .input-group input {
-            width: 100%;
-            padding: 12px;
-            background: var(--input-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            color: var(--text-secondary);
-            font-size: 1em;
-            box-shadow: 0 0 8px var(--shadow-inset);
-        }
+    .company-info {
+        text-align: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+    }
 
-        .input-group input:focus {
-            outline: none;
-            border-color: var(--accent-secondary);
-            box-shadow: 0 0 8px var(--glow-primary);
-        }
+    .company-info h2 {
+        color: var(--text-secondary);
+        margin-bottom: 5px;
+    }
 
-        .button {
-            background: var(--button-bg);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px 24px;
-            font-size: 1em;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
-        }
+    .company-info p {
+        color: var(--text-muted);
+    }
 
-        .button:hover {
-            background: rgba(from var(--accent-primary) r g b / 0.2);
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 12px var(--glow-primary);
-            color: var(--accent-primary);
-        }
+    .peers-list {
+        display: grid;
+        gap: 15px;
+    }
 
-        .back-link {
-            display: inline-block;
-            color: var(--text-secondary);
-            text-decoration: none;
-            margin-bottom: 20px;
-            padding: 10px 20px;
-            background: var(--button-bg);
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            transition: all 0.3s;
-            cursor: pointer;
-            box-shadow: 0 0 8px var(--shadow-color);
-        }
+    .peer-item {
+        background: var(--card-bg);
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        transition: all 0.3s;
+    }
 
-        .back-link:hover {
-            background: rgba(from var(--accent-primary) r g b / 0.2);
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 12px var(--glow-primary);
-            color: var(--accent-primary);
-        }
+    .peer-item:hover {
+        background: var(--table-hover-bg);
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 8px var(--glow-primary);
+    }
 
-        .results-section {
-            background: var(--bg-secondary);
-            border-radius: 15px;
-            padding: 30px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 0 15px var(--shadow-color);
-            display: none;
-        }
+    .peer-number {
+        color: var(--text-muted);
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
 
-        .results-section.show {
-            display: block;
-        }
+    .peer-name {
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
 
-        .company-info {
-            text-align: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid var(--border-color);
-        }
+    .loading {
+        text-align: center;
+        padding: 40px;
+        color: var(--text-muted);
+    }
 
-        .company-info h2 {
-            color: var(--text-secondary);
-            margin-bottom: 5px;
-        }
+    .spinner {
+        border: 4px solid var(--border-color);
+        border-top: 4px solid var(--accent-primary);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+        box-shadow: 0 0 12px var(--glow-primary);
+    }
 
-        .company-info p {
-            color: var(--text-muted);
-        }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
 
-        .peers-list {
-            display: grid;
-            gap: 15px;
-        }
+    .error-message {
+        background: rgba(from var(--accent-danger) r g b / 0.1);
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        color: var(--accent-danger);
+        border: 1px solid var(--accent-danger);
+        box-shadow: 0 0 12px rgba(from var(--accent-danger) r g b / 0.2);
+    }
+</style>
+{% endblock %}
 
-        .peer-item {
-            background: var(--card-bg);
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            transition: all 0.3s;
-        }
+{% block content %}
+<button onclick="history.back()" class="back-link">← Back</button>
 
-        .peer-item:hover {
-            background: var(--table-hover-bg);
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 8px var(--glow-primary);
-        }
+<div class="header">
+    <h1>🤖 AI Peer Finder</h1>
+    <p>Find comparable companies using artificial intelligence</p>
+</div>
 
-        .peer-number {
-            color: var(--text-muted);
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .peer-name {
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: var(--text-muted);
-        }
-
-        .spinner {
-            border: 4px solid var(--border-color);
-            border-top: 4px solid var(--accent-primary);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-            box-shadow: 0 0 12px var(--glow-primary);
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .error-message {
-            background: rgba(from var(--accent-danger) r g b / 0.1);
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            color: var(--accent-danger);
-            border: 1px solid var(--accent-danger);
-            box-shadow: 0 0 12px rgba(from var(--accent-danger) r g b / 0.2);
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="theme-switcher">
-            <select class="theme-dropdown" id="themeSelect" onchange="setTheme(this.value)">
-                <option value="dark">🌙 Cyber</option>
-                <option value="light">☀️ Light</option>
-                <option value="high-contrast">⚫ High Contrast</option>
-            </select>
-        </div>
-        <button onclick="history.back()" class="back-link">← Back</button>
-
-        <div class="header">
-            <h1>🤖 AI Peer Finder</h1>
-            <p>Find comparable companies using artificial intelligence</p>
-        </div>
-
-        <div class="search-section">
-            <div class="input-group">
-                <label for="tickerInput">Enter Ticker Symbol:</label>
-                <input type="text" id="tickerInput" placeholder="e.g., AAPL, MSFT, GOOGL" style="text-transform: uppercase;">
-            </div>
-            <button onclick="findPeers()" class="button">Find Peers</button>
-        </div>
-
-        <div id="resultsSection" class="results-section">
-            <div id="resultsContent">
-                <!-- Results will be loaded here -->
-            </div>
-            <div id="statsSection" class="stats-section" style="display: none; margin-top: 20px; padding: 15px; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color);">
-                <!-- Stats will be loaded here -->
-            </div>
-        </div>
+<div class="search-section">
+    <div class="input-group">
+        <label for="tickerInput">Enter Ticker Symbol:</label>
+        <input type="text" id="tickerInput" placeholder="e.g., AAPL, MSFT, GOOGL" style="text-transform: uppercase;">
     </div>
+    <button onclick="findPeers()" class="button">Find Peers</button>
+</div>
 
-    <script>
-        function findPeers() {
-            const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
+<div id="resultsSection" class="results-section">
+    <div id="resultsContent">
+        <!-- Results will be loaded here -->
+    </div>
+    <div id="statsSection" class="stats-section" style="display: none; margin-top: 20px; padding: 15px; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color);">
+        <!-- Stats will be loaded here -->
+    </div>
+</div>
+{% endblock %}
 
-            if (!ticker) {
-                showError('Please enter a ticker symbol');
-                return;
-            }
+{% block extra_js %}
+<script>
+    function findPeers() {
+        const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
 
-            // Show loading
-            const resultsSection = document.getElementById('resultsSection');
-            const resultsContent = document.getElementById('resultsContent');
-            resultsSection.classList.add('show');
-            resultsContent.innerHTML = `
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>Finding peers for ${ticker} using AI...</p>
-                    <p style="font-size: 0.85em; color: var(--text-muted); margin-top: 8px;">
-                        AI is analyzing the market to find the 10 most comparable companies.
-                        This typically takes 20-30 seconds.
-                    </p>
-                </div>
-            `;
-
-            // Fetch peers
-            fetch(`/api/find_peers/${ticker}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        displayResults(data);
-                    } else {
-                        showError(data.message || 'Error finding peers');
-                    }
-                })
-                .catch(error => {
-                    showError('Network error: ' + error.message);
-                });
+        if (!ticker) {
+            showError('Please enter a ticker symbol');
+            return;
         }
 
-        function displayResults(data) {
-            const resultsContent = document.getElementById('resultsContent');
-            const statsSection = document.getElementById('statsSection');
+        // Show loading
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsContent = document.getElementById('resultsContent');
+        resultsSection.classList.add('show');
+        resultsContent.innerHTML = `
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Finding peers for ${ticker} using AI...</p>
+                <p style="font-size: 0.85em; color: var(--text-muted); margin-top: 8px;">
+                    AI is analyzing the market to find the 10 most comparable companies.
+                    This typically takes 20-30 seconds.
+                </p>
+            </div>
+        `;
 
-            let html = `
-                <div class="company-info">
-                    <h2>${data.ticker}</h2>
-                    <p>${data.company_name || 'Company name not found'}</p>
-                </div>
-                <div class="peers-list">
-            `;
-
-            data.peers.forEach((peer, index) => {
-                html += `
-                    <div class="peer-item">
-                        <div class="peer-number">#${index + 1}</div>
-                        <div class="peer-name">${peer}</div>
-                    </div>
-                `;
+        // Fetch peers
+        fetch(`/api/find_peers/${ticker}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayResults(data);
+                } else {
+                    showError(data.message || 'Error finding peers');
+                }
+            })
+            .catch(error => {
+                showError('Network error: ' + error.message);
             });
+    }
 
+    function displayResults(data) {
+        const resultsContent = document.getElementById('resultsContent');
+        const statsSection = document.getElementById('statsSection');
+
+        let html = `
+            <div class="company-info">
+                <h2>${data.ticker}</h2>
+                <p>${data.company_name || 'Company name not found'}</p>
+            </div>
+            <div class="peers-list">
+        `;
+
+        data.peers.forEach((peer, index) => {
             html += `
+                <div class="peer-item">
+                    <div class="peer-number">#${index + 1}</div>
+                    <div class="peer-name">${peer}</div>
                 </div>
             `;
-
-            resultsContent.innerHTML = html;
-
-            // Display stats if available
-            if (data.elapsed_time || data.token_usage || data.estimated_cost) {
-                let statsHtml = '<h3 style="color: var(--text-secondary); margin-bottom: 10px;">Query Statistics</h3>';
-                if (data.elapsed_time) {
-                    statsHtml += `<p style="color: var(--text-muted); margin: 5px 0;">Time taken: ${data.elapsed_time.toFixed(2)} seconds</p>`;
-                }
-                if (data.estimated_cost !== undefined) {
-                    const costInCents = data.estimated_cost * 100;
-                    statsHtml += `<p style="color: var(--text-muted); margin: 5px 0;">Estimated cost: ${costInCents.toFixed(4)} cents</p>`;
-                }
-                if (data.token_usage) {
-                    statsHtml += `<p style="color: var(--text-muted); margin: 5px 0; font-size: 0.9em;">Token usage: ${JSON.stringify(data.token_usage)}</p>`;
-                }
-                statsSection.innerHTML = statsHtml;
-                statsSection.style.display = 'block';
-            } else {
-                statsSection.style.display = 'none';
-            }
-        }
-
-        function showError(message) {
-            const resultsSection = document.getElementById('resultsSection');
-            const resultsContent = document.getElementById('resultsContent');
-            resultsSection.classList.add('show');
-            resultsContent.innerHTML = `
-                <div class="error-message">
-                    <p>${message}</p>
-                </div>
-            `;
-        }
-
-        // Allow Enter key to trigger search
-        document.getElementById('tickerInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                findPeers();
-            }
         });
 
-        // Theme switching functionality
-        function setTheme(theme) {
-            const body = document.body;
-            const themeSelect = document.getElementById('themeSelect');
+        html += `
+            </div>
+        `;
 
-            // Remove existing theme classes
-            body.classList.remove('high-contrast');
-            body.classList.remove('light');
+        resultsContent.innerHTML = html;
 
-            // Add new theme class if needed
-            if (theme === 'high-contrast') {
-                body.classList.add('high-contrast');
-            } else if (theme === 'light') {
-                body.classList.add('light');
+        // Display stats if available
+        if (data.elapsed_time || data.token_usage || data.estimated_cost) {
+            let statsHtml = '<h3 style="color: var(--text-secondary); margin-bottom: 10px;">Query Statistics</h3>';
+            if (data.elapsed_time) {
+                statsHtml += `<p style="color: var(--text-muted); margin: 5px 0;">Time taken: ${data.elapsed_time.toFixed(2)} seconds</p>`;
             }
-
-            // Update dropdown selection
-            if (themeSelect) themeSelect.value = theme;
-
-            // Save preference to localStorage
-            localStorage.setItem('theme', theme);
+            if (data.estimated_cost !== undefined) {
+                const costInCents = data.estimated_cost * 100;
+                statsHtml += `<p style="color: var(--text-muted); margin: 5px 0;">Estimated cost: ${costInCents.toFixed(4)} cents</p>`;
+            }
+            if (data.token_usage) {
+                statsHtml += `<p style="color: var(--text-muted); margin: 5px 0; font-size: 0.9em;">Token usage: ${JSON.stringify(data.token_usage)}</p>`;
+            }
+            statsSection.innerHTML = statsHtml;
+            statsSection.style.display = 'block';
+        } else {
+            statsSection.style.display = 'none';
         }
+    }
 
-        function loadTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'dark';
-            setTheme(savedTheme);
+    function showError(message) {
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsContent = document.getElementById('resultsContent');
+        resultsSection.classList.add('show');
+        resultsContent.innerHTML = `
+            <div class="error-message">
+                <p>${message}</p>
+            </div>
+        `;
+    }
+
+    // Allow Enter key to trigger search
+    document.getElementById('tickerInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            findPeers();
         }
-
-        // Load saved theme on page load
-        document.addEventListener('DOMContentLoaded', loadTheme);
-    </script>
-</body>
-</html>
+    });
+</script>
+{% endblock %}

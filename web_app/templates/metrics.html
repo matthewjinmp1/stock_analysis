@@ -1,509 +1,297 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Metrics - {{ ticker }}</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+{% extends "base.html" %}
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        /* CSS Custom Properties for Theming */
-        :root {
-            /* Default (Cyber) Theme Variables */
-            --bg-primary: #0a0a0a;
-            --bg-secondary: #0d0d0d;
-            --bg-tertiary: #0a0a0a;
-            --bg-gradient: radial-gradient(circle at 20% 50%, rgba(0, 200, 220, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(200, 0, 200, 0.03) 0%, transparent 50%), radial-gradient(circle at 40% 20%, rgba(120, 0, 200, 0.03) 0%, transparent 50%);
-            --text-primary: #7dd3fc;
-            --text-secondary: #a5d8ff;
-            --text-muted: #7dd3fc;
-            --accent-primary: #7dd3fc;
-            --accent-secondary: #c4b5fd;
-            --accent-success: #4ade80;
-            --accent-danger: #f87171;
-            --accent-warning: #fbbf24;
-            --border-color: rgba(125, 211, 252, 0.3);
-            --border-light: rgba(125, 211, 252, 0.4);
-            --shadow-color: rgba(125, 211, 252, 0.15);
-            --shadow-inset: rgba(125, 211, 252, 0.03);
-            --glow-primary: rgba(125, 211, 252, 0.15);
-            --glow-secondary: rgba(196, 181, 253, 0.3);
-            --input-bg: #0a0a0a;
-            --button-bg: rgba(125, 211, 252, 0.1);
-            --card-bg: #0a0a0a;
-            --header-bg: linear-gradient(135deg, #0a0a0a 0%, #1a0a1a 100%);
-            --animation-glow: pulse-glow 4s ease-in-out infinite;
-            --table-hover-bg: rgba(125, 211, 252, 0.05);
-            --table-header-bg: rgba(125, 211, 252, 0.1);
-            --container-bg: #111111;
-        }
+{% block title %}Metrics - {{ ticker }}{% endblock %}
 
-        /* Light Theme Variables */
-        body.light {
-            --bg-primary: #ffffff;
-            --bg-secondary: #f8f9fa;
-            --bg-tertiary: #ffffff;
-            --bg-gradient: none;
-            --text-primary: #1a1a1a;
-            --text-secondary: #4a4a4a;
-            --text-muted: #6c757d;
-            --accent-primary: #2d3436;
-            --accent-secondary: #636e72;
-            --accent-success: #28a745;
-            --accent-danger: #dc3545;
-            --accent-warning: #fbbf24;
-            --border-color: #dee2e6;
-            --border-light: #ced4da;
-            --shadow-color: rgba(0, 0, 0, 0.1);
-            --shadow-inset: rgba(255, 255, 255, 0.8);
-            --glow-primary: rgba(0, 0, 0, 0.05);
-            --glow-secondary: rgba(0, 0, 0, 0.1);
-            --input-bg: #ffffff;
-            --button-bg: #f1f2f6;
-            --card-bg: #f8f9fa;
-            --header-bg: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-            --animation-glow: none;
-            --table-hover-bg: #f8f9fa;
-            --table-header-bg: #f1f2f6;
-            --container-bg: #ffffff;
-        }
+{% block container_style %}max-width: 1200px;{% endblock %}
 
-        /* High Contrast Theme Variables */
-        body.high-contrast {
-            --bg-primary: #000000;
-            --bg-secondary: #111111;
-            --bg-tertiary: #000000;
-            --bg-gradient: none;
-            --text-primary: #ffffff;
-            --text-secondary: #cccccc;
-            --text-muted: #cccccc;
-            --accent-primary: #ffffff;
-            --accent-secondary: #ffffff;
-            --accent-success: #ffffff;
-            --accent-danger: #ff6666;
-            --accent-warning: #cccccc;
-            --border-color: #ffffff;
-            --border-light: #ffffff;
-            --shadow-color: rgba(255, 255, 255, 0.1);
-            --shadow-inset: rgba(255, 255, 255, 0.02);
-            --glow-primary: rgba(255, 255, 255, 0.1);
-            --glow-secondary: rgba(255, 255, 255, 0.3);
-            --input-bg: #000000;
-            --button-bg: #222222;
-            --card-bg: #1a1a1a;
-            --header-bg: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-            --animation-glow: pulse-glow 4s ease-in-out infinite;
-            --table-hover-bg: rgba(255, 255, 255, 0.05);
-            --table-header-bg: rgba(255, 255, 255, 0.1);
-            --container-bg: #111111;
-        }
+{% block extra_css %}
+<style>
+    .header {
+        background: var(--header-bg);
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 20px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 0 15px var(--shadow-color);
+        text-align: center;
+    }
 
-        @keyframes pulse-glow {
-            0%, 100% {
-                box-shadow: 
-                    0 0 15px rgba(125, 211, 252, 0.15),
-                    0 0 30px rgba(125, 211, 252, 0.05),
-                    inset 0 0 15px rgba(125, 211, 252, 0.03);
-            }
-            50% {
-                box-shadow: 
-                    0 0 20px rgba(125, 211, 252, 0.25),
-                    0 0 40px rgba(125, 211, 252, 0.1),
-                    inset 0 0 20px rgba(125, 211, 252, 0.05);
-            }
-        }
+    .header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        text-shadow: 
+            0 0 8px var(--glow-primary),
+            0 0 15px var(--glow-secondary);
+        font-weight: 700;
+        letter-spacing: 1px;
+        color: var(--text-secondary);
+    }
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: var(--bg-primary);
-            background-image: var(--bg-gradient);
-            min-height: 100vh;
-            padding: 20px;
-            color: var(--text-primary);
-        }
+    .header .ticker {
+        font-size: 1.2em;
+        color: var(--accent-secondary);
+        margin-bottom: 20px;
+        text-shadow: 0 0 6px var(--glow-secondary);
+        background: rgba(from var(--accent-secondary) r g b / 0.1);
+        padding: 5px 15px;
+        border-radius: 8px;
+        display: inline-block;
+        border: 1px solid rgba(from var(--accent-secondary) r g b / 0.4);
+    }
 
-        .theme-switcher {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
+    .back-link {
+        display: inline-block;
+        color: var(--text-secondary);
+        background: var(--button-bg);
+        margin-bottom: 20px;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1em;
+        border: 1px solid var(--border-color);
+        transition: all 0.3s ease;
+        box-shadow: 0 0 8px var(--glow-primary);
+        cursor: pointer;
+        text-decoration: none;
+    }
 
-        .theme-dropdown {
-            padding: 8px 12px;
-            font-size: 0.9em;
-            background: var(--button-bg);
-            color: var(--accent-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-            min-width: 140px;
-            font-family: 'Inter', sans-serif;
-        }
+    .back-link:hover {
+        background: rgba(from var(--accent-primary) r g b / 0.2);
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 12px var(--glow-primary);
+        transform: translateX(-3px);
+        color: var(--accent-primary);
+    }
 
-        .theme-dropdown:hover {
-            background: rgba(from var(--accent-primary) r g b / 0.2);
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 8px var(--glow-primary);
-        }
+    .summary {
+        display: flex;
+        gap: 20px;
+        margin-top: 20px;
+        justify-content: center;
+    }
 
-        .theme-dropdown:focus {
-            outline: none;
-            border-color: var(--accent-secondary);
-            box-shadow: 0 0 15px var(--glow-secondary);
-        }
+    .summary-item {
+        background: var(--card-bg);
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 0 8px var(--shadow-color);
+        min-width: 150px;
+    }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: var(--bg-secondary);
-            border-radius: 20px;
-            border: 1px solid var(--border-color);
-            box-shadow:
-                0 0 15px var(--shadow-color),
-                0 0 30px var(--glow-primary),
-                inset 0 0 15px var(--shadow-inset);
-            /* Allow dropdowns to overflow outside container */
-            overflow: visible;
-            animation: var(--animation-glow);
-        }
+    .summary-label {
+        font-size: 0.9em;
+        color: var(--text-muted);
+        margin-bottom: 5px;
+    }
 
-        .header {
-            background: var(--header-bg);
-            border-radius: 15px;
-            padding: 30px;
-            margin-bottom: 20px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 0 15px var(--shadow-color);
-            text-align: center;
-        }
+    .summary-value {
+        font-size: 1.5em;
+        font-weight: bold;
+        color: var(--text-secondary);
+        text-shadow: 0 0 6px var(--glow-primary);
+    }
 
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            text-shadow: 
-                0 0 8px var(--glow-primary),
-                0 0 15px var(--glow-secondary);
-            font-weight: 700;
-            letter-spacing: 1px;
-            color: var(--text-secondary);
-        }
+    .metrics-table {
+        background: var(--card-bg);
+        border-radius: 15px;
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 0 15px var(--shadow-color);
+        margin: 0 20px 20px;
+    }
 
-        .header .ticker {
-            font-size: 1.2em;
-            color: var(--accent-secondary);
-            margin-bottom: 20px;
-            text-shadow: 0 0 6px var(--glow-secondary);
-            background: rgba(from var(--accent-secondary) r g b / 0.1);
-            padding: 5px 15px;
-            border-radius: 8px;
-            display: inline-block;
-            border: 1px solid rgba(from var(--accent-secondary) r g b / 0.4);
-        }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
 
-        .back-link {
-            display: inline-block;
-            color: var(--text-secondary);
-            background: var(--button-bg);
-            margin-bottom: 20px;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1em;
-            border: 1px solid var(--border-color);
-            transition: all 0.3s ease;
-            box-shadow: 0 0 8px var(--glow-primary);
-            cursor: pointer;
-            text-decoration: none;
-        }
+    thead {
+        background: var(--table-header-bg);
+        color: var(--text-secondary);
+    }
 
-        .back-link:hover {
-            background: rgba(from var(--accent-primary) r g b / 0.2);
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 12px var(--glow-primary);
-            transform: translateX(-3px);
-            color: var(--accent-primary);
-        }
+    th {
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        border-bottom: 1px solid var(--border-color);
+        text-shadow: 0 0 6px var(--glow-primary);
+    }
 
-        .summary {
-            display: flex;
-            gap: 20px;
-            margin-top: 20px;
-            justify-content: center;
-        }
+    td {
+        padding: 12px 15px;
+        border-bottom: 1px solid rgba(from var(--border-color) r g b / 0.3);
+        color: var(--text-secondary);
+        background: var(--bg-primary);
+    }
 
-        .summary-item {
-            background: var(--card-bg);
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 0 8px var(--shadow-color);
-            min-width: 150px;
-        }
+    tbody tr:hover td {
+        background: var(--table-hover-bg);
+    }
 
-        .summary-label {
-            font-size: 0.9em;
-            color: var(--text-muted);
-            margin-bottom: 5px;
-        }
+    .metric-name {
+        font-weight: 500;
+        color: var(--text-secondary);
+    }
 
-        .summary-value {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: var(--text-secondary);
-            text-shadow: 0 0 6px var(--glow-primary);
-        }
+    .score-cell {
+        text-align: center;
+    }
 
-        .metrics-table {
-            background: var(--card-bg);
-            border-radius: 15px;
-            overflow: hidden;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 0 15px var(--shadow-color);
-            margin: 0 20px 20px;
-        }
+    .score-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.9em;
+    }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
+    .score-high {
+        background: rgba(from var(--accent-success) r g b / 0.2);
+        color: var(--accent-success);
+        border: 1px solid rgba(from var(--accent-success) r g b / 0.4);
+        box-shadow: 0 0 8px rgba(from var(--accent-success) r g b / 0.2);
+    }
 
-        thead {
-            background: var(--table-header-bg);
-            color: var(--text-secondary);
-        }
+    .score-medium {
+        background: rgba(from var(--accent-warning) r g b / 0.2);
+        color: var(--accent-warning);
+        border: 1px solid rgba(from var(--accent-warning) r g b / 0.4);
+        box-shadow: 0 0 8px rgba(from var(--accent-warning) r g b / 0.2);
+    }
 
-        th {
-            padding: 15px;
-            text-align: left;
-            font-weight: 600;
-            border-bottom: 1px solid var(--border-color);
-            text-shadow: 0 0 6px var(--glow-primary);
-        }
+    .score-low {
+        background: rgba(from var(--accent-danger) r g b / 0.2);
+        color: var(--accent-danger);
+        border: 1px solid rgba(from var(--accent-danger) r g b / 0.4);
+        box-shadow: 0 0 8px rgba(from var(--accent-danger) r g b / 0.2);
+    }
 
-        td {
-            padding: 12px 15px;
-            border-bottom: 1px solid rgba(from var(--border-color) r g b / 0.3);
-            color: var(--text-secondary);
-            background: var(--bg-primary);
-        }
+    .weight-cell {
+        text-align: center;
+        color: var(--text-muted);
+    }
 
-        tbody tr:hover td {
-            background: var(--table-hover-bg);
-        }
+    .contribution-cell {
+        text-align: right;
+        font-weight: 600;
+        color: var(--text-secondary);
+    }
 
-        .metric-name {
-            font-weight: 500;
-            color: var(--text-secondary);
-        }
+    .percentage-cell {
+        text-align: right;
+        color: var(--text-muted);
+        font-size: 0.9em;
+    }
 
-        .score-cell {
-            text-align: center;
-        }
+    .reverse-badge {
+        display: inline-block;
+        background: rgba(from var(--accent-secondary) r g b / 0.2);
+        color: var(--accent-secondary);
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.75em;
+        margin-left: 8px;
+        border: 1px solid rgba(from var(--accent-secondary) r g b / 0.4);
+    }
 
-        .score-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 0.9em;
-        }
+    .error-message {
+        background: rgba(from var(--accent-danger) r g b / 0.1);
+        border-radius: 12px;
+        padding: 30px;
+        text-align: center;
+        color: var(--accent-danger);
+        border: 1px solid rgba(from var(--accent-danger) r g b / 0.3);
+        box-shadow: 0 0 12px rgba(from var(--accent-danger) r g b / 0.2);
+    }
+</style>
+{% endblock %}
 
-        .score-high {
-            background: rgba(from var(--accent-success) r g b / 0.2);
-            color: var(--accent-success);
-            border: 1px solid rgba(from var(--accent-success) r g b / 0.4);
-            box-shadow: 0 0 8px rgba(from var(--accent-success) r g b / 0.2);
-        }
+{% block content %}
+<button onclick="history.back()" class="back-link">← Back</button>
 
-        .score-medium {
-            background: rgba(from var(--accent-warning) r g b / 0.2);
-            color: var(--accent-warning);
-            border: 1px solid rgba(from var(--accent-warning) r g b / 0.4);
-            box-shadow: 0 0 8px rgba(from var(--accent-warning) r g b / 0.2);
-        }
-
-        .score-low {
-            background: rgba(from var(--accent-danger) r g b / 0.2);
-            color: var(--accent-danger);
-            border: 1px solid rgba(from var(--accent-danger) r g b / 0.4);
-            box-shadow: 0 0 8px rgba(from var(--accent-danger) r g b / 0.2);
-        }
-
-        .weight-cell {
-            text-align: center;
-            color: var(--text-muted);
-        }
-
-        .contribution-cell {
-            text-align: right;
-            font-weight: 600;
-            color: var(--text-secondary);
-        }
-
-        .percentage-cell {
-            text-align: right;
-            color: var(--text-muted);
-            font-size: 0.9em;
-        }
-
-        .reverse-badge {
-            display: inline-block;
-            background: rgba(from var(--accent-secondary) r g b / 0.2);
-            color: var(--accent-secondary);
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.75em;
-            margin-left: 8px;
-            border: 1px solid rgba(from var(--accent-secondary) r g b / 0.4);
-        }
-
-        .error-message {
-            background: rgba(from var(--accent-danger) r g b / 0.1);
-            border-radius: 12px;
-            padding: 30px;
-            text-align: center;
-            color: var(--accent-danger);
-            border: 1px solid rgba(from var(--accent-danger) r g b / 0.3);
-            box-shadow: 0 0 12px rgba(from var(--accent-danger) r g b / 0.2);
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <button onclick="history.back()" class="back-link">← Back</button>
-
-        <div class="theme-switcher">
-            <select class="theme-dropdown" id="themeSelect" onchange="setTheme(this.value)">
-                <option value="dark">🌙 Cyber</option>
-                <option value="light">☀️ Light</option>
-                <option value="high-contrast">⚫ High Contrast</option>
-            </select>
+{% if error %}
+<div class="error-message">
+    <h2>Error</h2>
+    <p>{{ error }}</p>
+</div>
+{% else %}
+<div class="header">
+    <h1>{{ company_name or ticker }}</h1>
+    <div class="ticker">{{ ticker }}</div>
+    
+    {% if total_score_percentage %}
+    <div class="summary">
+        <div class="summary-item">
+            <div class="summary-label">Total Score</div>
+            <div class="summary-value">{{ "%.1f"|format(total_score_percentage) }}%</div>
         </div>
-
-        {% if error %}
-        <div class="error-message">
-            <h2>Error</h2>
-            <p>{{ error }}</p>
-        </div>
-        {% else %}
-        <div class="header">
-            <h1>{{ company_name or ticker }}</h1>
-            <div class="ticker">{{ ticker }}</div>
-            
-            {% if total_score_percentage %}
-            <div class="summary">
-                <div class="summary-item">
-                    <div class="summary-label">Total Score</div>
-                    <div class="summary-value">{{ "%.1f"|format(total_score_percentage) }}%</div>
-                </div>
-                {% if total_score_percentile_rank %}
-                <div class="summary-item">
-                    <div class="summary-label">Percentile Rank</div>
-                    <div class="summary-value">{{ total_score_percentile_rank }}th</div>
-                </div>
-                {% endif %}
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="metrics-table">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Metric</th>
-                        <th class="score-cell">Raw Score</th>
-                        <th class="score-cell">Adjusted Score</th>
-                        <th class="weight-cell">Weight</th>
-                        <th class="contribution-cell">Contribution</th>
-                        <th class="percentage-cell">% of Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for metric in metrics %}
-                    <tr>
-                        <td class="metric-name">
-                            {{ metric.name }}
-                            {% if metric.is_reverse %}
-                            <span class="reverse-badge">Reverse</span>
-                            {% endif %}
-                        </td>
-                        {% if metric.is_reverse %}
-                            {% if metric.raw_score >= 7 %}
-                                {% set color_class = 'score-low' %}
-                            {% elif metric.raw_score >= 4 %}
-                                {% set color_class = 'score-medium' %}
-                            {% else %}
-                                {% set color_class = 'score-high' %}
-                            {% endif %}
-                        {% else %}
-                            {% if metric.raw_score >= 7 %}
-                                {% set color_class = 'score-high' %}
-                            {% elif metric.raw_score >= 4 %}
-                                {% set color_class = 'score-medium' %}
-                            {% else %}
-                                {% set color_class = 'score-low' %}
-                            {% endif %}
-                        {% endif %}
-                        <td class="score-cell">
-                            <span class="score-badge {{ color_class }}">
-                                {{ "%.1f"|format(metric.raw_score) }}/10
-                            </span>
-                        </td>
-                        <td class="score-cell">
-                            <span class="score-badge {{ color_class }}">
-                                {{ "%.1f"|format(metric.adjusted_score) }}/10
-                            </span>
-                        </td>
-                        <td class="weight-cell">{{ "%.2f"|format(metric.weight) }}</td>
-                        <td class="contribution-cell">{{ "%.2f"|format(metric.contribution) }}</td>
-                        <td class="percentage-cell">{{ "%.2f"|format(metric.percentage) }}%</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        {% if total_score_percentile_rank %}
+        <div class="summary-item">
+            <div class="summary-label">Percentile Rank</div>
+            <div class="summary-value">{{ total_score_percentile_rank }}th</div>
         </div>
         {% endif %}
     </div>
+    {% endif %}
+</div>
 
-    <script>
-        // Theme switching functionality
-        function setTheme(theme) {
-            const body = document.body;
-            const themeSelect = document.getElementById('themeSelect');
-
-            // Remove existing theme classes
-            body.classList.remove('high-contrast');
-            body.classList.remove('light');
-
-            // Add new theme class if needed
-            if (theme === 'high-contrast') {
-                body.classList.add('high-contrast');
-            } else if (theme === 'light') {
-                body.classList.add('light');
-            }
-
-            // Update dropdown selection
-            themeSelect.value = theme;
-
-            // Save preference to localStorage
-            localStorage.setItem('theme', theme);
-        }
-
-        function loadTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'dark';
-            setTheme(savedTheme);
-        }
-
-        // Load saved theme on page load
-        document.addEventListener('DOMContentLoaded', loadTheme);
-    </script>
-</body>
-</html>
-
+<div class="metrics-table">
+    <table>
+        <thead>
+            <tr>
+                <th>Metric</th>
+                <th class="score-cell">Raw Score</th>
+                <th class="score-cell">Adjusted Score</th>
+                <th class="weight-cell">Weight</th>
+                <th class="contribution-cell">Contribution</th>
+                <th class="percentage-cell">% of Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for metric in metrics %}
+            <tr>
+                <td class="metric-name">
+                    {{ metric.name }}
+                    {% if metric.is_reverse %}
+                    <span class="reverse-badge">Reverse</span>
+                    {% endif %}
+                </td>
+                {% if metric.is_reverse %}
+                    {% if metric.raw_score >= 7 %}
+                        {% set color_class = 'score-low' %}
+                    {% elif metric.raw_score >= 4 %}
+                        {% set color_class = 'score-medium' %}
+                    {% else %}
+                        {% set color_class = 'score-high' %}
+                    {% endif %}
+                {% else %}
+                    {% if metric.raw_score >= 7 %}
+                        {% set color_class = 'score-high' %}
+                    {% elif metric.raw_score >= 4 %}
+                        {% set color_class = 'score-medium' %}
+                    {% else %}
+                        {% set color_class = 'score-low' %}
+                    {% endif %}
+                {% endif %}
+                <td class="score-cell">
+                    <span class="score-badge {{ color_class }}">
+                        {{ "%.1f"|format(metric.raw_score) }}/10
+                    </span>
+                </td>
+                <td class="score-cell">
+                    <span class="score-badge {{ color_class }}">
+                        {{ "%.1f"|format(metric.adjusted_score) }}/10
+                    </span>
+                </td>
+                <td class="weight-cell">{{ "%.2f"|format(metric.weight) }}</td>
+                <td class="contribution-cell">{{ "%.2f"|format(metric.contribution) }}</td>
+                <td class="percentage-cell">{{ "%.2f"|format(metric.percentage) }}%</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

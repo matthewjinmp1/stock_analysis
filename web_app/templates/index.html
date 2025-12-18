@@ -1,1005 +1,782 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Analysis</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+{% extends "base.html" %}
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+{% block title %}Stock Analysis{% endblock %}
+
+{% block container_style %}max-width: 800px;{% endblock %}
+
+{% block extra_css %}
+<style>
+    body.high-contrast .search-section {
+        background: #111111;
+    }
+
+    body.high-contrast .search-input,
+    body.high-contrast .search-button {
+        background: #222222;
+        color: #ffffff;
+        border: 2px solid #ffffff;
+    }
+
+    .header {
+        background: var(--header-bg);
+        color: var(--text-primary);
+        padding: 40px;
+        text-align: center;
+        border-bottom: 1px solid var(--border-color);
+        box-shadow: 0 0 15px var(--shadow-color);
+        position: relative;
+    }
+
+    .header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        text-shadow:
+            0 0 8px var(--glow-primary),
+            0 0 15px var(--glow-secondary);
+        font-weight: 700;
+        letter-spacing: 1px;
+        color: var(--text-secondary);
+    }
+
+    .header p {
+        opacity: 0.85;
+        font-size: 1.1em;
+        color: var(--text-primary);
+        text-shadow: 0 0 3px var(--glow-primary);
+    }
+
+    .search-section {
+        padding: 40px;
+        background: var(--bg-secondary);
+        position: relative;
+        overflow: visible;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .search-box {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 15px 20px;
+        font-size: 1.1em;
+        background: var(--input-bg);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-light);
+        border-radius: 10px;
+        outline: none;
+        transition: all 0.3s;
+        font-family: 'Inter', sans-serif;
+        box-shadow:
+            0 0 8px var(--glow-primary),
+            inset 0 0 8px var(--shadow-inset);
+    }
+
+    .search-input::placeholder {
+        color: var(--text-muted);
+    }
+
+    .search-input:focus {
+        border-color: var(--accent-secondary);
+        box-shadow:
+            0 0 15px var(--glow-secondary),
+            0 0 25px var(--glow-primary),
+            inset 0 0 15px var(--shadow-inset);
+        color: var(--accent-secondary);
+    }
+
+    .search-button {
+        padding: 15px 30px;
+        font-size: 1.1em;
+        background: linear-gradient(135deg, rgba(from var(--accent-primary) r g b / 0.2) 0%, rgba(from var(--accent-secondary) r g b / 0.2) 100%);
+        color: var(--text-secondary);
+        border: 1px solid rgba(from var(--accent-primary) r g b / 0.5);
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 600;
+        font-family: 'Inter', sans-serif;
+        transition: all 0.3s;
+        letter-spacing: 0.5px;
+        box-shadow:
+            0 0 12px var(--glow-primary),
+            0 0 20px var(--glow-secondary);
+    }
+
+    .search-button:hover {
+        transform: translateY(-2px);
+        background: linear-gradient(135deg, rgba(from var(--accent-primary) r g b / 0.3) 0%, rgba(from var(--accent-secondary) r g b / 0.3) 100%);
+        box-shadow:
+            0 0 18px var(--glow-primary),
+            0 0 30px var(--glow-secondary),
+            0 5px 15px var(--glow-primary);
+        color: var(--accent-secondary);
+    }
+
+    .search-button:active {
+        transform: translateY(0);
+    }
+
+    .results {
+        margin-top: 30px;
+    }
+
+    .result-card {
+        background: var(--card-bg);
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 20px;
+        border: 1px solid var(--border-color);
+        border-left: 4px solid rgba(from var(--accent-secondary) r g b / 0.5);
+        animation: slideIn 0.3s ease-out;
+        box-shadow:
+            0 0 15px var(--shadow-color),
+            inset 0 0 15px var(--shadow-inset);
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
         }
-
-        /* CSS Custom Properties for Theming */
-        :root {
-            /* Default (Cyber) Theme Variables */
-            --bg-primary: #0a0a0a;
-            --bg-secondary: #0d0d0d;
-            --bg-tertiary: #0a0a0a;
-            --bg-gradient: radial-gradient(circle at 20% 50%, rgba(0, 200, 220, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(200, 0, 200, 0.03) 0%, transparent 50%), radial-gradient(circle at 40% 20%, rgba(120, 0, 200, 0.03) 0%, transparent 50%);
-            --text-primary: #7dd3fc;
-            --text-secondary: #a5d8ff;
-            --text-muted: #7dd3fc;
-            --accent-primary: #7dd3fc;
-            --accent-secondary: #c4b5fd;
-            --accent-success: #4ade80;
-            --accent-danger: #f87171;
-            --accent-warning: #fbbf24;
-            --border-color: rgba(125, 211, 252, 0.3);
-            --border-light: rgba(125, 211, 252, 0.4);
-            --shadow-color: rgba(125, 211, 252, 0.15);
-            --shadow-inset: rgba(125, 211, 252, 0.03);
-            --glow-primary: rgba(125, 211, 252, 0.15);
-            --glow-secondary: rgba(196, 181, 253, 0.3);
-            --input-bg: #0a0a0a;
-            --button-bg: rgba(125, 211, 252, 0.1);
-            --card-bg: #0a0a0a;
-            --header-bg: linear-gradient(135deg, #0a0a0a 0%, #1a0a1a 100%);
-            --animation-glow: pulse-glow 4s ease-in-out infinite;
-            --table-hover-bg: rgba(125, 211, 252, 0.05);
-            --table-header-bg: rgba(125, 211, 252, 0.1);
-            --container-bg: #111111;
-        }
-
-        /* Light Theme Variables */
-        body.light {
-            --bg-primary: #ffffff;
-            --bg-secondary: #f8f9fa;
-            --bg-tertiary: #ffffff;
-            --bg-gradient: none;
-            --text-primary: #1a1a1a;
-            --text-secondary: #4a4a4a;
-            --text-muted: #6c757d;
-            --accent-primary: #2d3436;
-            --accent-secondary: #636e72;
-            --accent-success: #2ecc71;
-            --accent-danger: #e74c3c;
-            --accent-warning: #f1c40f;
-            --border-color: #e0e0e0;
-            --border-light: #eeeeee;
-            --shadow-color: rgba(0, 0, 0, 0.05);
-            --shadow-inset: rgba(0, 0, 0, 0.02);
-            --glow-primary: rgba(0, 0, 0, 0.05);
-            --glow-secondary: rgba(0, 0, 0, 0.1);
-            --input-bg: #ffffff;
-            --button-bg: #f1f2f6;
-            --card-bg: #ffffff;
-            --header-bg: #ffffff;
-            --animation-glow: none;
-            --table-hover-bg: #f8f9fa;
-            --table-header-bg: #f1f2f6;
-            --container-bg: #ffffff;
-        }
-
-        /* High Contrast Theme Variables */
-        body.high-contrast {
-            --bg-primary: #000000;
-            --bg-secondary: #111111;
-            --bg-tertiary: #000000;
-            --bg-gradient: none;
-            --text-primary: #ffffff;
-            --text-secondary: #cccccc;
-            --text-muted: #cccccc;
-            --accent-primary: #ffffff;
-            --accent-secondary: #ffffff;
-            --accent-success: #ffffff;
-            --accent-danger: #ff6666;
-            --accent-warning: #cccccc;
-            --border-color: #ffffff;
-            --border-light: #ffffff;
-            --shadow-color: rgba(255, 255, 255, 0.1);
-            --shadow-inset: rgba(255, 255, 255, 0.02);
-            --glow-primary: rgba(255, 255, 255, 0.1);
-            --glow-secondary: rgba(255, 255, 255, 0.3);
-            --input-bg: #000000;
-            --button-bg: #222222;
-            --card-bg: #1a1a1a;
-            --header-bg: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-            --animation-glow: pulse-glow 4s ease-in-out infinite;
-            --table-hover-bg: rgba(255, 255, 255, 0.05);
-            --table-header-bg: rgba(255, 255, 255, 0.1);
-            --container-bg: #111111;
-        }
-
-        /* Default Dark Theme */
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: var(--bg-primary);
-            background-image: var(--bg-gradient);
-            min-height: 100vh;
-            padding: 20px;
-            color: var(--text-primary);
-        }
-
-        /* High Contrast Theme Overrides */
-        body.high-contrast {
-            background: var(--bg-primary);
-            background-image: var(--bg-gradient);
-            color: var(--text-primary);
-        }
-
-
-        body.high-contrast .search-section {
-            background: #111111;
-        }
-
-        body.high-contrast .search-input,
-        body.high-contrast .search-button,
-        body.high-contrast .theme-dropdown {
-            background: #222222;
-            color: #ffffff;
-            border: 2px solid #ffffff;
-        }
-
-
-
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: var(--bg-secondary);
-            border-radius: 20px;
-            border: 1px solid var(--border-color);
-            box-shadow:
-                0 0 15px var(--shadow-color),
-                0 0 30px var(--glow-primary),
-                inset 0 0 15px var(--shadow-inset);
-            /* Allow dropdowns to overflow outside container */
-            overflow: visible;
-            animation: var(--animation-glow);
-        }
-
-        @keyframes pulse-glow {
-            0%, 100% {
-                box-shadow: 
-                    0 0 15px rgba(125, 211, 252, 0.15),
-                    0 0 30px rgba(125, 211, 252, 0.05),
-                    inset 0 0 15px rgba(125, 211, 252, 0.03);
-            }
-            50% {
-                box-shadow: 
-                    0 0 20px rgba(125, 211, 252, 0.25),
-                    0 0 40px rgba(125, 211, 252, 0.1),
-                    inset 0 0 20px rgba(125, 211, 252, 0.05);
-            }
-        }
-
-        .header {
-            background: var(--header-bg);
-            color: var(--text-primary);
-            padding: 40px;
-            text-align: center;
-            border-bottom: 1px solid var(--border-color);
-            box-shadow: 0 0 15px var(--shadow-color);
-            position: relative;
-        }
-
-        .theme-switcher {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .theme-dropdown {
-            padding: 8px 12px;
-            font-size: 0.9em;
-            background: var(--button-bg);
-            color: var(--accent-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-            min-width: 140px;
-            font-family: 'Inter', sans-serif;
-        }
-
-        .theme-dropdown:hover {
-            background: rgba(from var(--accent-primary) r g b / 0.2);
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 8px var(--glow-primary);
-        }
-
-        .theme-dropdown:focus {
-            outline: none;
-            border-color: var(--accent-secondary);
-            box-shadow: 0 0 15px var(--glow-secondary);
-        }
-
-
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            text-shadow:
-                0 0 8px var(--glow-primary),
-                0 0 15px var(--glow-secondary);
-            font-weight: 700;
-            letter-spacing: 1px;
-            color: var(--text-secondary);
-        }
-
-        .header p {
-            opacity: 0.85;
-            font-size: 1.1em;
-            color: var(--text-primary);
-            text-shadow: 0 0 3px var(--glow-primary);
-        }
-
-        .search-section {
-            padding: 40px;
-            background: var(--bg-secondary);
-            position: relative;
-            overflow: visible;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .search-box {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 15px 20px;
-            font-size: 1.1em;
-            background: var(--input-bg);
-            color: var(--text-secondary);
-            border: 1px solid var(--border-light);
-            border-radius: 10px;
-            outline: none;
-            transition: all 0.3s;
-            font-family: 'Inter', sans-serif;
-            box-shadow:
-                0 0 8px var(--glow-primary),
-                inset 0 0 8px var(--shadow-inset);
-        }
-
-        .search-input::placeholder {
-            color: var(--text-muted);
-        }
-
-        .search-input:focus {
-            border-color: var(--accent-secondary);
-            box-shadow:
-                0 0 15px var(--glow-secondary),
-                0 0 25px var(--glow-primary),
-                inset 0 0 15px var(--shadow-inset);
-            color: var(--accent-secondary);
-        }
-
-        .search-button {
-            padding: 15px 30px;
-            font-size: 1.1em;
-            background: linear-gradient(135deg, rgba(from var(--accent-primary) r g b / 0.2) 0%, rgba(from var(--accent-secondary) r g b / 0.2) 100%);
-            color: var(--text-secondary);
-            border: 1px solid rgba(from var(--accent-primary) r g b / 0.5);
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            font-family: 'Inter', sans-serif;
-            transition: all 0.3s;
-            letter-spacing: 0.5px;
-            box-shadow:
-                0 0 12px var(--glow-primary),
-                0 0 20px var(--glow-secondary);
-        }
-
-        .search-button:hover {
-            transform: translateY(-2px);
-            background: linear-gradient(135deg, rgba(from var(--accent-primary) r g b / 0.3) 0%, rgba(from var(--accent-secondary) r g b / 0.3) 100%);
-            box-shadow:
-                0 0 18px var(--glow-primary),
-                0 0 30px var(--glow-secondary),
-                0 5px 15px var(--glow-primary);
-            color: var(--accent-secondary);
-        }
-
-        .search-button:active {
+        to {
+            opacity: 1;
             transform: translateY(0);
         }
+    }
 
-        .results {
-            margin-top: 30px;
-        }
+    .result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
 
-        .result-card {
-            background: var(--card-bg);
-            border-radius: 15px;
-            padding: 30px;
-            margin-bottom: 20px;
-            border: 1px solid var(--border-color);
-            border-left: 4px solid rgba(from var(--accent-secondary) r g b / 0.5);
-            animation: slideIn 0.3s ease-out;
-            box-shadow:
-                0 0 15px var(--shadow-color),
-                inset 0 0 15px var(--shadow-inset);
-        }
+    .company-name {
+        font-size: 1.8em;
+        font-weight: 700;
+        color: var(--text-secondary);
+        text-shadow: 0 0 8px var(--glow-primary);
+    }
 
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+    .ticker {
+        font-size: 1.2em;
+        color: var(--accent-secondary);
+        font-weight: 600;
+        background: rgba(from var(--accent-secondary) r g b / 0.1);
+        padding: 5px 15px;
+        border-radius: 8px;
+        border: 1px solid rgba(from var(--accent-secondary) r g b / 0.4);
+        text-shadow: 0 0 6px var(--glow-secondary);
+        box-shadow: 0 0 8px var(--glow-primary);
+    }
 
-        .result-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
+    .peer-button {
+        padding: 8px 16px;
+        font-size: 0.9em;
+        background: rgba(from var(--accent-secondary) r g b / 0.2);
+        color: var(--accent-secondary);
+        border: 1px solid rgba(from var(--accent-secondary) r g b / 0.4);
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+        font-family: 'Inter', sans-serif;
+        box-shadow: 0 0 8px var(--glow-primary);
+    }
 
-        .company-name {
-            font-size: 1.8em;
-            font-weight: 700;
-            color: var(--text-secondary);
-            text-shadow: 0 0 8px var(--glow-primary);
-        }
+    .peer-button:hover {
+        background: rgba(from var(--accent-secondary) r g b / 0.3);
+        transform: translateY(-1px);
+        box-shadow: 0 0 12px var(--glow-secondary);
+    }
 
-        .ticker {
-            font-size: 1.2em;
-            color: var(--accent-secondary);
-            font-weight: 600;
-            background: rgba(from var(--accent-secondary) r g b / 0.1);
-            padding: 5px 15px;
-            border-radius: 8px;
-            border: 1px solid rgba(from var(--accent-secondary) r g b / 0.4);
-            text-shadow: 0 0 6px var(--glow-secondary);
-            box-shadow: 0 0 8px var(--glow-primary);
-        }
+    .watchlist-button {
+        padding: 8px 16px;
+        font-size: 0.9em;
+        background: rgba(from var(--accent-success) r g b / 0.2);
+        color: var(--accent-success);
+        border: 1px solid rgba(from var(--accent-success) r g b / 0.4);
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+        margin-left: 10px;
+        font-family: 'Inter', sans-serif;
+        box-shadow: 0 0 8px rgba(from var(--accent-success) r g b / 0.2);
+    }
 
-        .peer-button {
-            padding: 8px 16px;
-            font-size: 0.9em;
-            background: rgba(from var(--accent-secondary) r g b / 0.2);
-            color: var(--accent-secondary);
-            border: 1px solid rgba(from var(--accent-secondary) r g b / 0.4);
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s;
-            font-family: 'Inter', sans-serif;
-            box-shadow: 0 0 8px var(--glow-primary);
-        }
+    .watchlist-button:hover {
+        background: rgba(from var(--accent-success) r g b / 0.3);
+        transform: translateY(-1px);
+        box-shadow: 0 0 12px rgba(from var(--accent-success) r g b / 0.3);
+    }
 
-        .peer-button:hover {
-            background: rgba(from var(--accent-secondary) r g b / 0.3);
-            transform: translateY(-1px);
-            box-shadow: 0 0 12px var(--glow-secondary);
-        }
+    .watchlist-button:active {
+        transform: translateY(0);
+    }
 
-        .watchlist-button {
-            padding: 8px 16px;
-            font-size: 0.9em;
-            background: rgba(from var(--accent-success) r g b / 0.2);
-            color: var(--accent-success);
-            border: 1px solid rgba(from var(--accent-success) r g b / 0.4);
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s;
-            margin-left: 10px;
-            font-family: 'Inter', sans-serif;
-            box-shadow: 0 0 8px rgba(from var(--accent-success) r g b / 0.2);
-        }
+    .watchlist-button.remove {
+        background: rgba(239, 68, 68, 0.2);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
+    }
 
-        .watchlist-button:hover {
-            background: rgba(from var(--accent-success) r g b / 0.3);
-            transform: translateY(-1px);
-            box-shadow: 0 0 12px rgba(from var(--accent-success) r g b / 0.3);
-        }
+    .watchlist-button.remove:hover {
+        background: rgba(239, 68, 68, 0.3);
+        box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+    }
 
-        .watchlist-button:active {
-            transform: translateY(0);
-        }
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
 
-        .watchlist-button.remove {
-            background: rgba(239, 68, 68, 0.2);
-            color: #f87171;
-            border: 1px solid rgba(239, 68, 68, 0.4);
-            box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
-        }
+    .rating-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+    }
 
-        .watchlist-button.remove:hover {
-            background: rgba(239, 68, 68, 0.3);
-            box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
-        }
+    .detail-item {
+        background: var(--card-bg);
+        padding: 15px;
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 0 8px var(--shadow-color);
+    }
 
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+    .detail-label {
+        font-size: 0.9em;
+        color: rgba(125, 211, 252, 0.7);
+        margin-bottom: 5px;
+        letter-spacing: 0.3px;
+    }
 
+    .detail-value {
+        font-size: 1.2em;
+        font-weight: 600;
+        color: #a5d8ff;
+        text-shadow: 0 0 6px rgba(125, 211, 252, 0.3);
+    }
 
-        .rating-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
+    .score-link {
+        color: #c4b5fd;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-shadow: 0 0 6px rgba(196, 181, 253, 0.4);
+    }
 
-        .detail-item {
-            background: var(--card-bg);
-            padding: 15px;
-            border-radius: 10px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 0 8px var(--shadow-color);
-        }
+    .score-link:hover {
+        color: #ddd6fe;
+        text-shadow: 0 0 10px rgba(196, 181, 253, 0.6);
+    }
 
-        .detail-label {
-            font-size: 0.9em;
-            color: rgba(125, 211, 252, 0.7);
-            margin-bottom: 5px;
-            letter-spacing: 0.3px;
-        }
+    .error {
+        background: rgba(239, 68, 68, 0.1);
+        color: #f87171;
+        padding: 20px;
+        border-radius: 10px;
+        border-left: 4px solid rgba(239, 68, 68, 0.5);
+        margin-top: 20px;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+    }
 
-        .detail-value {
-            font-size: 1.2em;
-            font-weight: 600;
-            color: #a5d8ff;
-            text-shadow: 0 0 6px rgba(125, 211, 252, 0.3);
-        }
+    .loading {
+        text-align: center;
+        padding: 40px;
+        color: var(--text-muted);
+    }
 
-        .score-link {
-            color: #c4b5fd;
-            text-decoration: none;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-shadow: 0 0 6px rgba(196, 181, 253, 0.4);
-        }
+    .spinner {
+        border: 4px solid var(--border-color);
+        border-top: 4px solid var(--accent-primary);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+        box-shadow: 0 0 12px var(--glow-primary);
+    }
 
-        .score-link:hover {
-            color: #ddd6fe;
-            text-shadow: 0 0 10px rgba(196, 181, 253, 0.6);
-        }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
 
-        .error {
-            background: rgba(239, 68, 68, 0.1);
-            color: #f87171;
-            padding: 20px;
-            border-radius: 10px;
-            border-left: 4px solid rgba(239, 68, 68, 0.5);
-            margin-top: 20px;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
-        }
+    .stats {
+        text-align: center;
+        padding: 20px;
+        background: var(--bg-secondary);
+        color: var(--text-muted);
+        font-size: 0.9em;
+        border-top: 1px solid var(--border-color);
+    }
 
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: var(--text-muted);
-        }
+    .nav-link {
+        color: var(--text-secondary);
+        text-decoration: none;
+        margin-right: 10px;
+        display: inline-block;
+        padding: 8px 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        transition: all 0.3s;
+        box-shadow: 0 0 8px var(--shadow-color);
+        font-size: 0.9em;
+        font-weight: 500;
+    }
 
-        .spinner {
-            border: 4px solid var(--border-color);
-            border-top: 4px solid var(--accent-primary);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-            box-shadow: 0 0 12px var(--glow-primary);
-        }
+    .nav-link:hover {
+        background: var(--button-bg);
+        box-shadow: 0 0 12px var(--glow-primary);
+        color: var(--accent-primary);
+        border-color: var(--accent-primary);
+    }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+    /* Search dropdown styles */
+    .search-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--input-bg);
+        border: 1px solid var(--border-color);
+        border-top: none;
+        border-radius: 0 0 10px 10px;
+        box-shadow: 0 8px 25px var(--shadow-color);
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 2000;
+        display: none;
+    }
 
-        .stats {
-            text-align: center;
-            padding: 20px;
-            background: var(--bg-secondary);
-            color: var(--text-muted);
-            font-size: 0.9em;
-            border-top: 1px solid var(--border-color);
-        }
+    .search-dropdown-item {
+        padding: 12px 20px;
+        border-bottom: 1px solid var(--border-color);
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
 
-        .nav-link {
-            color: var(--text-secondary);
-            text-decoration: none;
-            margin-right: 10px;
-            display: inline-block;
-            padding: 8px 16px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            transition: all 0.3s;
-            box-shadow: 0 0 8px var(--shadow-color);
-            font-size: 0.9em;
-            font-weight: 500;
-        }
+    .search-dropdown-item:last-child {
+        border-bottom: none;
+    }
 
-        .nav-link:hover {
-            background: var(--button-bg);
-            box-shadow: 0 0 12px var(--glow-primary);
-            color: var(--accent-primary);
-            border-color: var(--accent-primary);
-        }
+    .search-dropdown-item:hover,
+    .search-dropdown-item.highlighted {
+        background: var(--table-hover-bg);
+        border-left: 3px solid var(--accent-secondary);
+    }
 
-        /* Search dropdown styles */
-        .search-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: var(--input-bg);
-            border: 1px solid var(--border-color);
-            border-top: none;
-            border-radius: 0 0 10px 10px;
-            box-shadow: 0 8px 25px var(--shadow-color);
-            max-height: 300px;
-            overflow-y: auto;
-            z-index: 2000;
-            display: none;
-        }
+    .dropdown-ticker {
+        font-weight: 600;
+        color: var(--accent-secondary);
+        font-size: 0.9em;
+    }
 
-        .search-dropdown-item {
-            padding: 12px 20px;
-            border-bottom: 1px solid var(--border-color);
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    .dropdown-company {
+        color: var(--text-secondary);
+        font-size: 0.9em;
+        flex: 1;
+        margin-left: 12px;
+    }
 
-        .search-dropdown-item:last-child {
-            border-bottom: none;
-        }
+    .dropdown-match-type {
+        font-size: 0.8em;
+        color: var(--text-muted);
+        background: var(--button-bg);
+        padding: 2px 6px;
+        border-radius: 4px;
+        text-transform: capitalize;
+    }
 
-        .search-dropdown-item:hover,
-        .search-dropdown-item.highlighted {
-            background: var(--table-hover-bg);
-            border-left: 3px solid var(--accent-secondary);
-        }
+    .search-container {
+        position: relative;
+        overflow: visible;
+        width: 100%;
+        max-width: 500px;
+    }
 
-        .dropdown-ticker {
-            font-weight: 600;
-            color: var(--accent-secondary);
-            font-size: 0.9em;
-        }
+    /* High contrast dropdown styles */
+    body.high-contrast .search-dropdown {
+        background: #000000;
+        border: 2px solid #ffffff;
+        box-shadow: 0 8px 25px rgba(255, 255, 255, 0.1);
+    }
 
-        .dropdown-company {
-            color: var(--text-secondary);
-            font-size: 0.9em;
-            flex: 1;
-            margin-left: 12px;
-        }
+    body.high-contrast .search-dropdown-item {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
 
-        .dropdown-match-type {
-            font-size: 0.8em;
-            color: var(--text-muted);
-            background: var(--button-bg);
-            padding: 2px 6px;
-            border-radius: 4px;
-            text-transform: capitalize;
-        }
+    body.high-contrast .search-dropdown-item:hover,
+    body.high-contrast .search-dropdown-item.highlighted {
+        background: rgba(255, 255, 255, 0.1);
+        border-left: 3px solid #ffffff;
+    }
 
-        .search-container {
-            position: relative;
-            overflow: visible;
-            width: 100%;
-            max-width: 500px;
-        }
+    body.high-contrast .dropdown-ticker {
+        color: #ffffff;
+    }
 
-        /* High contrast dropdown styles */
-        body.high-contrast .search-dropdown {
-            background: #000000;
-            border: 2px solid #ffffff;
-            box-shadow: 0 8px 25px rgba(255, 255, 255, 0.1);
-        }
+    body.high-contrast .dropdown-company {
+        color: #ffffff;
+    }
 
-        body.high-contrast .search-dropdown-item {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-        }
+    body.high-contrast .dropdown-match-type {
+        color: #ffffff;
+        background: rgba(255, 255, 255, 0.2);
+    }
+</style>
+{% endblock %}
 
-        body.high-contrast .search-dropdown-item:hover,
-        body.high-contrast .search-dropdown-item.highlighted {
-            background: rgba(255, 255, 255, 0.1);
-            border-left: 3px solid #ffffff;
-        }
+{% block content %}
+<div class="header">
+    <h1>📊 Stock Analysis</h1>
+    <p>Analyze stocks with AI scores, financial metrics, and short interest data</p>
+    <div style="margin-top: 15px;">
+        <a href="/watchlist" class="nav-link">View Watchlist</a>
+        <a href="/ai_scores" class="nav-link">AI Analysis Scores</a>
+        <a href="/find_peers" class="nav-link">🤖 Find Peers</a>
+    </div>
+</div>
 
-        body.high-contrast .dropdown-ticker {
-            color: #ffffff;
-        }
-
-        body.high-contrast .dropdown-company {
-            color: #ffffff;
-        }
-
-        body.high-contrast .dropdown-match-type {
-            color: #ffffff;
-            background: rgba(255, 255, 255, 0.2);
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="theme-switcher">
-            <select class="theme-dropdown" id="themeSelect" onchange="setTheme(this.value)">
-                <option value="dark">🌙 Cyber</option>
-                <option value="light">☀️ Light</option>
-                <option value="high-contrast">⚫ High Contrast</option>
-            </select>
+<div class="search-section">
+    <div class="search-box">
+        <div class="search-container">
+            <input
+                type="text"
+                class="search-input"
+                id="tickerInput"
+                placeholder="Search tickers or company names (e.g., apple, AAPL)"
+                autocomplete="off"
+            >
+            <div class="search-dropdown" id="searchDropdown"></div>
         </div>
-        <div class="header">
-            <h1>📊 Stock Analysis</h1>
-            <p>Analyze stocks with AI scores, financial metrics, and short interest data</p>
-            <div style="margin-top: 15px;">
-                <a href="/watchlist" class="nav-link">View Watchlist</a>
-                <a href="/ai_scores" class="nav-link">AI Analysis Scores</a>
-                <a href="/find_peers" class="nav-link">🤖 Find Peers</a>
-            </div>
-        </div>
-
-        <div class="search-section">
-            <div class="search-box">
-                <div class="search-container">
-                    <input
-                        type="text"
-                        class="search-input"
-                        id="tickerInput"
-                        placeholder="Search tickers or company names (e.g., apple, AAPL)"
-                        autocomplete="off"
-                    >
-                    <div class="search-dropdown" id="searchDropdown"></div>
-                </div>
-                <button class="search-button" onclick="searchTicker()">Search</button>
-            </div>
-
-            <div id="results"></div>
-        </div>
-
-        <div class="stats" id="stats"></div>
+        <button class="search-button" onclick="searchTicker()">Search</button>
     </div>
 
-    <script>
-        // Load stats on page load
-        fetch('/api/list')
+    <div id="results"></div>
+</div>
+
+<div class="stats" id="stats"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load stats on page load
+    fetch('/api/list')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('stats').textContent = 
+                    `Database contains ${data.count} tickers with cached short interest data`;
+            }
+        })
+        .catch(err => console.error('Error loading stats:', err));
+
+    // Search input event listeners
+    const tickerInput = document.getElementById('tickerInput');
+    const searchDropdown = document.getElementById('searchDropdown');
+    let selectedIndex = -1;
+    let currentSuggestions = [];
+
+    // Input event - show suggestions
+    tickerInput.addEventListener('input', function(e) {
+        const query = e.target.value.trim();
+        selectedIndex = -1;
+
+        if (query.length < 1) {
+            hideDropdown();
+            return;
+        }
+
+        fetchSuggestions(query);
+    });
+
+    // Keydown event for navigation and selection
+    tickerInput.addEventListener('keydown', function(e) {
+        if (!searchDropdown.style.display || searchDropdown.style.display === 'none') {
+            if (e.key === 'Enter') {
+                searchTicker();
+            }
+            return;
+        }
+
+        const items = searchDropdown.querySelectorAll('.search-dropdown-item');
+
+        switch(e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                updateHighlight();
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                selectedIndex = Math.max(selectedIndex - 1, -1);
+                updateHighlight();
+                break;
+            case 'Enter':
+                e.preventDefault();
+                if (selectedIndex >= 0 && selectedIndex < currentSuggestions.length) {
+                    selectSuggestion(currentSuggestions[selectedIndex]);
+                } else {
+                    searchTicker();
+                }
+                break;
+            case 'Escape':
+                hideDropdown();
+                break;
+        }
+    });
+
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!tickerInput.contains(e.target) && !searchDropdown.contains(e.target)) {
+            hideDropdown();
+        }
+    });
+
+    // Allow Enter key to trigger search when no dropdown is shown
+    tickerInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && (!searchDropdown.style.display || searchDropdown.style.display === 'none')) {
+            searchTicker();
+        }
+    });
+
+    function fetchSuggestions(query) {
+        const encodedQuery = encodeURIComponent(query);
+
+        fetch(`/api/search_suggestions/${encodedQuery}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.suggestions.length > 0) {
+                    showDropdown(data.suggestions);
+                } else {
+                    hideDropdown();
+                }
+            })
+            .catch(err => {
+                console.error('Error fetching suggestions:', err);
+                hideDropdown();
+            });
+    }
+
+    function showDropdown(suggestions) {
+        currentSuggestions = suggestions;
+        searchDropdown.innerHTML = '';
+
+        suggestions.forEach((suggestion, index) => {
+            const item = document.createElement('div');
+            item.className = 'search-dropdown-item';
+            item.onclick = () => selectSuggestion(suggestion);
+
+            item.innerHTML = `
+                <div class="dropdown-ticker">${suggestion.ticker}</div>
+                <div class="dropdown-company">${suggestion.company_name}</div>
+            `;
+
+            searchDropdown.appendChild(item);
+        });
+
+        searchDropdown.style.display = 'block';
+    }
+
+    function hideDropdown() {
+        searchDropdown.style.display = 'none';
+        selectedIndex = -1;
+        currentSuggestions = [];
+    }
+
+    function updateHighlight() {
+        const items = searchDropdown.querySelectorAll('.search-dropdown-item');
+
+        items.forEach((item, index) => {
+            item.classList.toggle('highlighted', index === selectedIndex);
+        });
+    }
+
+    function selectSuggestion(suggestion) {
+        tickerInput.value = suggestion.ticker;
+        hideDropdown();
+        searchTicker();
+    }
+
+    function searchTicker() {
+        const query = document.getElementById('tickerInput').value.trim();
+
+        if (!query) {
+            showError('Please enter a ticker symbol');
+            return;
+        }
+
+        hideDropdown();
+
+        // Show loading state
+        document.getElementById('results').innerHTML = `
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading ${query.toUpperCase()}...</p>
+            </div>
+        `;
+
+        // Encode the query for URL
+        const encodedQuery = encodeURIComponent(query);
+
+        // Fetch data
+        fetch(`/api/search/${encodedQuery}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    document.getElementById('stats').textContent = 
-                        `Database contains ${data.count} tickers with cached short interest data`;
+                    displayResult(data.ticker, data.data, data.query, 1.0, data.in_watchlist || false);
+                } else {
+                    showError(data.message || `No data found for "${query}"`);
                 }
             })
-            .catch(err => console.error('Error loading stats:', err));
+            .catch(err => {
+                console.error('Error:', err);
+                showError('Error fetching data. Please try again.');
+            });
+    }
 
-        // Search input event listeners
-        const tickerInput = document.getElementById('tickerInput');
-        const searchDropdown = document.getElementById('searchDropdown');
-        let selectedIndex = -1;
-        let currentSuggestions = [];
+    function displayResult(ticker, data, originalQuery, matchScore, inWatchlist) {
+        // Clear any previous errors
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = '';
+        
+        const shortFloat = data.short_float || null;
+        const totalScorePercentage = data.total_score_percentage !== undefined ? data.total_score_percentage : null;
+        const totalScorePercentileRank = data.total_score_percentile_rank !== undefined ? data.total_score_percentile_rank : null;
+        const financialTotalPercentile = data.financial_total_percentile !== undefined ? data.financial_total_percentile : null;
+        const adjustedPeRatio = data.adjusted_pe_ratio !== undefined ? data.adjusted_pe_ratio : null;
+        const currentYearGrowth = data.current_year_growth !== undefined ? data.current_year_growth : null;
+        const nextYearGrowth = data.next_year_growth !== undefined ? data.next_year_growth : null;
+        const companyName = data.company_name || null;
+        const isInWatchlist = inWatchlist || false;
 
-        // Input event - show suggestions
-        tickerInput.addEventListener('input', function(e) {
-            const query = e.target.value.trim();
-            selectedIndex = -1;
+        const watchlistButtonText = isInWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist';
+        const watchlistButtonClass = isInWatchlist ? 'watchlist-button remove' : 'watchlist-button';
 
-            if (query.length < 1) {
-                hideDropdown();
-                return;
-            }
+        const resultHTML = `
+            <div class="result-card">
+                <div class="result-header">
+                    <div class="company-name">${companyName || ticker}</div>
+                    <div class="header-actions">
+                        <div class="ticker">${ticker}</div>
+                        <button class="peer-button" onclick="window.location.href='/peers/${ticker}'" title="View Peers">
+                            Peers
+                        </button>
+                        <button class="${watchlistButtonClass}" onclick="toggleWatchlist('${ticker}', ${!isInWatchlist})">
+                            ${watchlistButtonText}
+                        </button>
+                    </div>
+                </div>
 
-            fetchSuggestions(query);
-        });
+                <div class="rating-details">
+                    ${totalScorePercentileRank !== null ? `
+                    <div class="detail-item">
+                        <div class="detail-label">Total Score</div>
+                        <div class="detail-value">
+                            <a href="/metrics/${ticker}" class="score-link">
+                                ${totalScorePercentileRank}%
+                            </a>
+                        </div>
+                    </div>
+                    ` : ''}
+                    ${financialTotalPercentile !== null ? `
+                    <div class="detail-item">
+                        <div class="detail-label">Financial Score</div>
+                        <div class="detail-value">
+                            <a href="/financial/${ticker}" class="score-link">
+                                ${Math.round(financialTotalPercentile)}%
+                            </a>
+                        </div>
+                    </div>
+                    ` : ''}
+                    ${adjustedPeRatio !== null ? `
+                    <div class="detail-item">
+                        <div class="detail-label">Adjusted PE Ratio</div>
+                        <div class="detail-value">
+                            <a href="/adjusted_pe/${ticker}" class="score-link">
+                                ${adjustedPeRatio.toFixed(2)}
+                            </a>
+                        </div>
+                    </div>
+                    ` : ''}
+                    ${currentYearGrowth !== null ? `
+                    <div class="detail-item">
+                        <div class="detail-label">Current Year Growth</div>
+                        <div class="detail-value">${currentYearGrowth.toFixed(1)}%</div>
+                    </div>
+                    ` : ''}
+                    ${nextYearGrowth !== null ? `
+                    <div class="detail-item">
+                        <div class="detail-label">Next Year Growth</div>
+                        <div class="detail-value">${nextYearGrowth.toFixed(1)}%</div>
+                    </div>
+                    ` : ''}
+                    ${shortFloat !== null ? `
+                    <div class="detail-item">
+                        <div class="detail-label">Short Float (Short Interest)</div>
+                        <div class="detail-value">${shortFloat}</div>
+                    </div>
+                    ` : `
+                    <div class="detail-item">
+                        <div class="detail-label">Short Float (Short Interest)</div>
+                        <div class="detail-value">No data available</div>
+                    </div>
+                    `}
+                </div>
+            </div>
+        `;
 
-        // Keydown event for navigation and selection
-        tickerInput.addEventListener('keydown', function(e) {
-            if (!searchDropdown.style.display || searchDropdown.style.display === 'none') {
-                if (e.key === 'Enter') {
-                    searchTicker();
-                }
-                return;
-            }
+        resultsDiv.innerHTML = resultHTML;
+    }
 
-            const items = searchDropdown.querySelectorAll('.search-dropdown-item');
-
-            switch(e.key) {
-                case 'ArrowDown':
-                    e.preventDefault();
-                    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
-                    updateHighlight();
-                    break;
-                case 'ArrowUp':
-                    e.preventDefault();
-                    selectedIndex = Math.max(selectedIndex - 1, -1);
-                    updateHighlight();
-                    break;
-                case 'Enter':
-                    e.preventDefault();
-                    if (selectedIndex >= 0 && selectedIndex < currentSuggestions.length) {
-                        selectSuggestion(currentSuggestions[selectedIndex]);
-                    } else {
+    function toggleWatchlist(ticker, add) {
+        const endpoint = add ? `/api/watchlist/add/${ticker}` : `/api/watchlist/remove/${ticker}`;
+        const method = 'POST';
+        
+        fetch(endpoint, { method: method })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Reload the current search result to update watchlist status
+                    const query = document.getElementById('tickerInput').value.trim();
+                    if (query) {
                         searchTicker();
                     }
-                    break;
-                case 'Escape':
-                    hideDropdown();
-                    break;
-            }
-        });
-
-        // Hide dropdown when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!tickerInput.contains(e.target) && !searchDropdown.contains(e.target)) {
-                hideDropdown();
-            }
-        });
-
-        // Allow Enter key to trigger search when no dropdown is shown
-        tickerInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && (!searchDropdown.style.display || searchDropdown.style.display === 'none')) {
-                searchTicker();
-            }
-        });
-
-        function fetchSuggestions(query) {
-            const encodedQuery = encodeURIComponent(query);
-
-            fetch(`/api/search_suggestions/${encodedQuery}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.suggestions.length > 0) {
-                        showDropdown(data.suggestions);
-                    } else {
-                        hideDropdown();
-                    }
-                })
-                .catch(err => {
-                    console.error('Error fetching suggestions:', err);
-                    hideDropdown();
-                });
-        }
-
-        function showDropdown(suggestions) {
-            currentSuggestions = suggestions;
-            searchDropdown.innerHTML = '';
-
-            suggestions.forEach((suggestion, index) => {
-                const item = document.createElement('div');
-                item.className = 'search-dropdown-item';
-                item.onclick = () => selectSuggestion(suggestion);
-
-                item.innerHTML = `
-                    <div class="dropdown-ticker">${suggestion.ticker}</div>
-                    <div class="dropdown-company">${suggestion.company_name}</div>
-                `;
-
-                searchDropdown.appendChild(item);
+                } else {
+                    alert(data.message || 'Error updating watchlist');
+                }
+            })
+            .catch(err => {
+                console.error('Error:', err);
+                alert('Error updating watchlist. Please try again.');
             });
+    }
 
-            searchDropdown.style.display = 'block';
-        }
-
-        function hideDropdown() {
-            searchDropdown.style.display = 'none';
-            selectedIndex = -1;
-            currentSuggestions = [];
-        }
-
-        function updateHighlight() {
-            const items = searchDropdown.querySelectorAll('.search-dropdown-item');
-
-            items.forEach((item, index) => {
-                item.classList.toggle('highlighted', index === selectedIndex);
-            });
-        }
-
-        function selectSuggestion(suggestion) {
-            tickerInput.value = suggestion.ticker;
-            hideDropdown();
-            searchTicker();
-        }
-
-        function searchTicker() {
-            const query = document.getElementById('tickerInput').value.trim();
-
-            if (!query) {
-                showError('Please enter a ticker symbol');
-                return;
-            }
-
-            hideDropdown();
-
-            // Show loading state
-            document.getElementById('results').innerHTML = `
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>Loading ${query.toUpperCase()}...</p>
-                </div>
-            `;
-
-            // Encode the query for URL
-            const encodedQuery = encodeURIComponent(query);
-
-            // Fetch data
-            fetch(`/api/search/${encodedQuery}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        displayResult(data.ticker, data.data, data.query, 1.0, data.in_watchlist || false);
-                    } else {
-                        showError(data.message || `No data found for "${query}"`);
-                    }
-                })
-                .catch(err => {
-                    console.error('Error:', err);
-                    showError('Error fetching data. Please try again.');
-                });
-        }
-
-        function displayResult(ticker, data, originalQuery, matchScore, inWatchlist) {
-            // Clear any previous errors
-            const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = '';
-            
-            const shortFloat = data.short_float || null;
-            const totalScorePercentage = data.total_score_percentage !== undefined ? data.total_score_percentage : null;
-            const totalScorePercentileRank = data.total_score_percentile_rank !== undefined ? data.total_score_percentile_rank : null;
-            const financialTotalPercentile = data.financial_total_percentile !== undefined ? data.financial_total_percentile : null;
-            const adjustedPeRatio = data.adjusted_pe_ratio !== undefined ? data.adjusted_pe_ratio : null;
-            const currentYearGrowth = data.current_year_growth !== undefined ? data.current_year_growth : null;
-            const nextYearGrowth = data.next_year_growth !== undefined ? data.next_year_growth : null;
-            const companyName = data.company_name || null;
-            const isInWatchlist = inWatchlist || false;
-
-            const watchlistButtonText = isInWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist';
-            const watchlistButtonClass = isInWatchlist ? 'watchlist-button remove' : 'watchlist-button';
-
-            const resultHTML = `
-                <div class="result-card">
-                    <div class="result-header">
-                        <div class="company-name">${companyName || ticker}</div>
-                        <div class="header-actions">
-                            <div class="ticker">${ticker}</div>
-                            <button class="peer-button" onclick="window.location.href='/peers/${ticker}'" title="View Peers">
-                                Peers
-                            </button>
-                            <button class="${watchlistButtonClass}" onclick="toggleWatchlist('${ticker}', ${!isInWatchlist})">
-                                ${watchlistButtonText}
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="rating-details">
-                        ${totalScorePercentileRank !== null ? `
-                        <div class="detail-item">
-                            <div class="detail-label">Total Score</div>
-                            <div class="detail-value">
-                                <a href="/metrics/${ticker}" class="score-link">
-                                    ${totalScorePercentileRank}%
-                                </a>
-                            </div>
-                        </div>
-                        ` : ''}
-                        ${financialTotalPercentile !== null ? `
-                        <div class="detail-item">
-                            <div class="detail-label">Financial Score</div>
-                            <div class="detail-value">
-                                <a href="/financial/${ticker}" class="score-link">
-                                    ${Math.round(financialTotalPercentile)}%
-                                </a>
-                            </div>
-                        </div>
-                        ` : ''}
-                        ${adjustedPeRatio !== null ? `
-                        <div class="detail-item">
-                            <div class="detail-label">Adjusted PE Ratio</div>
-                            <div class="detail-value">
-                                <a href="/adjusted_pe/${ticker}" class="score-link">
-                                    ${adjustedPeRatio.toFixed(2)}
-                                </a>
-                            </div>
-                        </div>
-                        ` : ''}
-                        ${currentYearGrowth !== null ? `
-                        <div class="detail-item">
-                            <div class="detail-label">Current Year Growth</div>
-                            <div class="detail-value">${currentYearGrowth.toFixed(1)}%</div>
-                        </div>
-                        ` : ''}
-                        ${nextYearGrowth !== null ? `
-                        <div class="detail-item">
-                            <div class="detail-label">Next Year Growth</div>
-                            <div class="detail-value">${nextYearGrowth.toFixed(1)}%</div>
-                        </div>
-                        ` : ''}
-                        ${shortFloat !== null ? `
-                        <div class="detail-item">
-                            <div class="detail-label">Short Float (Short Interest)</div>
-                            <div class="detail-value">${shortFloat}</div>
-                        </div>
-                        ` : `
-                        <div class="detail-item">
-                            <div class="detail-label">Short Float (Short Interest)</div>
-                            <div class="detail-value">No data available</div>
-                        </div>
-                        `}
-                    </div>
-                </div>
-            `;
-
-            resultsDiv.innerHTML = resultHTML;
-        }
-
-        function toggleWatchlist(ticker, add) {
-            const endpoint = add ? `/api/watchlist/add/${ticker}` : `/api/watchlist/remove/${ticker}`;
-            const method = 'POST';
-            
-            fetch(endpoint, { method: method })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Reload the current search result to update watchlist status
-                        const query = document.getElementById('tickerInput').value.trim();
-                        if (query) {
-                            searchTicker();
-                        }
-                    } else {
-                        alert(data.message || 'Error updating watchlist');
-                    }
-                })
-                .catch(err => {
-                    console.error('Error:', err);
-                    alert('Error updating watchlist. Please try again.');
-                });
-        }
-
-        function showError(message) {
-            // Clear any previous results before showing error
-            const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = `
-                <div class="error">
-                    <strong>Error:</strong> ${message}
-                </div>
-            `;
-        }
-
-        // Theme switching functionality
-        function setTheme(theme) {
-            const body = document.body;
-            const themeSelect = document.getElementById('themeSelect');
-
-            // Remove existing theme classes
-            body.classList.remove('high-contrast');
-            body.classList.remove('light');
-
-            // Add new theme class if needed
-            if (theme === 'high-contrast') {
-                body.classList.add('high-contrast');
-            } else if (theme === 'light') {
-                body.classList.add('light');
-            }
-
-            // Update dropdown selection
-            themeSelect.value = theme;
-
-            // Save preference to localStorage
-            localStorage.setItem('theme', theme);
-        }
-
-        function loadTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'dark';
-            setTheme(savedTheme);
-        }
-
-        // Load saved theme on page load
-        document.addEventListener('DOMContentLoaded', loadTheme);
-    </script>
-</body>
-</html>
-
+    function showError(message) {
+        // Clear any previous results before showing error
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = `
+            <div class="error">
+                <strong>Error:</strong> ${message}
+            </div>
+        `;
+    }
+</script>
+{% endblock %}

@@ -61,7 +61,7 @@ const MetricsPage: React.FC = () => {
       <div className="p-6">
         <button 
           onClick={() => navigate(-1)} 
-          className="flex items-center gap-2 px-5 py-2.5 bg-button-bg text-text-secondary border border-border-color rounded-xl font-bold transition-all hover:bg-opacity-80 hover:text-accent-primary hover:border-accent-primary hover:-translate-x-1 shadow-sm"
+          className="flex items-center gap-2 px-5 py-2.5 bg-button-bg text-text-secondary border border-border-color font-bold transition-all hover:bg-opacity-80 hover:text-accent-primary hover:border-accent-primary hover:-translate-x-1 shadow-sm"
         >
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
@@ -73,7 +73,7 @@ const MetricsPage: React.FC = () => {
           <p className="font-bold text-lg">Loading metrics...</p>
         </div>
       ) : error ? (
-        <div className="p-12 mx-6 bg-accent-danger/5 rounded-2xl border border-accent-danger/20 text-center text-accent-danger mb-10 shadow-lg">
+        <div className="p-12 mx-6 bg-accent-danger/5 border border-accent-danger/20 text-center text-accent-danger mb-10 shadow-lg">
           <AlertCircle className="w-12 h-12 mx-auto mb-4" />
           <h2 className="text-2xl font-black mb-2">Error</h2>
           <p className="font-medium">{error}</p>
@@ -84,18 +84,18 @@ const MetricsPage: React.FC = () => {
             <h1 className="text-4xl md:text-5xl font-black mb-4 text-text-secondary [text-shadow:0_0_8px_var(--glow-primary)]">
               {data.company_name || data.ticker}
             </h1>
-            <div className="text-2xl text-accent-secondary font-black bg-button-bg px-6 py-2 rounded-xl inline-block border border-border-color shadow-sm">
+            <div className="text-2xl text-accent-secondary font-black bg-button-bg px-6 py-2 inline-block border border-border-color shadow-sm">
               {data.ticker}
             </div>
             
             {data.total_score_percentage !== null && (
               <div className="flex flex-wrap gap-6 mt-8 justify-center">
-                <div className="bg-bg-primary p-6 rounded-2xl border border-border-color shadow-xl min-w-[180px] text-left">
+                <div className="bg-bg-primary p-6 border border-border-color shadow-xl min-w-[180px] text-left">
                   <div className="text-xs font-black text-text-muted uppercase tracking-widest mb-2 opacity-70">Total Score</div>
                   <div className="text-4xl font-black text-text-secondary">{data.total_score_percentage.toFixed(1)}%</div>
                 </div>
                 {data.total_score_percentile_rank !== null && (
-                  <div className="bg-bg-primary p-6 rounded-2xl border border-border-color shadow-xl min-w-[180px] text-left">
+                  <div className="bg-bg-primary p-6 border border-border-color shadow-xl min-w-[180px] text-left">
                     <div className="text-xs font-black text-text-muted uppercase tracking-widest mb-2 opacity-70">Percentile Rank</div>
                     <div className="text-4xl font-black text-text-secondary">{data.total_score_percentile_rank}th</div>
                   </div>
@@ -104,7 +104,7 @@ const MetricsPage: React.FC = () => {
             )}
           </div>
 
-          <div className="mx-6 bg-bg-primary rounded-3xl overflow-hidden border border-border-color shadow-2xl">
+          <div className="mx-6 bg-bg-primary border border-border-color shadow-2xl">
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead className="bg-table-header-bg text-text-secondary">
@@ -124,19 +124,19 @@ const MetricsPage: React.FC = () => {
                         <div className="flex items-center gap-3">
                           <span className="font-bold text-lg">{metric.name}</span>
                           {metric.is_reverse && (
-                            <span className="bg-accent-warning/10 text-accent-warning px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-accent-warning/20 whitespace-nowrap">
+                            <span className="bg-accent-warning/10 text-accent-warning px-3 py-1 text-[10px] font-black uppercase tracking-widest border border-accent-warning/20 whitespace-nowrap">
                               Reverse Metric
                             </span>
                           )}
                         </div>
                       </td>
                       <td className="p-6 text-center">
-                        <span className={`inline-block px-4 py-1.5 rounded-xl font-black text-base border shadow-sm ${getScoreColorClass(metric.raw_score, false)}`}>
+                        <span className={`inline-block px-4 py-1.5 font-black text-base border shadow-sm ${getScoreColorClass(metric.raw_score, false)}`}>
                           {metric.raw_score.toFixed(1)}/10
                         </span>
                       </td>
                       <td className="p-6 text-center">
-                        <span className={`inline-block px-4 py-1.5 rounded-xl font-black text-base border shadow-sm ${getScoreColorClass(metric.raw_score, metric.is_reverse)}`}>
+                        <span className={`inline-block px-4 py-1.5 font-black text-base border shadow-sm ${getScoreColorClass(metric.raw_score, metric.is_reverse)}`}>
                           {metric.adjusted_score.toFixed(1)}/10
                         </span>
                       </td>

@@ -186,10 +186,10 @@ const SearchPage: React.FC = () => {
           Analyze stocks with AI scores, financial metrics, and short interest data
         </p>
         <div className="flex flex-col sm:flex-row justify-center items-center gap-10 md:gap-32 mt-12 w-full max-w-4xl mx-auto">
-          <Link to="/watchlist" className="flex-1 min-w-[280px] px-12 py-5 bg-button-bg text-text-secondary border border-border-color rounded-full transition-all hover:bg-accent-primary hover:text-bg-primary hover:border-accent-primary shadow-xl text-xl font-black text-center whitespace-nowrap">
+          <Link to="/watchlist" className="flex-1 min-w-[280px] px-12 py-5 bg-button-bg text-text-secondary border border-border-color transition-all hover:bg-accent-primary hover:text-bg-primary hover:border-accent-primary shadow-xl text-xl font-black text-center whitespace-nowrap">
             View Watchlist
           </Link>
-          <Link to="/ai-scores" className="flex-1 min-w-[280px] px-12 py-5 bg-button-bg text-text-secondary border border-border-color rounded-full transition-all hover:bg-accent-primary hover:text-bg-primary hover:border-accent-primary shadow-xl text-xl font-black text-center whitespace-nowrap">
+          <Link to="/ai-scores" className="flex-1 min-w-[280px] px-12 py-5 bg-button-bg text-text-secondary border border-border-color transition-all hover:bg-accent-primary hover:text-bg-primary hover:border-accent-primary shadow-xl text-xl font-black text-center whitespace-nowrap">
             AI Analysis Scores
           </Link>
         </div>
@@ -206,14 +206,14 @@ const SearchPage: React.FC = () => {
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Search tickers or company names..."
-              className="w-full p-5 text-xl bg-input-bg text-text-secondary border border-border-color rounded-2xl outline-none transition-all focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 shadow-sm"
+              className="w-full p-5 text-xl bg-input-bg text-text-secondary border border-border-color outline-none transition-all focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 shadow-sm"
               autoComplete="off"
             />
             
             {showDropdown && suggestions.length > 0 && (
               <div 
                 ref={dropdownRef}
-                className="absolute top-full left-0 right-0 mt-2 bg-bg-primary border border-border-color rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] max-h-[400px] overflow-y-auto z-[2000] opacity-100 ring-1 ring-black/5"
+                className="absolute top-full left-0 right-0 mt-2 bg-bg-primary border border-border-color shadow-[0_20px_50px_rgba(0,0,0,0.3)] max-h-[400px] overflow-y-auto z-[2000] opacity-100 ring-1 ring-black/5"
               >
                 {suggestions.map((suggestion, index) => (
                   <div
@@ -237,7 +237,7 @@ const SearchPage: React.FC = () => {
           <button 
             onClick={handleSearch}
             disabled={loading}
-            className="px-10 bg-accent-primary text-bg-primary rounded-2xl font-black text-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 whitespace-nowrap shadow-lg"
+            className="px-10 bg-accent-primary text-bg-primary font-black text-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 whitespace-nowrap shadow-lg"
           >
             {loading ? '...' : 'Search'}
           </button>
@@ -253,7 +253,7 @@ const SearchPage: React.FC = () => {
 
         {/* Error State */}
         {error && (
-          <div className="w-full max-w-[700px] bg-accent-danger/10 text-accent-danger p-6 rounded-2xl border border-accent-danger/20 mt-8 flex items-center gap-4 animate-[slideIn_0.3s_ease-out]">
+          <div className="w-full max-w-[700px] bg-accent-danger/10 text-accent-danger p-6 border border-accent-danger/20 mt-8 flex items-center gap-4 animate-[slideIn_0.3s_ease-out]">
             <AlertCircle className="w-6 h-6 flex-shrink-0" />
             <p className="font-bold"><strong>Error:</strong> {error}</p>
           </div>
@@ -261,13 +261,13 @@ const SearchPage: React.FC = () => {
 
         {/* Result Card */}
         {result && (
-          <div className="w-full max-w-[1000px] bg-card-bg rounded-[32px] p-10 mt-10 border border-border-color shadow-2xl animate-[slideIn_0.3s_ease-out]">
+          <div className="w-full max-w-[1000px] bg-card-bg p-10 mt-10 border border-border-color shadow-2xl animate-[slideIn_0.3s_ease-out]">
             <div className="flex justify-between items-center mb-10 flex-wrap gap-8 text-left">
               <div className="flex flex-wrap items-baseline gap-4 flex-1 min-w-[200px]">
                 <h2 className="text-4xl font-black text-text-secondary">
                   {result.data.company_name || result.ticker}
                 </h2>
-                <div className="text-2xl text-accent-secondary font-black bg-button-bg px-4 py-1 rounded-xl border border-border-color shadow-sm">
+                <div className="text-2xl text-accent-secondary font-black bg-button-bg px-4 py-1 border border-border-color shadow-sm">
                   {result.ticker}
                 </div>
               </div>
@@ -275,13 +275,13 @@ const SearchPage: React.FC = () => {
               <div className="flex items-center gap-3">
                 <Link 
                   to={`/peers/${result.ticker}`} 
-                  className="px-6 py-3 rounded-xl font-black transition-all border border-border-color bg-button-bg text-text-secondary hover:bg-accent-secondary hover:text-bg-primary text-base shadow-sm"
+                  className="px-6 py-3 font-black transition-all border border-border-color bg-button-bg text-text-secondary hover:bg-accent-secondary hover:text-bg-primary text-base shadow-sm"
                 >
                   Peers
                 </Link>
                 <button 
                   onClick={toggleWatchlist}
-                  className={`px-6 py-3 rounded-xl font-black transition-all border border-border-color text-base shadow-sm ${
+                  className={`px-6 py-3 font-black transition-all border border-border-color text-base shadow-sm ${
                     result.in_watchlist 
                       ? 'bg-accent-danger/10 text-accent-danger hover:bg-accent-danger hover:text-bg-primary border-accent-danger/30' 
                       : 'bg-accent-success/10 text-accent-success hover:bg-accent-success hover:text-bg-primary border-accent-success/30'
@@ -294,7 +294,7 @@ const SearchPage: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {result.data.total_score_percentile_rank !== null && (
-                <div className="bg-bg-primary/50 p-6 rounded-2xl border border-border-color hover:border-accent-secondary transition-all group text-left shadow-sm">
+                <div className="bg-bg-primary/50 p-6 border border-border-color hover:border-accent-secondary transition-all group text-left shadow-sm">
                   <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em] mb-3 opacity-70">Total Score</div>
                   <div className="text-4xl font-black text-text-secondary">
                     <Link to={`/metrics/${result.ticker}`} className="text-accent-secondary group-hover:text-accent-primary transition-colors">
@@ -305,7 +305,7 @@ const SearchPage: React.FC = () => {
               )}
               
               {result.data.financial_total_percentile !== null && (
-                <div className="bg-bg-primary/50 p-6 rounded-2xl border border-border-color hover:border-accent-secondary transition-all group text-left shadow-sm">
+                <div className="bg-bg-primary/50 p-6 border border-border-color hover:border-accent-secondary transition-all group text-left shadow-sm">
                   <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em] mb-3 opacity-70">Financial Score</div>
                   <div className="text-4xl font-black text-text-secondary">
                     <Link to={`/financial/${result.ticker}`} className="text-accent-secondary group-hover:text-accent-primary transition-colors">
@@ -316,7 +316,7 @@ const SearchPage: React.FC = () => {
               )}
 
               {result.data.adjusted_pe_ratio !== null && (
-                <div className="bg-bg-primary/50 p-6 rounded-2xl border border-border-color hover:border-accent-secondary transition-all group text-left shadow-sm">
+                <div className="bg-bg-primary/50 p-6 border border-border-color hover:border-accent-secondary transition-all group text-left shadow-sm">
                   <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em] mb-3 opacity-70">Adjusted PE</div>
                   <div className="text-4xl font-black text-text-secondary">
                     <Link to={`/adjusted-pe/${result.ticker}`} className="text-accent-secondary group-hover:text-accent-primary transition-colors">
@@ -327,7 +327,7 @@ const SearchPage: React.FC = () => {
               )}
 
               {result.data.current_year_growth !== null && (
-                <div className="bg-bg-primary/50 p-6 rounded-2xl border border-border-color transition-all text-left shadow-sm">
+                <div className="bg-bg-primary/50 p-6 border border-border-color transition-all text-left shadow-sm">
                   <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em] mb-3 opacity-70">Growth (Current)</div>
                   <div className="text-4xl font-black text-text-secondary">
                     {result.data.current_year_growth.toFixed(1)}%
@@ -336,7 +336,7 @@ const SearchPage: React.FC = () => {
               )}
 
               {result.data.next_year_growth !== null && (
-                <div className="bg-bg-primary/50 p-6 rounded-2xl border border-border-color transition-all text-left shadow-sm">
+                <div className="bg-bg-primary/50 p-6 border border-border-color transition-all text-left shadow-sm">
                   <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em] mb-3 opacity-70">Growth (Next)</div>
                   <div className="text-4xl font-black text-text-secondary">
                     {result.data.next_year_growth.toFixed(1)}%
@@ -344,7 +344,7 @@ const SearchPage: React.FC = () => {
                 </div>
               )}
 
-              <div className="bg-bg-primary/50 p-6 rounded-2xl border border-border-color transition-all text-left shadow-sm">
+              <div className="bg-bg-primary/50 p-6 border border-border-color transition-all text-left shadow-sm">
                 <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em] mb-3 opacity-70">Short Float</div>
                 <div className="text-3xl font-black text-text-secondary truncate">
                   {result.data.short_float || 'N/A'}

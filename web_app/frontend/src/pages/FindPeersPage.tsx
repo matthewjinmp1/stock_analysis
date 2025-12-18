@@ -36,29 +36,28 @@ const FindPeersPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col">
-      <div className="p-6 pb-0">
-        <button 
-          onClick={() => navigate(-1)} 
-          className="flex items-center gap-2 px-4 py-2 bg-button-bg text-text-secondary border border-border-color rounded-lg transition-all hover:bg-opacity-80 hover:text-accent-primary hover:border-accent-primary hover:-translate-x-1"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back
-        </button>
-      </div>
-
-      <div className="p-10 text-center">
-        <h1 className="text-[2.5em] font-bold mb-2.5 text-text-secondary [text-shadow:0_0_8px_var(--glow-primary)]">
+    <div className="flex flex-col w-full min-h-screen">
+      <div className="p-10 text-center border-b border-border-color bg-header-bg">
+        <h1 className="text-4xl md:text-5xl font-black mb-4 text-text-secondary [text-shadow:0_0_8px_var(--glow-primary)]">
           🤖 AI Peer Finder
         </h1>
-        <p className="opacity-85 text-[1.1em] text-text-primary">
+        <p className="opacity-85 text-xl text-text-primary font-medium">
           Find comparable companies using artificial intelligence
         </p>
+        <div className="mt-6 flex justify-center">
+          <button 
+            onClick={() => navigate(-1)} 
+            className="flex items-center gap-3 px-8 py-3 bg-button-bg text-text-secondary border border-border-color font-black text-lg transition-all hover:bg-accent-primary hover:text-bg-primary hover:border-accent-primary active:scale-95 shadow-lg"
+          >
+            <ArrowLeft className="w-5 h-5" /> Back to Search
+          </button>
+        </div>
       </div>
 
-      <div className="p-10 pt-0 bg-bg-secondary flex flex-col items-center">
-        <div className="w-full max-w-lg p-[30px] bg-bg-secondary rounded-[15px] border border-border-color shadow-[0_0_15px_var(--shadow-color)] text-center mb-5">
-          <div className="mb-5">
-            <label htmlFor="tickerInput" className="block text-text-secondary mb-2 font-medium">Enter Ticker Symbol:</label>
+      <div className="p-10 bg-bg-secondary flex-1 flex flex-col items-center">
+        <div className="w-full max-w-2xl p-10 bg-bg-tertiary border border-border-color shadow-2xl text-center mb-10">
+          <div className="mb-8 text-center">
+            <label htmlFor="tickerInput" className="block text-text-muted mb-4 font-black uppercase tracking-widest opacity-70">Enter Ticker Symbol:</label>
             <input 
               type="text" 
               id="tickerInput" 
@@ -66,23 +65,23 @@ const FindPeersPage: React.FC = () => {
               onChange={(e) => setTicker(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleFindPeers()}
               placeholder="e.g., AAPL, MSFT, GOOGL" 
-              className="w-full p-3 bg-input-bg border border-border-color rounded-lg text-text-secondary text-center text-[1em] outline-none focus:border-accent-secondary focus:shadow-[0_0_8px_var(--glow-primary)] uppercase"
+              className="w-full p-5 bg-input-bg border border-border-color text-text-secondary text-center text-2xl outline-none focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 shadow-sm uppercase font-black"
             />
           </div>
           <button 
             onClick={handleFindPeers}
             disabled={loading}
-            className="w-full py-3 bg-button-bg text-text-primary border border-border-color rounded-lg font-semibold transition-all hover:bg-accent-primary hover:text-bg-primary hover:border-accent-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-5 bg-accent-primary text-bg-primary font-black text-xl transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
           >
-            {loading ? 'Searching...' : 'Find Peers'}
+            {loading ? 'ANALYZING MARKET...' : 'FIND COMPARABLE PEERS'}
           </button>
         </div>
 
         {loading && (
-          <div className="text-center p-10 text-text-muted w-full max-w-lg">
-            <Loader2 className="w-10 h-10 animate-spin mx-auto mb-5 text-accent-primary" />
-            <p className="text-lg">Finding peers for {ticker.toUpperCase()} using AI...</p>
-            <p className="text-sm mt-2 opacity-70">
+          <div className="text-center p-20 text-text-muted w-full max-w-2xl bg-bg-tertiary border border-border-color shadow-2xl">
+            <Loader2 className="w-12 h-12 animate-spin mx-auto mb-6 text-accent-primary" />
+            <p className="text-2xl font-black text-text-secondary mb-4 uppercase tracking-widest">Finding peers for {ticker.toUpperCase()}...</p>
+            <p className="text-lg font-medium opacity-70">
               AI is analyzing the market to find the 10 most comparable companies.
               This typically takes 20-30 seconds.
             </p>
@@ -90,25 +89,25 @@ const FindPeersPage: React.FC = () => {
         )}
 
         {error && (
-          <div className="w-full max-w-lg bg-button-bg text-accent-danger p-5 rounded-[12px] border border-accent-danger text-center mt-5">
-            <AlertCircle className="w-8 h-8 mx-auto mb-2" />
-            <p>{error}</p>
+          <div className="w-full max-w-2xl bg-accent-danger/10 text-accent-danger p-8 border border-accent-danger/30 text-center mt-10 shadow-2xl">
+            <AlertCircle className="w-12 h-12 mx-auto mb-4" />
+            <p className="font-black text-xl">{error}</p>
           </div>
         )}
 
         {result && (
-          <div className="w-full max-w-3xl animate-[fadeIn_0.5s_ease-out]">
-            <div className="bg-bg-secondary rounded-[15px] p-[30px] border border-border-color shadow-[0_0_15px_var(--shadow-color)] mb-5">
-              <div className="text-center mb-[30px] pb-5 border-b border-border-color">
-                <h2 className="text-2xl font-bold text-text-secondary mb-1">{result.ticker}</h2>
-                <p className="text-text-muted">{result.company_name || 'Company name not found'}</p>
+          <div className="w-full max-w-4xl animate-[fadeIn_0.5s_ease-out]">
+            <div className="bg-bg-tertiary p-10 border border-border-color shadow-2xl mb-10">
+              <div className="text-center mb-10 pb-6 border-b border-border-color">
+                <h2 className="text-4xl font-black text-accent-secondary mb-2">{result.ticker}</h2>
+                <p className="text-xl font-medium text-text-muted italic">{result.company_name || 'Company name not found'}</p>
               </div>
               
-              <div className="grid gap-[15px]">
+              <div className="grid gap-4">
                 {result.peers.map((peer: any, index: number) => (
-                  <div key={index} className="bg-bg-primary p-[15px] rounded-lg border border-border-color transition-all hover:bg-table-hover-bg hover:border-accent-primary flex items-center gap-4">
-                    <div className="text-text-muted font-bold text-lg w-8">#{index + 1}</div>
-                    <div className="text-text-secondary font-medium text-lg">
+                  <div key={index} className="bg-bg-primary p-6 border border-border-color transition-all hover:bg-table-hover-bg hover:border-accent-primary flex items-center gap-6 group">
+                    <div className="text-text-muted font-black text-2xl w-12 opacity-50 group-hover:text-accent-secondary transition-colors">#{index + 1}</div>
+                    <div className="text-text-secondary font-black text-2xl">
                       {typeof peer === 'string' ? peer : `${peer.name} (${peer.ticker})`}
                     </div>
                   </div>
@@ -117,25 +116,21 @@ const FindPeersPage: React.FC = () => {
             </div>
 
             {(result.elapsed_time || result.token_usage || result.estimated_cost) && (
-              <div className="bg-card-bg rounded-lg p-[15px] border border-border-color">
-                <h3 className="text-text-secondary font-semibold mb-2.5 flex items-center gap-2">
-                  <Cpu className="w-4 h-4" /> Query Statistics
+              <div className="bg-bg-secondary p-8 border border-border-color shadow-xl mb-20">
+                <h3 className="text-text-muted font-black text-sm uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
+                  <Cpu className="w-5 h-5" /> Query Statistics
                 </h3>
-                <div className="space-y-1 text-sm">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {result.elapsed_time && (
-                    <p className="text-text-muted flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5" /> Time taken: {result.elapsed_time.toFixed(2)} seconds
-                    </p>
+                    <div className="bg-bg-primary p-4 border border-border-color/50 flex items-center gap-4">
+                      <Clock className="w-5 h-5 text-accent-secondary" />
+                      <span className="text-text-secondary font-bold">Time: {result.elapsed_time.toFixed(2)}s</span>
+                    </div>
                   )}
                   {result.estimated_cost !== undefined && (
-                    <p className="text-text-muted flex items-center gap-2">
-                      <DollarSign className="w-3.5 h-3.5" /> Estimated cost: {(result.estimated_cost * 100).toFixed(4)} cents
-                    </p>
-                  )}
-                  {result.token_usage && (
-                    <div className="text-text-muted text-[0.9em] flex items-start gap-2 mt-2">
-                      <ListOrdered className="w-3.5 h-3.5 mt-0.5" /> 
-                      <span>Token usage: {JSON.stringify(result.token_usage)}</span>
+                    <div className="bg-bg-primary p-4 border border-border-color/50 flex items-center gap-4">
+                      <DollarSign className="w-5 h-5 text-accent-success" />
+                      <span className="text-text-secondary font-bold">Cost: {(result.estimated_cost * 100).toFixed(4)}¢</span>
                     </div>
                   )}
                 </div>

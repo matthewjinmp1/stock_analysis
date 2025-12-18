@@ -15,15 +15,15 @@ const Layout: React.FC<LayoutProps> = ({ children, maxWidth = '800px' }) => {
   return (
     <div className="min-h-screen py-10 px-4 text-text-primary bg-bg-primary flex flex-col items-center">
       <div 
-        className="w-full bg-bg-secondary rounded-[24px] border border-border-color shadow-2xl animate-pulse-glow relative"
+        className="w-full bg-bg-secondary border border-border-color shadow-2xl animate-pulse-glow relative"
         style={containerStyle}
       >
         {/* Theme Switcher */}
-        <div className="flex justify-end gap-2.5 p-4 bg-bg-tertiary border-b border-border-color rounded-t-[24px]">
+        <div className="flex justify-end gap-2.5 p-4 bg-bg-tertiary border-b border-border-color">
           <select 
             value={theme}
             onChange={(e) => setTheme(e.target.value as any)}
-            className="p-2 px-3 text-[0.9em] bg-button-bg text-text-secondary border border-border-color rounded-lg cursor-pointer transition-all hover:opacity-80 focus:outline-none focus:border-accent-secondary font-sans min-w-[140px]"
+            className="p-2 px-3 text-[0.9em] bg-button-bg text-text-secondary border border-border-color cursor-pointer transition-all hover:opacity-80 focus:outline-none focus:border-accent-secondary font-sans min-w-[140px]"
           >
             <option value="dark">🌙 Cyber</option>
             <option value="light">☀️ Light</option>

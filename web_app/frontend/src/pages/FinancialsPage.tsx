@@ -55,11 +55,11 @@ const FinancialsPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col w-full pb-10">
       <div className="p-6">
         <button 
           onClick={() => navigate(-1)} 
-          className="flex items-center gap-2 px-4 py-2 bg-button-bg text-text-secondary border border-border-color rounded-lg transition-all hover:bg-opacity-80 hover:text-accent-primary hover:border-accent-primary hover:-translate-x-1"
+          className="flex items-center gap-2 px-5 py-2.5 bg-button-bg text-text-secondary border border-border-color font-bold transition-all hover:bg-opacity-80 hover:text-accent-primary hover:border-accent-primary hover:-translate-x-1 shadow-sm"
         >
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
@@ -67,70 +67,70 @@ const FinancialsPage: React.FC = () => {
 
       {loading ? (
         <div className="text-center p-20 text-text-muted min-h-[400px]">
-          <Loader2 className="w-10 h-10 animate-spin mx-auto mb-5 text-accent-primary" />
-          <p>Loading financial metrics...</p>
+          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-6 text-accent-primary" />
+          <p className="font-bold text-lg">Loading financial metrics...</p>
         </div>
       ) : error ? (
-        <div className="p-10 mx-6 bg-bg-tertiary rounded-[15px] border border-accent-danger text-center text-accent-danger mb-10">
-          <AlertCircle className="w-10 h-10 mx-auto mb-4" />
-          <h2 className="text-xl font-bold mb-2">Error</h2>
-          <p>{error}</p>
+        <div className="p-12 mx-6 bg-accent-danger/5 border border-accent-danger/20 text-center text-accent-danger mb-10 shadow-lg">
+          <AlertCircle className="w-12 h-12 mx-auto mb-4" />
+          <h2 className="text-2xl font-black mb-2">Error</h2>
+          <p className="font-medium">{error}</p>
         </div>
       ) : data ? (
         <>
-          <div className="p-10 text-center">
-            <h1 className="text-[2.5em] font-bold mb-2.5 text-text-secondary [text-shadow:0_0_8px_var(--glow-primary)]">
+          <div className="p-10 text-center border-b border-border-color bg-bg-tertiary/30 mb-8">
+            <h1 className="text-4xl md:text-5xl font-black mb-4 text-text-secondary [text-shadow:0_0_8px_var(--glow-primary)]">
               {data.company_name || data.ticker}
             </h1>
-            <div className="text-[1.2em] text-accent-secondary mb-5 bg-button-bg p-[5px_15px] rounded-lg inline-block border border-border-color">
+            <div className="text-2xl text-accent-secondary font-black bg-button-bg px-6 py-2 inline-block border border-border-color shadow-sm">
               {data.ticker}
             </div>
             
             {data.total_percentile !== null && (
-              <div className="flex gap-5 mt-5 justify-center">
-                <div className="bg-bg-primary p-[15px] rounded-lg border border-border-color shadow-[0_0_8px_var(--shadow-color)] min-w-[150px]">
-                  <div className="text-[0.9em] text-text-muted mb-1.25">Financial Score</div>
-                  <div className="text-[1.5em] font-bold text-text-secondary">{data.total_percentile.toFixed(1)}th percentile</div>
+              <div className="flex flex-wrap gap-6 mt-8 justify-center">
+                <div className="bg-bg-primary p-6 border border-border-color shadow-xl min-w-[180px] text-left">
+                  <div className="text-xs font-black text-text-muted uppercase tracking-widest mb-2 opacity-70">Financial Score</div>
+                  <div className="text-4xl font-black text-text-secondary">{data.total_percentile.toFixed(1)}th percentile</div>
                 </div>
                 {data.total_rank !== null && (
-                  <div className="bg-bg-primary p-[15px] rounded-lg border border-border-color shadow-[0_0_8px_var(--shadow-color)] min-w-[150px]">
-                    <div className="text-[0.9em] text-text-muted mb-1.25">Rank</div>
-                    <div className="text-[1.5em] font-bold text-text-secondary">{data.total_rank}</div>
+                  <div className="bg-bg-primary p-6 border border-border-color shadow-xl min-w-[180px] text-left">
+                    <div className="text-xs font-black text-text-muted uppercase tracking-widest mb-2 opacity-70">Rank</div>
+                    <div className="text-4xl font-black text-text-secondary">{data.total_rank}</div>
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          <div className="m-[0_20px_20px] bg-bg-primary rounded-[15px] overflow-hidden border border-border-color shadow-[0_0_15px_var(--shadow-color)] overflow-x-auto">
+          <div className="mx-6 bg-bg-primary border border-border-color shadow-2xl overflow-x-auto">
             <table className="w-full border-collapse">
               <thead className="bg-table-header-bg text-text-secondary">
                 <tr>
-                  <th className="p-[15px] text-left font-semibold border-b border-border-color">Metric</th>
-                  <th className="p-[15px] text-right font-semibold border-b border-border-color">Value</th>
-                  <th className="p-[15px] text-center font-semibold border-b border-border-color">Rank</th>
-                  <th className="p-[15px] text-center font-semibold border-b border-border-color">Percentile</th>
+                  <th className="p-6 text-left font-black uppercase text-xs tracking-widest border-b border-border-color">Metric</th>
+                  <th className="p-6 text-right font-black uppercase text-xs tracking-widest border-b border-border-color">Value</th>
+                  <th className="p-6 text-center font-black uppercase text-xs tracking-widest border-b border-border-color">Rank</th>
+                  <th className="p-6 text-center font-black uppercase text-xs tracking-widest border-b border-border-color">Percentile</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-border-color/50">
                 {data.metrics.map((metric) => (
-                  <tr key={metric.key} className="hover:bg-table-hover-bg transition-all">
-                    <td className="p-[12px_15px] border-b border-border-color">
-                      <div className="font-medium text-text-secondary">{metric.name}</div>
-                      <div className="text-[0.85em] text-text-muted mt-1 italic">{metric.description}</div>
+                  <tr key={metric.key} className="hover:bg-table-hover-bg transition-all group">
+                    <td className="p-6">
+                      <div className="font-bold text-lg text-text-secondary">{metric.name}</div>
+                      <div className="text-sm text-text-muted mt-1 italic">{metric.description}</div>
                     </td>
-                    <td className="p-[12px_15px] border-b border-border-color text-right font-semibold text-text-secondary">
+                    <td className="p-6 text-right font-black text-text-secondary text-lg">
                       {metric.value !== null ? (
                         Math.abs(metric.value) >= 1 || metric.value === 0 
                           ? metric.value.toFixed(2) 
                           : metric.value.toFixed(4)
                       ) : 'N/A'}
                     </td>
-                    <td className="p-[12px_15px] border-b border-border-color text-center text-text-muted">
+                    <td className="p-6 text-center text-text-muted font-bold">
                       {metric.rank ?? 'N/A'}
                     </td>
-                    <td className="p-[12px_15px] border-b border-border-color text-center">
-                      <span className={`inline-block p-[4px_12px] rounded-full font-semibold text-[0.9em] border ${getPercentileBadgeClass(metric.percentile)}`}>
+                    <td className="p-6 text-center">
+                      <span className={`inline-block px-4 py-1.5 font-black text-base border shadow-sm ${getPercentileBadgeClass(metric.percentile)}`}>
                         {metric.percentile !== null ? `${metric.percentile.toFixed(1)}th` : 'N/A'}
                       </span>
                     </td>

@@ -112,7 +112,7 @@ const AIScoresPage: React.FC = () => {
         <div className="flex justify-center mt-6">
           <button 
             onClick={() => navigate(-1)} 
-            className="flex items-center gap-3 px-8 py-3 bg-button-bg text-text-secondary border border-border-color rounded-full font-black text-lg transition-all hover:bg-accent-primary hover:text-bg-primary hover:border-accent-primary shadow-lg active:scale-95"
+            className="flex items-center gap-3 px-8 py-3 bg-button-bg text-text-secondary border border-border-color font-black text-lg transition-all hover:bg-accent-primary hover:text-bg-primary hover:border-accent-primary shadow-lg active:scale-95"
           >
             <ArrowLeft className="w-5 h-5" /> Back to Search
           </button>
@@ -121,7 +121,7 @@ const AIScoresPage: React.FC = () => {
 
       <div className="p-4 md:p-12 bg-bg-secondary flex-1 flex flex-col items-center">
         {/* Search Bar Section */}
-        <div className="w-full max-w-[1000px] bg-bg-secondary rounded-[32px] p-8 md:p-10 mb-6 border border-border-color shadow-2xl">
+        <div className="w-full max-w-[1000px] bg-bg-secondary p-8 md:p-10 mb-6 border border-border-color shadow-2xl">
           <div className="relative w-full max-w-2xl mx-auto group">
             <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center justify-center z-20 pointer-events-none">
               <Search className="w-6 h-6 text-text-muted group-focus-within:text-accent-secondary transition-colors" />
@@ -131,21 +131,21 @@ const AIScoresPage: React.FC = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by ticker or company name..." 
-              className="w-full pr-8 py-5 bg-input-bg border border-border-color rounded-2xl text-text-secondary text-xl outline-none transition-all focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 shadow-sm relative z-10 font-medium"
+              className="w-full pr-8 py-5 bg-input-bg border border-border-color text-text-secondary text-xl outline-none transition-all focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 shadow-sm relative z-10 font-medium"
               style={{ paddingLeft: '4.5rem' }}
             />
           </div>
         </div>
 
         {/* Metric Selection Section */}
-        <div className="w-full max-w-[1000px] bg-bg-secondary rounded-[32px] p-8 md:p-10 mb-10 border border-border-color shadow-2xl">
+        <div className="w-full max-w-[1000px] bg-bg-secondary p-8 md:p-10 mb-10 border border-border-color shadow-2xl">
           <p className="text-sm text-text-muted mb-6 font-black uppercase tracking-widest opacity-70 text-center md:text-left">Select Metrics to Show:</p>
           <div className="flex flex-wrap justify-center md:justify-start gap-3">
             {Object.keys(METRIC_LABELS).map(key => (
               <button
                 key={key}
                 onClick={() => toggleMetric(key)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-black cursor-pointer transition-all border shadow-sm ${
+                className={`flex items-center gap-2 px-5 py-2.5 font-black cursor-pointer transition-all border shadow-sm ${
                   visibleMetrics.includes(key) 
                     ? 'bg-accent-primary border-accent-primary text-bg-primary scale-105' 
                     : 'bg-bg-primary text-text-secondary border-border-color hover:border-accent-primary hover:text-accent-primary'
@@ -158,7 +158,7 @@ const AIScoresPage: React.FC = () => {
         </div>
 
         {/* Scores Section */}
-        <div className="w-full max-w-[1400px] bg-bg-secondary rounded-3xl p-4 border border-border-color shadow-2xl overflow-hidden min-h-[500px]">
+        <div className="w-full max-w-[1400px] bg-bg-secondary p-4 border border-border-color shadow-2xl overflow-hidden min-h-[500px]">
           {loading ? (
             <div className="text-center p-20 text-text-muted">
               <Loader2 className="w-12 h-12 animate-spin mx-auto mb-6 text-accent-primary" />

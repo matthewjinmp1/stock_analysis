@@ -86,58 +86,58 @@ const AdjustedPEPage: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col">
-      <div className="p-10 text-center border-b border-border-color bg-header-bg rounded-t-[15px]">
-        <h1 className="text-[2.5em] font-bold mb-2.5 text-text-secondary [text-shadow:0_0_8px_var(--glow-primary)]">
+    <div className="flex flex-col w-full min-h-screen">
+      <div className="p-10 text-center border-b border-border-color bg-header-bg">
+        <h1 className="text-4xl md:text-5xl font-black mb-4 text-text-secondary [text-shadow:0_0_8px_var(--glow-primary)]">
           Adjusted PE Breakdown
         </h1>
-        <p className="opacity-85 text-[1.2em] text-accent-secondary mb-5 bg-button-bg p-[5px_15px] rounded-lg inline-block border border-border-color">
+        <p className="opacity-85 text-xl text-accent-secondary mb-5 bg-button-bg px-6 py-2 inline-block border border-border-color font-black">
           {ticker}
         </p>
         <button 
           onClick={() => navigate(-1)} 
-          className="mt-5 flex items-center gap-2 px-5 py-2.5 bg-button-bg text-text-secondary border border-border-color rounded-lg transition-all hover:bg-opacity-80 hover:text-accent-primary hover:border-accent-primary hover:-translate-x-1 mx-auto"
+          className="mt-5 flex items-center gap-2 px-8 py-3 bg-button-bg text-text-secondary border border-border-color font-black text-lg transition-all hover:bg-opacity-80 hover:text-accent-primary hover:border-accent-primary hover:-translate-x-1 mx-auto shadow-lg active:scale-95"
         >
-          <ArrowLeft className="w-4 h-4" /> Back
+          <ArrowLeft className="w-5 h-5" /> Back
         </button>
       </div>
 
-      <div className="p-[20px_40px_40px] bg-bg-secondary min-h-[400px]">
+      <div className="p-10 bg-bg-secondary flex-1 flex flex-col items-center">
         {loading ? (
-          <div className="text-center p-10 text-text-muted">
-            <Loader2 className="w-10 h-10 animate-spin mx-auto mb-5 text-accent-primary" />
-            <p>Loading adjusted PE data...</p>
+          <div className="text-center p-20 text-text-muted">
+            <Loader2 className="w-12 h-12 animate-spin mx-auto mb-6 text-accent-primary" />
+            <p className="font-bold text-lg">Loading adjusted PE data...</p>
           </div>
         ) : error ? (
-          <div className="bg-bg-tertiary p-10 rounded-[15px] border border-accent-danger text-center text-accent-danger">
-            <AlertCircle className="w-10 h-10 mx-auto mb-4" />
-            <p>{error}</p>
+          <div className="bg-bg-tertiary p-12 border border-accent-danger text-center text-accent-danger shadow-2xl max-w-2xl">
+            <AlertCircle className="w-12 h-12 mx-auto mb-4" />
+            <p className="font-black text-xl">{error}</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-5">
-            <div className="bg-card-bg rounded-[15px] p-[30px] border border-border-color shadow-[0_0_15px_var(--shadow-color)]">
-              <h2 className="text-[1.5em] font-semibold text-text-secondary mb-5">Adjusted PE Ratio</h2>
-              <div className="text-[3em] font-bold text-accent-secondary mb-2.5">
+          <div className="flex flex-col gap-8 w-full max-w-[1000px]">
+            <div className="bg-card-bg p-10 border border-border-color shadow-2xl">
+              <h2 className="text-2xl font-black text-text-secondary mb-6 uppercase tracking-widest opacity-70">Adjusted PE Ratio</h2>
+              <div className="text-6xl font-black text-accent-secondary mb-4">
                 {data.adjusted_pe_ratio !== null && data.adjusted_pe_ratio !== undefined ? fmt(data.adjusted_pe_ratio) : 'N/A'}
               </div>
-              <div className="text-[0.9em] text-text-muted">Click any ticker to recalculate from QuickFS/yfinance if data is missing.</div>
+              <div className="text-sm text-text-muted font-medium italic">Click any ticker to recalculate from QuickFS/yfinance if data is missing.</div>
             </div>
 
-            <div className="bg-card-bg rounded-[15px] p-[30px] border border-border-color shadow-[0_0_15px_var(--shadow-color)]">
-              <h2 className="text-[1.5em] font-semibold text-text-secondary mb-5">TTM Components</h2>
+            <div className="bg-card-bg p-10 border border-border-color shadow-2xl overflow-hidden">
+              <h2 className="text-2xl font-black text-text-secondary mb-6 uppercase tracking-widest opacity-70">TTM Components</h2>
               <div className="overflow-x-auto">
-                <table className="w-full border-collapse mt-2.5">
+                <table className="w-full border-collapse">
                   <thead>
                     <tr className="bg-table-header-bg">
-                      <th className="p-[15px] text-left border-b border-border-color font-semibold text-text-secondary uppercase text-[0.85em] tracking-wider">Item</th>
-                      <th className="p-[15px] text-left border-b border-border-color font-semibold text-text-secondary uppercase text-[0.85em] tracking-wider">Value</th>
+                      <th className="p-5 text-left border-b border-border-color font-black text-text-secondary uppercase text-xs tracking-[0.2em]">Item</th>
+                      <th className="p-5 text-left border-b border-border-color font-black text-text-secondary uppercase text-xs tracking-[0.2em]">Value</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-border-color/30">
                     {fields.map((f, i) => (
-                      <tr key={i} className="hover:bg-table-hover-bg transition-all">
-                        <td className="p-[15px] border-b border-border-color font-medium text-text-secondary">{f.label}</td>
-                        <td className="p-[15px] border-b border-border-color text-text-secondary">{f.value}</td>
+                      <tr key={i} className="hover:bg-table-hover-bg transition-all group">
+                        <td className="p-5 font-bold text-text-secondary text-lg">{f.label}</td>
+                        <td className="p-5 font-black text-accent-secondary text-lg">{f.value}</td>
                       </tr>
                     ))}
                   </tbody>

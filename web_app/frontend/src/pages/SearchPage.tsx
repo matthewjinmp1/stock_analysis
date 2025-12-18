@@ -29,7 +29,6 @@ const HomePage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ ticker: string; data: StockData; in_watchlist: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState<string>('');
   
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -37,12 +36,6 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     const q = searchParams.get('q');
     if (q) performSearch(q);
-
-    api.getList().then(data => {
-      if (data.success) {
-        setStats(`Database contains ${data.count} tickers with cached short interest data`);
-      }
-    }).catch(err => console.error('Error loading stats:', err));
 
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) && 
@@ -171,22 +164,19 @@ const HomePage: React.FC = () => {
         <p className="opacity-80 text-lg text-text-primary mb-6">
           Analyze stocks with AI scores, financial metrics, and short interest data
         </p>
-        <div className="flex justify-center flex-wrap gap-3">
-          <Link to="/watchlist" className="px-4 py-2 bg-button-bg text-text-secondary border border-border-color rounded-full transition-all hover:bg-accent-primary hover:text-bg-primary hover:border-accent-primary shadow-sm text-sm font-semibold">
+        <div className="flex justify-center flex-wrap gap-6 mt-4">
+          <Link to="/watchlist" className="px-6 py-2.5 bg-button-bg text-text-secondary border border-border-color rounded-full transition-all hover:bg-accent-primary hover:text-bg-primary hover:border-accent-primary shadow-sm text-base font-bold">
             View Watchlist
           </Link>
-          <Link to="/ai-scores" className="px-4 py-2 bg-button-bg text-text-secondary border border-border-color rounded-full transition-all hover:bg-accent-primary hover:text-bg-primary hover:border-accent-primary shadow-sm text-sm font-semibold">
+          <Link to="/ai-scores" className="px-6 py-2.5 bg-button-bg text-text-secondary border border-border-color rounded-full transition-all hover:bg-accent-primary hover:text-bg-primary hover:border-accent-primary shadow-sm text-base font-bold">
             AI Analysis Scores
-          </Link>
-          <Link to="/find-peers" className="px-4 py-2 bg-button-bg text-text-secondary border border-border-color rounded-full transition-all hover:bg-accent-primary hover:text-bg-primary hover:border-accent-primary shadow-sm text-sm font-semibold">
-            🤖 Find Peers
           </Link>
         </div>
       </div>
 
       {/* Search Section */}
-      <div className="p-8 bg-bg-secondary flex flex-col items-center border-b border-border-color">
-        <div className="flex gap-2 w-full max-w-[600px]">
+      <div className="p-12 bg-bg-secondary flex flex-col items-center border-b border-border-color">
+        <div className="flex gap-4 w-full max-w-[700px]">
           <div className="relative flex-1">
             <input
               ref={inputRef}
@@ -195,25 +185,25 @@ const HomePage: React.FC = () => {
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Search tickers or company names..."
-              className="w-full p-4 text-lg bg-input-bg text-text-secondary border border-border-color rounded-xl outline-none transition-all focus:border-accent-secondary focus:ring-2 focus:ring-accent-secondary/20"
+              className="w-full p-5 text-xl bg-input-bg text-text-secondary border border-border-color rounded-2xl outline-none transition-all focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10"
               autoComplete="off"
             />
             
             {showDropdown && (
               <div 
                 ref={dropdownRef}
-                className="absolute top-full left-0 right-0 mt-1 bg-bg-primary border border-border-color rounded-xl shadow-xl max-h-[300px] overflow-y-auto z-[2000]"
+                className="absolute top-full left-0 right-0 mt-2 bg-bg-primary border border-border-color rounded-2xl shadow-2xl max-h-[400px] overflow-y-auto z-[2000] opacity-100 ring-1 ring-black/5"
               >
                 {suggestions.map((suggestion, index) => (
                   <div
                     key={suggestion.ticker}
                     onClick={() => selectSuggestion(suggestion)}
-                    className={`p-4 border-b border-border-color last:border-b-0 cursor-pointer transition-all flex justify-between items-center text-text-secondary hover:bg-table-hover-bg ${
+                    className={`p-5 border-b border-border-color last:border-b-0 cursor-pointer transition-all flex justify-between items-center text-text-secondary bg-bg-primary hover:bg-table-hover-bg ${
                       index === selectedIndex ? 'bg-table-hover-bg border-l-4 border-accent-secondary' : ''
                     }`}
                   >
-                    <div className="font-bold text-accent-secondary">{suggestion.ticker}</div>
-                    <div className="text-sm opacity-80 flex-1 ml-4 text-right truncate">{suggestion.company_name}</div>
+                    <div className="font-bold text-xl text-accent-secondary">{suggestion.ticker}</div>
+                    <div className="text-base opacity-80 flex-1 ml-6 text-right truncate">{suggestion.company_name}</div>
                   </div>
                 ))}
               </div>
@@ -222,7 +212,7 @@ const HomePage: React.FC = () => {
           <button 
             onClick={handleSearch}
             disabled={loading}
-            className="px-8 bg-accent-primary text-bg-primary rounded-xl font-bold transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 whitespace-nowrap shadow-md"
+            className="px-10 bg-accent-primary text-bg-primary rounded-2xl font-black text-lg transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 whitespace-nowrap shadow-lg"
           >
             {loading ? '...' : 'Search'}
           </button>
@@ -230,43 +220,43 @@ const HomePage: React.FC = () => {
 
         {/* Loading State */}
         {loading && (
-          <div className="text-center p-8 text-text-muted">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-accent-primary" />
-            <p className="font-medium">Loading {query.toUpperCase()}...</p>
+          <div className="text-center p-12 text-text-muted">
+            <Loader2 className="w-12 h-12 animate-spin mx-auto mb-6 text-accent-primary" />
+            <p className="font-bold text-lg">Loading {query.toUpperCase()}...</p>
           </div>
         )}
 
         {/* Error State */}
         {error && (
-          <div className="w-full max-w-[600px] bg-accent-danger/10 text-accent-danger p-4 rounded-xl border border-accent-danger/20 mt-6 flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 flex-shrink-0" />
-            <p className="font-medium"><strong>Error:</strong> {error}</p>
+          <div className="w-full max-w-[700px] bg-accent-danger/10 text-accent-danger p-6 rounded-2xl border border-accent-danger/20 mt-8 flex items-center gap-4">
+            <AlertCircle className="w-6 h-6 flex-shrink-0" />
+            <p className="font-bold"><strong>Error:</strong> {error}</p>
           </div>
         )}
 
         {/* Result Card */}
         {result && (
-          <div className="w-full max-w-[1000px] bg-card-bg rounded-2xl p-8 mt-8 border border-border-color shadow-xl animate-[slideIn_0.3s_ease-out]">
-            <div className="flex justify-between items-start mb-8 flex-wrap gap-6 text-left">
-              <div className="flex-1 min-w-[200px]">
-                <h2 className="text-3xl font-black text-text-secondary mb-2">
+          <div className="w-full max-w-[1000px] bg-card-bg rounded-[24px] p-10 mt-10 border border-border-color shadow-2xl animate-[slideIn_0.3s_ease-out]">
+            <div className="flex justify-between items-center mb-10 flex-wrap gap-8 text-left">
+              <div className="flex flex-wrap items-baseline gap-4 flex-1 min-w-[200px]">
+                <h2 className="text-4xl font-black text-text-secondary">
                   {result.data.company_name || result.ticker}
                 </h2>
-                <div className="inline-block text-xl text-accent-secondary font-black bg-button-bg px-4 py-1 rounded-lg border border-border-color">
+                <div className="text-2xl text-accent-secondary font-black bg-button-bg px-4 py-1 rounded-xl border border-border-color">
                   {result.ticker}
                 </div>
               </div>
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <Link 
                   to={`/peers/${result.ticker}`} 
-                  className="px-4 py-2 rounded-lg font-bold transition-all border border-border-color bg-button-bg text-text-secondary hover:bg-accent-secondary hover:text-bg-primary text-sm"
+                  className="px-6 py-3 rounded-xl font-black transition-all border border-border-color bg-button-bg text-text-secondary hover:bg-accent-secondary hover:text-bg-primary text-base shadow-sm"
                 >
                   Peers
                 </Link>
                 <button 
                   onClick={toggleWatchlist}
-                  className={`px-4 py-2 rounded-lg font-bold transition-all border border-border-color text-sm ${
+                  className={`px-6 py-3 rounded-xl font-black transition-all border border-border-color text-base shadow-sm ${
                     result.in_watchlist 
                       ? 'bg-accent-danger/10 text-accent-danger hover:bg-accent-danger hover:text-bg-primary border-accent-danger/30' 
                       : 'bg-accent-success/10 text-accent-success hover:bg-accent-success hover:text-bg-primary border-accent-success/30'
@@ -277,11 +267,11 @@ const HomePage: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {result.data.total_score_percentile_rank !== null && (
-                <div className="bg-bg-primary/50 p-4 rounded-xl border border-border-color hover:border-accent-secondary transition-all group text-left">
-                  <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1">Total Score</div>
-                  <div className="text-2xl font-black text-text-secondary">
+                <div className="bg-bg-primary/50 p-6 rounded-2xl border border-border-color hover:border-accent-secondary transition-all group text-left shadow-sm">
+                  <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em] mb-3 opacity-70">Total Score</div>
+                  <div className="text-4xl font-black text-text-secondary">
                     <Link to={`/metrics/${result.ticker}`} className="text-accent-secondary group-hover:text-accent-primary transition-colors">
                       {result.data.total_score_percentile_rank}%
                     </Link>
@@ -290,9 +280,9 @@ const HomePage: React.FC = () => {
               )}
               
               {result.data.financial_total_percentile !== null && (
-                <div className="bg-bg-primary/50 p-4 rounded-xl border border-border-color hover:border-accent-secondary transition-all group text-left">
-                  <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1">Financial Score</div>
-                  <div className="text-2xl font-black text-text-secondary">
+                <div className="bg-bg-primary/50 p-6 rounded-2xl border border-border-color hover:border-accent-secondary transition-all group text-left shadow-sm">
+                  <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em] mb-3 opacity-70">Financial Score</div>
+                  <div className="text-4xl font-black text-text-secondary">
                     <Link to={`/financial/${result.ticker}`} className="text-accent-secondary group-hover:text-accent-primary transition-colors">
                       {Math.round(result.data.financial_total_percentile!)}%
                     </Link>
@@ -301,9 +291,9 @@ const HomePage: React.FC = () => {
               )}
 
               {result.data.adjusted_pe_ratio !== null && (
-                <div className="bg-bg-primary/50 p-4 rounded-xl border border-border-color hover:border-accent-secondary transition-all group text-left">
-                  <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1">Adjusted PE</div>
-                  <div className="text-2xl font-black text-text-secondary">
+                <div className="bg-bg-primary/50 p-6 rounded-2xl border border-border-color hover:border-accent-secondary transition-all group text-left shadow-sm">
+                  <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em] mb-3 opacity-70">Adjusted PE</div>
+                  <div className="text-4xl font-black text-text-secondary">
                     <Link to={`/adjusted-pe/${result.ticker}`} className="text-accent-secondary group-hover:text-accent-primary transition-colors">
                       {result.data.adjusted_pe_ratio.toFixed(2)}
                     </Link>
@@ -312,37 +302,32 @@ const HomePage: React.FC = () => {
               )}
 
               {result.data.current_year_growth !== null && (
-                <div className="bg-bg-primary/50 p-4 rounded-xl border border-border-color transition-all text-left">
-                  <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1">Growth (Current)</div>
-                  <div className="text-2xl font-black text-text-secondary">
+                <div className="bg-bg-primary/50 p-6 rounded-2xl border border-border-color transition-all text-left shadow-sm">
+                  <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em] mb-3 opacity-70">Growth (Current)</div>
+                  <div className="text-4xl font-black text-text-secondary">
                     {result.data.current_year_growth.toFixed(1)}%
                   </div>
                 </div>
               )}
 
               {result.data.next_year_growth !== null && (
-                <div className="bg-bg-primary/50 p-4 rounded-xl border border-border-color transition-all text-left">
-                  <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1">Growth (Next)</div>
-                  <div className="text-2xl font-black text-text-secondary">
+                <div className="bg-bg-primary/50 p-6 rounded-2xl border border-border-color transition-all text-left shadow-sm">
+                  <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em] mb-3 opacity-70">Growth (Next)</div>
+                  <div className="text-4xl font-black text-text-secondary">
                     {result.data.next_year_growth.toFixed(1)}%
                   </div>
                 </div>
               )}
 
-              <div className="bg-bg-primary/50 p-4 rounded-xl border border-border-color transition-all text-left">
-                <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1">Short Float</div>
-                <div className="text-xl font-black text-text-secondary truncate">
+              <div className="bg-bg-primary/50 p-6 rounded-2xl border border-border-color transition-all text-left shadow-sm">
+                <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em] mb-3 opacity-70">Short Float</div>
+                <div className="text-3xl font-black text-text-secondary truncate">
                   {result.data.short_float || 'N/A'}
                 </div>
               </div>
             </div>
           </div>
         )}
-      </div>
-
-      {/* Stats Footer */}
-      <div className="p-4 text-center bg-bg-tertiary text-text-muted text-sm font-medium">
-        {stats}
       </div>
 
       <style>{`

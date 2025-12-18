@@ -121,30 +121,30 @@ const AIScoresPage: React.FC = () => {
 
       <div className="p-10 bg-bg-secondary">
         {/* Controls Section */}
-        <div className="bg-bg-secondary rounded-[15px] p-5 mb-5 border border-border-color shadow-[0_0_15px_var(--shadow-color)]">
-          <div className="mb-5 text-center">
-            <div className="relative max-w-md mx-auto">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
+        <div className="bg-bg-secondary rounded-2xl p-8 mb-8 border border-border-color shadow-lg">
+          <div className="mb-8 text-center">
+            <div className="relative max-w-xl mx-auto group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-text-muted group-focus-within:text-accent-secondary transition-colors z-10" />
               <input 
                 type="text" 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by ticker or company name..." 
-                className="w-full pl-10 pr-5 py-3 bg-input-bg border border-border-color rounded-lg color-text-secondary outline-none focus:border-accent-secondary focus:shadow-[0_0_15px_var(--glow-secondary)]"
+                className="w-full pl-14 pr-6 py-4 bg-input-bg border border-border-color rounded-2xl text-text-secondary text-lg outline-none transition-all focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 relative"
               />
             </div>
           </div>
           
-          <p className="text-[0.9em] text-text-secondary mb-1.25 font-semibold">Select Metrics to Show:</p>
-          <div className="flex flex-wrap gap-2.5 mt-[15px] pt-[15px] border-t border-border-color">
+          <p className="text-sm text-text-muted mb-4 font-black uppercase tracking-widest opacity-70">Select Metrics to Show:</p>
+          <div className="flex flex-wrap gap-3 mt-4 pt-6 border-t border-border-color/50">
             {Object.keys(METRIC_LABELS).map(key => (
               <button
                 key={key}
                 onClick={() => toggleMetric(key)}
-                className={`flex items-center gap-1.25 px-3 py-1.25 rounded-full text-[0.85em] cursor-pointer transition-all border border-border-color ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold cursor-pointer transition-all border shadow-sm ${
                   visibleMetrics.includes(key) 
                     ? 'bg-accent-primary border-accent-primary text-bg-primary' 
-                    : 'bg-bg-primary text-text-secondary hover:bg-button-bg hover:border-accent-primary'
+                    : 'bg-bg-primary text-text-secondary border-border-color hover:border-accent-primary hover:text-accent-primary'
                 }`}
               >
                 {METRIC_LABELS[key]}
@@ -154,60 +154,66 @@ const AIScoresPage: React.FC = () => {
         </div>
 
         {/* Scores Section */}
-        <div className="bg-bg-secondary rounded-[15px] p-5 border border-border-color shadow-[0_0_15px_var(--shadow-color)] overflow-x-auto min-h-[400px]">
+        <div className="bg-bg-secondary rounded-3xl p-4 border border-border-color shadow-2xl overflow-hidden min-h-[500px]">
           {loading ? (
-            <div className="text-center p-10 text-text-muted">
-              <Loader2 className="w-10 h-10 animate-spin mx-auto mb-5 text-accent-primary" />
-              <p>Loading scores from AI database...</p>
+            <div className="text-center p-20 text-text-muted">
+              <Loader2 className="w-12 h-12 animate-spin mx-auto mb-6 text-accent-primary" />
+              <p className="font-bold text-lg">Loading scores from AI database...</p>
             </div>
           ) : error ? (
-            <div className="p-10 text-center text-accent-danger">
-              <AlertCircle className="w-10 h-10 mx-auto mb-4" />
-              <p>{error}</p>
+            <div className="p-12 text-center text-accent-danger">
+              <AlertCircle className="w-12 h-12 mx-auto mb-4" />
+              <p className="font-bold text-lg">{error}</p>
             </div>
           ) : (
-            <table className="w-full border-collapse text-text-primary">
-              <thead>
-                <tr className="bg-table-header-bg">
-                  <th className="p-[12px_15px] text-left border-b border-border-color uppercase text-[0.85em] tracking-wider font-semibold cursor-pointer sticky top-0 z-10 hover:bg-table-hover-bg text-text-secondary" onClick={() => handleSort('ticker')}>
-                    Ticker {getSortIcon('ticker')}
-                  </th>
-                  <th className="p-[12px_15px] text-left border-b border-border-color uppercase text-[0.85em] tracking-wider font-semibold cursor-pointer sticky top-0 z-10 hover:bg-table-hover-bg text-text-secondary" onClick={() => handleSort('company_name')}>
-                    Company {getSortIcon('company_name')}
-                  </th>
-                  <th className="p-[12px_15px] text-center border-b border-border-color uppercase text-[0.85em] tracking-wider font-semibold cursor-pointer sticky top-0 z-10 hover:bg-table-hover-bg text-text-secondary" onClick={() => handleSort('total_score_percentile_rank')}>
-                    Percentile {getSortIcon('total_score_percentile_rank')}
-                  </th>
-                  {visibleMetrics.map(m => (
-                    <th key={m} className="p-[12px_15px] text-center border-b border-border-color uppercase text-[0.85em] tracking-wider font-semibold cursor-pointer sticky top-0 z-10 hover:bg-table-hover-bg text-text-secondary" onClick={() => handleSort(m)}>
-                      {METRIC_LABELS[m]} {getSortIcon(m)}
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-text-primary">
+                <thead>
+                  <tr className="bg-table-header-bg">
+                    <th className="p-5 text-left border-b border-border-color uppercase text-[10px] tracking-[0.2em] font-black cursor-pointer sticky top-0 z-10 hover:bg-table-hover-bg text-text-secondary transition-colors" onClick={() => handleSort('ticker')}>
+                      Ticker {getSortIcon('ticker')}
                     </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {sortedAndFilteredScores.map((score, idx) => (
-                  <tr key={score.ticker + idx} className="hover:bg-table-hover-bg transition-all">
-                    <td className="p-[12px_15px] border-b border-border-color">
-                      <Link to={`/?q=${score.ticker}`} className="font-bold text-accent-secondary hover:underline hover:text-accent-primary transition-all">
-                        {score.ticker}
-                      </Link>
-                    </td>
-                    <td className="p-[12px_15px] border-b border-border-color text-text-secondary text-[0.9em] max-w-[250px] overflow-hidden text-ellipsis whitespace-nowrap" title={score.company_name}>
-                      {score.company_name || 'N/A'}
-                    </td>
-                    <td className="p-[12px_15px] border-b border-border-color text-center font-semibold text-text-secondary">
-                      {score.total_score_percentile_rank ?? 'N/A'}
-                    </td>
+                    <th className="p-5 text-left border-b border-border-color uppercase text-[10px] tracking-[0.2em] font-black cursor-pointer sticky top-0 z-10 hover:bg-table-hover-bg text-text-secondary transition-colors" onClick={() => handleSort('company_name')}>
+                      Company {getSortIcon('company_name')}
+                    </th>
+                    <th className="p-5 text-center border-b border-border-color uppercase text-[10px] tracking-[0.2em] font-black cursor-pointer sticky top-0 z-10 hover:bg-table-hover-bg text-text-secondary transition-colors" onClick={() => handleSort('total_score_percentile_rank')}>
+                      Percentile {getSortIcon('total_score_percentile_rank')}
+                    </th>
                     {visibleMetrics.map(m => (
-                      <td key={m} className="p-[12px_15px] border-b border-border-color text-center text-text-primary">
-                        {score[m] ?? 'N/A'}
-                      </td>
+                      <th key={m} className="p-5 text-center border-b border-border-color uppercase text-[10px] tracking-[0.2em] font-black cursor-pointer sticky top-0 z-10 hover:bg-table-hover-bg text-text-secondary transition-colors whitespace-nowrap" onClick={() => handleSort(m)}>
+                        {METRIC_LABELS[m]} {getSortIcon(m)}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-border-color/30">
+                  {sortedAndFilteredScores.map((score, idx) => (
+                    <tr key={score.ticker + idx} className="hover:bg-table-hover-bg/50 transition-all group">
+                      <td className="p-5 border-b border-border-color">
+                        <Link to={`/?q=${score.ticker}`} className="font-black text-accent-secondary hover:text-accent-primary transition-all text-lg">
+                          {score.ticker}
+                        </Link>
+                      </td>
+                      <td className="p-5 border-b border-border-color text-text-secondary font-bold text-sm max-w-[250px] overflow-hidden text-ellipsis whitespace-nowrap" title={score.company_name}>
+                        {score.company_name || 'N/A'}
+                      </td>
+                      <td className="p-5 border-b border-border-color text-center">
+                        <span className="font-black text-text-secondary text-xl">
+                          {score.total_score_percentile_rank ?? 'N/A'}
+                        </span>
+                      </td>
+                      {visibleMetrics.map(m => (
+                        <td key={m} className="p-5 border-b border-border-color text-center">
+                          <span className="text-text-primary font-bold">
+                            {score[m] ?? 'N/A'}
+                          </span>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>

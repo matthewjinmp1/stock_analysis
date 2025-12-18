@@ -20,7 +20,7 @@ interface StockData {
   next_year_growth: number | null;
 }
 
-const HomePage: React.FC = () => {
+const SearchPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get('q') || '');
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
@@ -33,10 +33,16 @@ const HomePage: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Sync state with URL params
   useEffect(() => {
     const q = searchParams.get('q');
-    if (q) performSearch(q);
+    if (q) {
+      setQuery(q);
+      performSearch(q);
+    }
+  }, [searchParams]);
 
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) && 
           inputRef.current && !inputRef.current.contains(event.target as Node)) {
@@ -65,10 +71,12 @@ const HomePage: React.FC = () => {
         setSuggestions(data.suggestions);
         setShowDropdown(true);
       } else {
+        setSuggestions([]);
         setShowDropdown(false);
       }
     } catch (err) {
       console.error('Error fetching suggestions:', err);
+      setShowDropdown(false);
     }
   };
 
@@ -108,11 +116,12 @@ const HomePage: React.FC = () => {
   };
 
   const handleSearch = () => {
-    if (!query.trim()) {
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) {
       setError('Please enter a ticker symbol');
       return;
     }
-    performSearch(query);
+    performSearch(trimmedQuery);
   };
 
   const performSearch = async (searchQuery: string) => {
@@ -120,7 +129,11 @@ const HomePage: React.FC = () => {
     setLoading(true);
     setError(null);
     setResult(null);
-    setSearchParams({ q: searchQuery });
+    
+    // Only update search params if they are different to avoid infinite loops
+    if (searchParams.get('q') !== searchQuery) {
+      setSearchParams({ q: searchQuery });
+    }
 
     try {
       const data = await api.searchTicker(searchQuery);
@@ -148,20 +161,28 @@ const HomePage: React.FC = () => {
       } else {
         await api.addToWatchlist(result.ticker);
       }
-      performSearch(result.ticker);
+      // Re-fetch to get updated state
+      const data = await api.searchTicker(result.ticker);
+      if (data.success) {
+        setResult({
+          ticker: data.ticker,
+          data: data.data,
+          in_watchlist: data.in_watchlist
+        });
+      }
     } catch (err) {
       alert('Error updating watchlist');
     }
   };
 
   return (
-    <div className="flex flex-col w-full">
+    <div className="flex flex-col w-full min-h-screen pb-20">
       {/* Header */}
       <div className="p-8 text-center border-b border-border-color bg-header-bg">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4 text-text-secondary [text-shadow:0_0_8px_var(--glow-primary)]">
+        <h1 className="text-4xl md:text-5xl font-black mb-4 text-text-secondary [text-shadow:0_0_8px_var(--glow-primary)]">
           📊 Stock Analysis
         </h1>
-        <p className="opacity-80 text-lg text-text-primary mb-6">
+        <p className="opacity-80 text-lg text-text-primary mb-6 font-medium">
           Analyze stocks with AI scores, financial metrics, and short interest data
         </p>
         <div className="flex justify-center flex-wrap gap-6 mt-4">
@@ -175,9 +196,9 @@ const HomePage: React.FC = () => {
       </div>
 
       {/* Search Section */}
-      <div className="p-12 bg-bg-secondary flex flex-col items-center border-b border-border-color">
+      <div className="p-12 bg-bg-secondary flex flex-col items-center border-b border-border-color relative z-[50]">
         <div className="flex gap-4 w-full max-w-[700px]">
-          <div className="relative flex-1">
+          <div className="relative flex-1 z-[60]">
             <input
               ref={inputRef}
               type="text"
@@ -185,14 +206,14 @@ const HomePage: React.FC = () => {
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Search tickers or company names..."
-              className="w-full p-5 text-xl bg-input-bg text-text-secondary border border-border-color rounded-2xl outline-none transition-all focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10"
+              className="w-full p-5 text-xl bg-input-bg text-text-secondary border border-border-color rounded-2xl outline-none transition-all focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 shadow-sm"
               autoComplete="off"
             />
             
-            {showDropdown && (
+            {showDropdown && suggestions.length > 0 && (
               <div 
                 ref={dropdownRef}
-                className="absolute top-full left-0 right-0 mt-2 bg-bg-primary border border-border-color rounded-2xl shadow-2xl max-h-[400px] overflow-y-auto z-[2000] opacity-100 ring-1 ring-black/5"
+                className="absolute top-full left-0 right-0 mt-2 bg-bg-primary border border-border-color rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] max-h-[400px] overflow-y-auto z-[2000] opacity-100 ring-1 ring-black/5"
               >
                 {suggestions.map((suggestion, index) => (
                   <div
@@ -203,7 +224,7 @@ const HomePage: React.FC = () => {
                     }`}
                   >
                     <div className="font-bold text-xl text-accent-secondary">{suggestion.ticker}</div>
-                    <div className="text-base opacity-80 flex-1 ml-6 text-right truncate">{suggestion.company_name}</div>
+                    <div className="text-base opacity-80 flex-1 ml-6 text-right truncate font-medium">{suggestion.company_name}</div>
                   </div>
                 ))}
               </div>
@@ -228,7 +249,7 @@ const HomePage: React.FC = () => {
 
         {/* Error State */}
         {error && (
-          <div className="w-full max-w-[700px] bg-accent-danger/10 text-accent-danger p-6 rounded-2xl border border-accent-danger/20 mt-8 flex items-center gap-4">
+          <div className="w-full max-w-[700px] bg-accent-danger/10 text-accent-danger p-6 rounded-2xl border border-accent-danger/20 mt-8 flex items-center gap-4 animate-[slideIn_0.3s_ease-out]">
             <AlertCircle className="w-6 h-6 flex-shrink-0" />
             <p className="font-bold"><strong>Error:</strong> {error}</p>
           </div>
@@ -236,13 +257,13 @@ const HomePage: React.FC = () => {
 
         {/* Result Card */}
         {result && (
-          <div className="w-full max-w-[1000px] bg-card-bg rounded-[24px] p-10 mt-10 border border-border-color shadow-2xl animate-[slideIn_0.3s_ease-out]">
+          <div className="w-full max-w-[1000px] bg-card-bg rounded-[32px] p-10 mt-10 border border-border-color shadow-2xl animate-[slideIn_0.3s_ease-out]">
             <div className="flex justify-between items-center mb-10 flex-wrap gap-8 text-left">
               <div className="flex flex-wrap items-baseline gap-4 flex-1 min-w-[200px]">
                 <h2 className="text-4xl font-black text-text-secondary">
                   {result.data.company_name || result.ticker}
                 </h2>
-                <div className="text-2xl text-accent-secondary font-black bg-button-bg px-4 py-1 rounded-xl border border-border-color">
+                <div className="text-2xl text-accent-secondary font-black bg-button-bg px-4 py-1 rounded-xl border border-border-color shadow-sm">
                   {result.ticker}
                 </div>
               </div>
@@ -340,4 +361,4 @@ const HomePage: React.FC = () => {
   );
 };
 
-export default HomePage;
+export default SearchPage;

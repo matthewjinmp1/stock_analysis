@@ -15,11 +15,11 @@ const Layout: React.FC<LayoutProps> = ({ children, maxWidth = '800px' }) => {
   return (
     <div className="min-h-screen py-10 px-4 text-text-primary bg-bg-primary flex flex-col items-center">
       <div 
-        className="w-full bg-bg-secondary rounded-[20px] border border-border-color shadow-xl overflow-hidden animate-pulse-glow"
+        className="w-full bg-bg-secondary rounded-[24px] border border-border-color shadow-2xl animate-pulse-glow relative"
         style={containerStyle}
       >
         {/* Theme Switcher */}
-        <div className="flex justify-end gap-2.5 p-4 bg-bg-tertiary border-b border-border-color">
+        <div className="flex justify-end gap-2.5 p-4 bg-bg-tertiary border-b border-border-color rounded-t-[24px]">
           <select 
             value={theme}
             onChange={(e) => setTheme(e.target.value as any)}
@@ -31,7 +31,7 @@ const Layout: React.FC<LayoutProps> = ({ children, maxWidth = '800px' }) => {
           </select>
         </div>
 
-        <main className="w-full flex flex-col">{children}</main>
+        <main className="w-full flex flex-col relative">{children}</main>
       </div>
     </div>
   );

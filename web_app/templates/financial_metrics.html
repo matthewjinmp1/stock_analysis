@@ -6,46 +6,130 @@
     <title>Financial Metrics - {{ ticker }}</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        /* CSS Custom Properties for Theming */
+        :root {
+            /* Default (Cyber) Theme Variables */
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #0d0d0d;
+            --bg-tertiary: #0a0a0a;
+            --text-primary: #7dd3fc;
+            --text-secondary: #a5d8ff;
+            --text-muted: #7dd3fc;
+            --accent-primary: #7dd3fc;
+            --accent-secondary: #c4b5fd;
+            --accent-success: #4ade80;
+            --accent-danger: #f87171;
+            --border-color: rgba(125, 211, 252, 0.3);
+            --border-light: rgba(125, 211, 252, 0.4);
+            --shadow-color: rgba(125, 211, 252, 0.15);
+            --shadow-inset: rgba(125, 211, 252, 0.03);
+            --glow-primary: rgba(125, 211, 252, 0.15);
+            --glow-secondary: rgba(196, 181, 253, 0.3);
+            --input-bg: #0a0a0a;
+            --button-bg: rgba(125, 211, 252, 0.1);
+            --card-bg: #0a0a0a;
+            --header-bg: linear-gradient(135deg, #0a0a0a 0%, #1a0a1a 100%);
+            --animation-glow: pulse-glow 4s ease-in-out infinite;
+        }
+
+        /* Light Theme Variables */
+        body.light {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-tertiary: #ffffff;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --text-muted: #6c757d;
+            --accent-primary: #007bff;
+            --accent-secondary: #0056b3;
+            --accent-success: #28a745;
+            --accent-danger: #dc3545;
+            --border-color: #dee2e6;
+            --border-light: #ced4da;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --shadow-inset: rgba(255, 255, 255, 0.8);
+            --glow-primary: rgba(0, 123, 255, 0.25);
+            --glow-secondary: rgba(0, 123, 255, 0.3);
+            --input-bg: #ffffff;
+            --button-bg: rgba(0, 123, 255, 0.1);
+            --card-bg: #f8f9fa;
+            --header-bg: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            --animation-glow: none;
+        }
+
+        /* High Contrast Theme Variables */
+        body.high-contrast {
+            --bg-primary: #000000;
+            --bg-secondary: #111111;
+            --bg-tertiary: #000000;
+            --text-primary: #ffffff;
+            --text-secondary: #cccccc;
+            --text-muted: #cccccc;
+            --accent-primary: #ffffff;
+            --accent-secondary: #ffffff;
+            --accent-success: #ffffff;
+            --accent-danger: #ff6666;
+            --border-color: #ffffff;
+            --border-light: #ffffff;
+            --shadow-color: rgba(255, 255, 255, 0.1);
+            --shadow-inset: rgba(255, 255, 255, 0.02);
+            --glow-primary: rgba(255, 255, 255, 0.1);
+            --glow-secondary: rgba(255, 255, 255, 0.3);
+            --input-bg: #000000;
+            --button-bg: #222222;
+            --card-bg: #1a1a1a;
+            --header-bg: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            --animation-glow: pulse-glow 4s ease-in-out infinite;
+        }
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #0a0a0a;
-            background-image: 
+            background: var(--bg-primary);
+            background-image:
                 radial-gradient(circle at 20% 50%, rgba(0, 200, 220, 0.03) 0%, transparent 50%),
                 radial-gradient(circle at 80% 80%, rgba(200, 0, 200, 0.03) 0%, transparent 50%),
                 radial-gradient(circle at 40% 20%, rgba(120, 0, 200, 0.03) 0%, transparent 50%);
             min-height: 100vh;
             padding: 20px;
-            color: #7dd3fc;
+            color: var(--text-primary);
         }
 
-        /* High Contrast Black Background & White Text Theme */
-        body.high-contrast {
-            background: #000000;
-            background-image: none;
-            color: #ffffff;
-        }
-
-        body.high-contrast .container {
-            background: #111111;
-            border: 2px solid #ffffff;
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
             box-shadow:
-                0 0 15px rgba(255, 255, 255, 0.1),
-                0 0 30px rgba(255, 255, 255, 0.05),
-                inset 0 0 15px rgba(255, 255, 255, 0.02);
+                0 0 15px var(--shadow-color),
+                0 0 30px var(--glow-primary),
+                inset 0 0 15px var(--shadow-inset);
+            /* Allow dropdowns to overflow outside container */
+            overflow: visible;
+            animation: var(--animation-glow);
         }
 
-        body.high-contrast .header {
-            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-            color: #ffffff;
-            border-bottom: 2px solid #ffffff;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        .header {
+            background: var(--header-bg);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 0 15px var(--shadow-color);
+        }
+
+        /* High Contrast Theme Overrides */
+        body.high-contrast {
+            background: var(--bg-primary);
+            background-image: none;
+            color: var(--text-primary);
         }
 
         body.high-contrast .header h1 {
@@ -186,46 +270,31 @@
             margin-bottom: 20px;
         }
 
-        .theme-button {
-            padding: 8px 16px;
+        .theme-dropdown {
+            padding: 8px 12px;
             font-size: 0.9em;
-            background: rgba(125, 211, 252, 0.1);
-            color: #7dd3fc;
-            border: 1px solid rgba(125, 211, 252, 0.3);
+            background: var(--button-bg);
+            color: var(--accent-primary);
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s;
-            text-decoration: none;
+            min-width: 140px;
+            font-family: 'Inter', sans-serif;
         }
 
-        .theme-button:hover {
-            background: rgba(125, 211, 252, 0.2);
-            border-color: rgba(125, 211, 252, 0.5);
-            box-shadow: 0 0 8px rgba(125, 211, 252, 0.3);
+        .theme-dropdown:hover {
+            background: rgba(from var(--accent-primary) r g b / 0.2);
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 8px var(--glow-primary);
         }
 
-        .theme-button.active {
-            background: rgba(125, 211, 252, 0.3);
-            border-color: #7dd3fc;
+        .theme-dropdown:focus {
+            outline: none;
+            border-color: var(--accent-secondary);
+            box-shadow: 0 0 15px var(--glow-secondary);
         }
 
-        body.high-contrast .theme-button {
-            background: #222222;
-            color: #ffffff;
-            border: 2px solid #ffffff;
-        }
-
-        body.high-contrast .theme-button:hover {
-            background: #333333;
-            border-color: #ffffff;
-            box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
-        }
-
-        body.high-contrast .theme-button.active {
-            background: #ffffff;
-            color: #000000;
-            border-color: #ffffff;
-        }
 
         .container {
             max-width: 1200px;
@@ -421,8 +490,11 @@
         </div>
         {% else %}
         <div class="theme-switcher">
-            <button class="theme-button active" id="darkThemeBtn" onclick="setTheme('dark')">🌙 Cyber</button>
-            <button class="theme-button" id="highContrastThemeBtn" onclick="setTheme('high-contrast')">⚫ High Contrast</button>
+            <select class="theme-dropdown" id="themeSelect" onchange="setTheme(this.value)">
+                <option value="dark">🌙 Cyber</option>
+                <option value="light">☀️ Light</option>
+                <option value="high-contrast">⚫ High Contrast</option>
+            </select>
         </div>
         <div class="header">
             <h1>{{ company_name or ticker }}</h1>
@@ -507,20 +579,21 @@
         // Theme switching functionality
         function setTheme(theme) {
             const body = document.body;
-            const darkBtn = document.getElementById('darkThemeBtn');
-            const highContrastBtn = document.getElementById('highContrastThemeBtn');
+            const themeSelect = document.getElementById('themeSelect');
 
             // Remove existing theme classes
             body.classList.remove('high-contrast');
+            body.classList.remove('light');
 
             // Add new theme class if needed
             if (theme === 'high-contrast') {
                 body.classList.add('high-contrast');
+            } else if (theme === 'light') {
+                body.classList.add('light');
             }
 
-            // Update button states
-            darkBtn.classList.toggle('active', theme === 'dark');
-            highContrastBtn.classList.toggle('active', theme === 'high-contrast');
+            // Update dropdown selection
+            themeSelect.value = theme;
 
             // Save preference to localStorage
             localStorage.setItem('theme', theme);

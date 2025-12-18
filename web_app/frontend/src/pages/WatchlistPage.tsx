@@ -89,6 +89,11 @@ const WatchlistPage: React.FC = () => {
       if (bVal === null) bVal = column === 'adjusted_pe_ratio' ? Infinity : -1;
 
       if (typeof aVal === 'string') {
+        const numA = parseFloat(aVal.replace(/[^\d.-]/g, ''));
+        const numB = parseFloat(bVal.replace(/[^\d.-]/g, ''));
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return isAsc ? numB - numA : numA - numB;
+        }
         return isAsc ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
       }
       return isAsc ? bVal - aVal : aVal - bVal;

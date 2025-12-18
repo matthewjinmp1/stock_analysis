@@ -41,16 +41,16 @@ body.light {
     --text-secondary: #2d3436;
     --text-muted: #636e72;
     --accent-primary: #2d3436;
-    --accent-secondary: #636e72;
+    --accent-secondary: #2d3436;
     --accent-success: #27ae60;
     --accent-danger: #c0392b;
     --accent-warning: #f39c12;
     --border-color: #d1d8e0;
     --border-light: #e1e8f0;
-    --shadow-color: rgba(0, 0, 0, 0.08);
-    --shadow-inset: rgba(0, 0, 0, 0.02);
-    --glow-primary: rgba(0, 0, 0, 0.04);
-    --glow-secondary: rgba(0, 0, 0, 0.06);
+    --shadow-color: rgba(0, 0, 0, 0.05);
+    --shadow-inset: rgba(0, 0, 0, 0.01);
+    --glow-primary: rgba(0, 0, 0, 0.02);
+    --glow-secondary: rgba(0, 0, 0, 0.04);
     --input-bg: #ffffff;
     --button-bg: #f1f2f6;
     --card-bg: #ffffff;
@@ -111,6 +111,24 @@ body {
     min-height: 100vh;
     color: var(--text-primary);
     transition: background-color 0.3s, color 0.3s;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+a:hover {
+    color: var(--accent-primary);
+}
+
+button {
+    font-family: inherit;
+}
+
+input {
+    font-family: inherit;
 }
 
 .animate-pulse-glow {

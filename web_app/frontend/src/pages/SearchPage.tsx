@@ -191,10 +191,9 @@ const HomePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Search Section */}
       <div className="p-10 bg-bg-secondary flex flex-col items-center">
-        <div className="flex gap-2.5 mb-5 w-full justify-center items-center">
-          <div className="relative w-full max-width-[500px]">
+        <div className="flex gap-2.5 mb-5 w-full justify-center items-center max-w-[600px]">
+          <div className="relative flex-1">
             <input
               ref={inputRef}
               type="text"
@@ -228,7 +227,7 @@ const HomePage: React.FC = () => {
           </div>
           <button 
             onClick={handleSearch}
-            className="p-[15px_30px] text-[1.1em] bg-button-bg text-text-secondary border border-border-color rounded-[10px] cursor-pointer font-semibold transition-all hover:-translate-y-0.5 hover:bg-accent-primary hover:text-bg-primary hover:shadow-[0_5px_15px_var(--glow-primary)]"
+            className="p-[15px_30px] text-[1.1em] bg-button-bg text-text-secondary border border-border-color rounded-[10px] cursor-pointer font-semibold transition-all hover:-translate-y-0.5 hover:bg-accent-primary hover:text-bg-primary hover:shadow-[0_5px_15px_var(--glow-primary)] whitespace-nowrap"
           >
             Search
           </button>
@@ -244,7 +243,7 @@ const HomePage: React.FC = () => {
 
         {/* Error State */}
         {error && (
-          <div className="w-full bg-button-bg text-accent-danger p-5 rounded-[10px] border-l-4 border-accent-danger mt-5">
+          <div className="w-full max-w-[600px] bg-button-bg text-accent-danger p-5 rounded-[10px] border-l-4 border-accent-danger mt-5">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-5 h-5" />
               <strong>Error:</strong> {error}
@@ -254,12 +253,12 @@ const HomePage: React.FC = () => {
 
         {/* Result Card */}
         {result && (
-          <div className="w-full max-w-4xl bg-card-bg rounded-[15px] p-[30px] mb-5 border border-border-color border-l-4 border-accent-secondary shadow-[0_0_15px_var(--shadow-color),inset_0_0_15px_var(--shadow-inset)] animate-[slideIn_0.3s_ease-out]">
-            <div className="flex justify-between items-center mb-5">
+          <div className="w-full max-w-[1000px] bg-card-bg rounded-[15px] p-[30px] mb-5 border border-border-color border-l-4 border-accent-secondary shadow-[0_0_15px_var(--shadow-color),inset_0_0_15px_var(--shadow-inset)] animate-[slideIn_0.3s_ease-out]">
+            <div className="flex justify-between items-center mb-5 flex-wrap gap-4">
               <div className="text-[1.8em] font-bold text-text-secondary">
                 {result.data.company_name || result.ticker}
               </div>
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 flex-wrap">
                 <div className="text-[1.2em] text-accent-secondary font-semibold bg-button-bg p-[5px_15px] rounded-lg border border-border-color">
                   {result.ticker}
                 </div>
@@ -282,12 +281,12 @@ const HomePage: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-[15px] mt-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[15px] mt-5">
               {result.data.total_score_percentile_rank !== null && (
                 <div className="bg-bg-primary p-[15px] rounded-[10px] border border-border-color shadow-[0_0_8px_var(--shadow-color)]">
-                  <div className="text-[0.9em] text-text-muted mb-1.25">Total Score</div>
+                  <div className="text-[0.9em] text-text-muted mb-1">Total Score</div>
                   <div className="text-[1.2em] font-semibold text-text-secondary">
-                    <Link to={`/metrics/${result.ticker}`} className="text-accent-secondary hover:underline">
+                    <Link to={`/metrics/${result.ticker}`} className="text-accent-secondary hover:underline hover:text-accent-primary">
                       {result.data.total_score_percentile_rank}%
                     </Link>
                   </div>
@@ -296,9 +295,9 @@ const HomePage: React.FC = () => {
               
               {result.data.financial_total_percentile !== null && (
                 <div className="bg-bg-primary p-[15px] rounded-[10px] border border-border-color shadow-[0_0_8px_var(--shadow-color)]">
-                  <div className="text-[0.9em] text-text-muted mb-1.25">Financial Score</div>
+                  <div className="text-[0.9em] text-text-muted mb-1">Financial Score</div>
                   <div className="text-[1.2em] font-semibold text-text-secondary">
-                    <Link to={`/financial/${result.ticker}`} className="text-accent-secondary hover:underline">
+                    <Link to={`/financial/${result.ticker}`} className="text-accent-secondary hover:underline hover:text-accent-primary">
                       {Math.round(result.data.financial_total_percentile!)}%
                     </Link>
                   </div>
@@ -307,9 +306,9 @@ const HomePage: React.FC = () => {
 
               {result.data.adjusted_pe_ratio !== null && (
                 <div className="bg-bg-primary p-[15px] rounded-[10px] border border-border-color shadow-[0_0_8px_var(--shadow-color)]">
-                  <div className="text-[0.9em] text-text-muted mb-1.25">Adjusted PE Ratio</div>
+                  <div className="text-[0.9em] text-text-muted mb-1">Adjusted PE Ratio</div>
                   <div className="text-[1.2em] font-semibold text-text-secondary">
-                    <Link to={`/adjusted-pe/${result.ticker}`} className="text-accent-secondary hover:underline">
+                    <Link to={`/adjusted-pe/${result.ticker}`} className="text-accent-secondary hover:underline hover:text-accent-primary">
                       {result.data.adjusted_pe_ratio.toFixed(2)}
                     </Link>
                   </div>
@@ -318,7 +317,7 @@ const HomePage: React.FC = () => {
 
               {result.data.current_year_growth !== null && (
                 <div className="bg-bg-primary p-[15px] rounded-[10px] border border-border-color shadow-[0_0_8px_var(--shadow-color)]">
-                  <div className="text-[0.9em] text-text-muted mb-1.25">Current Year Growth</div>
+                  <div className="text-[0.9em] text-text-muted mb-1">Current Year Growth</div>
                   <div className="text-[1.2em] font-semibold text-text-secondary">
                     {result.data.current_year_growth.toFixed(1)}%
                   </div>
@@ -326,8 +325,8 @@ const HomePage: React.FC = () => {
               )}
 
               {result.data.next_year_growth !== null && (
-                <div className="bg-bg-primary p-[15px] rounded-[10px] border border-border-color shadow-[0_0_8_var(--shadow-color)]">
-                  <div className="text-[0.9em] text-text-muted mb-1.25">Next Year Growth</div>
+                <div className="bg-bg-primary p-[15px] rounded-[10px] border border-border-color shadow-[0_0_8px_var(--shadow-color)]">
+                  <div className="text-[0.9em] text-text-muted mb-1">Next Year Growth</div>
                   <div className="text-[1.2em] font-semibold text-text-secondary">
                     {result.data.next_year_growth.toFixed(1)}%
                   </div>
@@ -335,7 +334,7 @@ const HomePage: React.FC = () => {
               )}
 
               <div className="bg-bg-primary p-[15px] rounded-[10px] border border-border-color shadow-[0_0_8px_var(--shadow-color)]">
-                <div className="text-[0.9em] text-text-muted mb-1.25">Short Float (Short Interest)</div>
+                <div className="text-[0.9em] text-text-muted mb-1">Short Float (Short Interest)</div>
                 <div className="text-[1.2em] font-semibold text-text-secondary">
                   {result.data.short_float || 'No data available'}
                 </div>

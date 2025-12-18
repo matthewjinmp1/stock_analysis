@@ -264,6 +264,9 @@
             background: #0d0d0d;
             position: relative;
             overflow: visible;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .search-box {
@@ -271,10 +274,11 @@
             gap: 10px;
             margin-bottom: 20px;
             justify-content: center;
+            align-items: center;
         }
 
         .search-input {
-            flex: 1;
+            width: 100%;
             padding: 15px 20px;
             font-size: 1.1em;
             background: #0a0a0a;
@@ -284,7 +288,7 @@
             outline: none;
             transition: all 0.3s;
             font-family: 'Inter', sans-serif;
-            box-shadow: 
+            box-shadow:
                 0 0 8px rgba(125, 211, 252, 0.1),
                 inset 0 0 8px rgba(125, 211, 252, 0.03);
         }
@@ -597,7 +601,7 @@
         .search-container {
             position: relative;
             overflow: visible;
-            flex: 1;
+            width: 100%;
             max-width: 500px;
         }
 

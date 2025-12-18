@@ -223,8 +223,12 @@ const SearchPage: React.FC = () => {
                       index === selectedIndex ? 'bg-table-hover-bg border-l-4 border-accent-secondary' : ''
                     }`}
                   >
-                    <div className="font-bold text-xl text-accent-secondary">{suggestion.ticker}</div>
-                    <div className="text-base opacity-80 flex-1 ml-6 text-right truncate font-medium">{suggestion.company_name}</div>
+                    <div className="font-bold text-xl text-accent-secondary flex-shrink-0 min-w-[80px]">
+                      {suggestion.ticker}
+                    </div>
+                    <div className="text-base opacity-80 flex-1 ml-10 text-right truncate font-medium">
+                      {suggestion.company_name}
+                    </div>
                   </div>
                 ))}
               </div>

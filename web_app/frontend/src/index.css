@@ -113,8 +113,56 @@ body {
     transition: background-color 0.3s, color 0.3s;
 }
 
-* {
+*,
+*::before,
+*::after {
     border-radius: 0 !important;
+}
+
+button,
+input,
+textarea,
+select,
+a,
+div,
+span,
+p,
+h1, h2, h3, h4, h5, h6,
+table,
+tbody,
+thead,
+tr,
+td,
+th {
+    border-radius: 0 !important;
+}
+
+/* Override Tailwind rounded classes */
+.rounded,
+.rounded-sm,
+.rounded-md,
+.rounded-lg,
+.rounded-xl,
+.rounded-2xl,
+.rounded-3xl,
+.rounded-full,
+.rounded-t,
+.rounded-b,
+.rounded-l,
+.rounded-r,
+.rounded-tl,
+.rounded-tr,
+.rounded-bl,
+.rounded-br {
+    border-radius: 0 !important;
+}
+
+/* Force all border-radius to zero with highest specificity */
+* {
+    border-top-left-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
 }
 
 a {

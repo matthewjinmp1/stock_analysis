@@ -37,6 +37,7 @@ htmlcov/
 # Build artifacts
 build/
 dist/
+!web_app/frontend/dist/
 *.egg-info/ 
  
 # Data files - exclude all JSON, JSONL, CSV, XLSX files

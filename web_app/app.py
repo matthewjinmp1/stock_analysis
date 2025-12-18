@@ -3,7 +3,7 @@
 Simple Flask web application to search for stock data by ticker symbol.
 Uses unified cache database to store and retrieve all UI data.
 """
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, send_from_directory
 import json
 import os
 import sys
@@ -127,7 +127,7 @@ METRIC_DISPLAY_NAMES = {
     'long_term_orientation_score': 'Long Term Focus',
 }
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='frontend/dist', static_url_path='/')
 
 # Initialize databases on startup
 init_database()
@@ -199,19 +199,10 @@ def find_best_match(query: str) -> tuple:
     # No prefix match found in tickers database
     return None, None
 
-@app.route('/')
-def index():
-    """Serve the main search page."""
-    return render_template('index.html')
-
+# API Routes
 @app.route('/api/search/<query>')
 def search_ticker(query):
-    """API endpoint to search for stock data by exact ticker symbol.
-    
-    Uses unified cache database. If data is missing, fetches and caches it.
-    Only exact ticker matches are supported for speed and unambiguity.
-    """
-    # Find ticker (only exact matches allowed)
+    """API endpoint to search for stock data by exact ticker symbol."""
     ticker, match_type = find_best_match(query)
 
     if not ticker:
@@ -222,9 +213,7 @@ def search_ticker(query):
         }), 404
     
     try:
-        # Get complete data from unified cache (fetches if missing)
         data = get_complete_data(ticker)
-        
         if not data:
             return jsonify({
                 'success': False,
@@ -232,10 +221,7 @@ def search_ticker(query):
                 'message': f'Could not fetch data for "{ticker}". Please check that the ticker is valid.'
             }), 404
         
-        # Get financial scores
         financial_scores = get_financial_scores(ticker)
-        
-        # Build response data from unified cache
         response_data = {
             'ticker': ticker,
             'company_name': data.get('company_name'),
@@ -247,12 +233,10 @@ def search_ticker(query):
             'next_year_growth': data.get('next_year_growth'),
         }
         
-        # Add financial scores if available
         if financial_scores:
             response_data['financial_total_percentile'] = financial_scores.get('total_percentile')
             response_data['financial_total_rank'] = financial_scores.get('total_rank')
         
-        # Check if ticker is in watchlist
         in_watchlist = is_in_watchlist(ticker)
         
         return jsonify({
@@ -264,10 +248,7 @@ def search_ticker(query):
             'in_watchlist': in_watchlist
         })
     except Exception as e:
-        # If fetching fails, return error
         print(f"Error fetching data for {ticker}: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({
             'success': False,
             'query': query,
@@ -276,26 +257,18 @@ def search_ticker(query):
 
 @app.route('/api/search_suggestions/<query>')
 def search_suggestions(query):
-    """API endpoint to get search suggestions for ticker and company name prefix matches.
-
-    Returns tickers and company names that start with the query string.
-    """
+    """API endpoint to get search suggestions."""
     if not query or len(query.strip()) < 1:
         return jsonify({'success': False, 'message': 'Query too short'}), 400
 
     query_upper = query.strip().upper()
-
     try:
-        # Use tickers.db for search suggestions (contains only real tickers)
         tickers_db_path = os.path.join(os.path.dirname(__file__), 'data', 'tickers.db')
-
         if not os.path.exists(tickers_db_path):
             return jsonify({'success': False, 'message': 'Tickers database not found'}), 500
 
         conn = sqlite3.connect(tickers_db_path)
         cur = conn.cursor()
-
-        # Search for both ticker and company name matches
         cur.execute("""
             SELECT ticker, company_name,
                    CASE
@@ -303,77 +276,40 @@ def search_suggestions(query):
                        WHEN UPPER(company_name) LIKE ? THEN 'company'
                    END as match_type,
                    CASE
-                       WHEN ticker LIKE ? THEN 1  -- Exact ticker match first
-                       WHEN UPPER(company_name) LIKE ? THEN 2  -- Company name match second
+                       WHEN ticker LIKE ? THEN 1
+                       WHEN UPPER(company_name) LIKE ? THEN 2
                    END as priority
             FROM tickers
             WHERE ticker LIKE ? OR UPPER(company_name) LIKE ?
             ORDER BY priority, ticker
             LIMIT 10
-        """, (
-            query_upper + '%',  # ticker LIKE for match_type
-            query_upper + '%',  # company LIKE for match_type
-            query_upper + '%',  # ticker priority
-            query_upper + '%',  # company priority
-            query_upper + '%',  # ticker WHERE
-            query_upper + '%'   # company WHERE
-        ))
+        """, (query_upper + '%', query_upper + '%', query_upper + '%', query_upper + '%', query_upper + '%', query_upper + '%'))
 
         results = []
-        seen_tickers = set()  # Avoid duplicates
-
+        seen_tickers = set()
         for row in cur.fetchall():
             ticker, company_name, match_type, priority = row
             if ticker not in seen_tickers:
-                results.append({
-                    'ticker': ticker,
-                    'company_name': company_name,
-                    'match_type': match_type
-                })
+                results.append({'ticker': ticker, 'company_name': company_name, 'match_type': match_type})
                 seen_tickers.add(ticker)
-
         conn.close()
-
-        return jsonify({
-            'success': True,
-            'query': query,
-            'suggestions': results,
-            'count': len(results)
-        })
-
+        return jsonify({'success': True, 'query': query, 'suggestions': results, 'count': len(results)})
     except Exception as e:
         print(f"Error searching tickers: {e}")
         return jsonify({'success': False, 'message': 'Database error'}), 500
 
-@app.route('/metrics/<ticker>')
-def metrics_page(ticker):
-    """Display all metric scores for a ticker."""
+@app.route('/api/metrics/<ticker>')
+def get_metrics_api(ticker):
+    """API endpoint to get all metric scores for a ticker."""
     ticker = ticker.strip().upper()
-    
-    # Get complete data from unified cache
     data = get_complete_data(ticker)
-    
     if not data:
-        return render_template('metrics.html', 
-                             ticker=ticker,
-                             company_name=None,
-                             error="No data found for this ticker.")
+        return jsonify({'success': False, 'message': f'No data found for "{ticker}"'}), 404
     
-    # Extract score data from unified cache
-    score_data = {}
-    for key in data.keys():
-        # Include all metric columns and calculated scores
-        if key not in ['ticker', 'company_name', 'last_updated', 'short_float', 
-                       'short_interest_scraped_at']:
-            score_data[key] = data[key]
-    
+    score_data = {k: v for k, v in data.items() if k not in ['ticker', 'company_name', 'last_updated', 'short_float', 'short_interest_scraped_at']}
     if not score_data or not any(score_data.values()):
-        return render_template('metrics.html', 
-                             ticker=ticker,
-                             company_name=data.get('company_name'),
-                             error="No score data found for this ticker.")
+        return jsonify({'success': False, 'message': f'No score data found for "{ticker}"'}), 404
     
-    # Calculate contribution of each metric to total score
     metrics_detail = []
     total_score = 0.0
     max_score = sum(SCORE_WEIGHTS.get(key, 1.0) for key in SCORE_DEFINITIONS) * 10
@@ -381,244 +317,117 @@ def metrics_page(ticker):
     for score_key in SCORE_DEFINITIONS:
         score_def = SCORE_DEFINITIONS[score_key]
         weight = SCORE_WEIGHTS.get(score_key, 1.0)
-        
         try:
-            score_value_str = score_data.get(score_key)
-            if score_value_str is None:
-                continue
-                
-            score_value = float(score_value_str)
-            
-            # For reverse scores, invert to get "goodness" value
-            if score_def['is_reverse']:
-                adjusted_value = 10 - score_value
-                contribution = adjusted_value * weight
-            else:
-                adjusted_value = score_value
-                contribution = score_value * weight
-            
+            score_value = float(score_data.get(score_key))
+            adjusted_value = 10 - score_value if score_def['is_reverse'] else score_value
+            contribution = adjusted_value * weight
             total_score += contribution
-            
-            # Format metric name for display (use explicit name if available)
             display_name = METRIC_DISPLAY_NAMES.get(score_key, score_key.replace('_', ' ').title())
-            
             metrics_detail.append({
-                'key': score_key,
-                'name': display_name,
-                'raw_score': score_value,
-                'adjusted_score': adjusted_value,
-                'weight': weight,
-                'contribution': contribution,
-                'is_reverse': score_def['is_reverse'],
-                'percentage': (contribution / max_score) * 100 if max_score > 0 else 0
+                'key': score_key, 'name': display_name, 'raw_score': score_value,
+                'adjusted_score': adjusted_value, 'weight': weight, 'contribution': contribution,
+                'is_reverse': score_def['is_reverse'], 'percentage': (contribution / max_score) * 100 if max_score > 0 else 0
             })
-        except (ValueError, TypeError):
-            continue
+        except: continue
     
-    # Sort by contribution (descending)
     metrics_detail.sort(key=lambda x: x['contribution'], reverse=True)
-    
-    # Get total score percentage
-    total_score_percentage = score_data.get('total_score_percentage')
-    total_score_percentile_rank = score_data.get('total_score_percentile_rank')
-    
-    return render_template('metrics.html',
-                         ticker=ticker,
-                         company_name=data.get('company_name'),
-                         metrics=metrics_detail,
-                         total_score_percentage=total_score_percentage,
-                         total_score_percentile_rank=total_score_percentile_rank,
-                         max_score=max_score)
+    return jsonify({
+        'success': True, 'ticker': ticker, 'company_name': data.get('company_name'),
+        'metrics': metrics_detail, 'total_score_percentage': score_data.get('total_score_percentage'),
+        'total_score_percentile_rank': score_data.get('total_score_percentile_rank'), 'max_score': max_score
+    })
 
-@app.route('/financial/<ticker>')
-def financial_metrics_page(ticker):
-    """Display all financial metric scores for a ticker."""
+@app.route('/api/financial/<ticker>')
+def get_financial_metrics_api(ticker):
+    """API endpoint to get all financial metric scores for a ticker."""
     ticker = ticker.strip().upper()
-    
-    # Get financial scores from database
     financial_scores = get_financial_scores(ticker)
-    
     if not financial_scores:
-        # Get company name from cache for error message
         data = get_complete_data(ticker)
-        company_name = data.get('company_name') if data else None
-        return render_template('financial_metrics.html', 
-                             ticker=ticker,
-                             company_name=company_name,
-                             error="No financial score data found for this ticker.")
+        return jsonify({'success': False, 'company_name': data.get('company_name') if data else None, 'message': f'No financial score data found for "{ticker}"'}), 404
     
-    # Build metrics detail list
     metrics_detail = []
     for metric in METRICS:
         value = financial_scores.get(metric.key)
-        rank = financial_scores.get(f'{metric.key}_rank')
-        percentile = financial_scores.get(f'{metric.key}_percentile')
-        
         if value is not None:
             metrics_detail.append({
-                'key': metric.key,
-                'name': metric.display_name,
-                'description': metric.description,
-                'value': value,
-                'rank': rank,
-                'percentile': percentile,
-                'sort_descending': metric.sort_descending,
+                'key': metric.key, 'name': metric.display_name, 'description': metric.description,
+                'value': value, 'rank': financial_scores.get(f'{metric.key}_rank'),
+                'percentile': financial_scores.get(f'{metric.key}_percentile'), 'sort_descending': metric.sort_descending,
             })
-    
-    # Sort by percentile (descending) - higher percentile is better
     metrics_detail.sort(key=lambda x: x['percentile'] if x['percentile'] is not None else 0, reverse=True)
-    
-    # Get total percentile and rank
-    total_percentile = financial_scores.get('total_percentile')
-    total_rank = financial_scores.get('total_rank')
-    
-    return render_template('financial_metrics.html',
-                         ticker=ticker,
-                         company_name=financial_scores.get('company_name'),
-                         metrics=metrics_detail,
-                         total_percentile=total_percentile,
-                         total_rank=total_rank)
+    return jsonify({
+        'success': True, 'ticker': ticker, 'company_name': financial_scores.get('company_name'),
+        'metrics': metrics_detail, 'total_percentile': financial_scores.get('total_percentile'),
+        'total_rank': financial_scores.get('total_rank')
+    })
 
 @app.route('/api/list')
 def list_all():
-    """API endpoint to list all available tickers in the unified cache."""
+    """API endpoint to list all available tickers."""
     cache_db_path = os.path.join(os.path.dirname(__file__), 'data', 'ui_cache.db')
     if not os.path.exists(cache_db_path):
-        return jsonify({
-            'success': True,
-            'count': 0,
-            'tickers': []
-        })
-    
+        return jsonify({'success': True, 'count': 0, 'tickers': []})
     try:
         conn = sqlite3.connect(cache_db_path)
         cursor = conn.cursor()
         cursor.execute('SELECT ticker FROM ui_cache ORDER BY ticker')
-        rows = cursor.fetchall()
+        tickers = [row[0] for row in cursor.fetchall()]
         conn.close()
-        tickers = [row[0] for row in rows]
-        return jsonify({
-            'success': True,
-            'count': len(tickers),
-            'tickers': tickers
-        })
+        return jsonify({'success': True, 'count': len(tickers), 'tickers': tickers})
     except Exception as e:
-        print(f"Error listing tickers: {e}")
-        return jsonify({
-            'success': False,
-            'message': str(e)
-        }), 500
-
-@app.route('/watchlist')
-def watchlist_page():
-    """Serve the watchlist page."""
-    return render_template('watchlist.html')
-
-@app.route('/peers/<ticker>')
-def peers_page(ticker):
-    """Display peer comparison page for a ticker."""
-    ticker = ticker.strip().upper()
-    return render_template('peers.html', ticker=ticker)
-
-@app.route('/find_peers')
-def find_peers_page():
-    """Display AI peer finder page."""
-    return render_template('find_peers.html')
-
-@app.route('/adjusted_pe/<ticker>')
-def adjusted_pe_page(ticker):
-    """Display adjusted PE breakdown page for a ticker."""
-    ticker = ticker.strip().upper()
-    return render_template('adjusted_pe.html', ticker=ticker)
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/api/watchlist', methods=['GET'])
 def get_watchlist_api():
-    """Get all tickers in watchlist with their data."""
+    """Get all tickers in watchlist."""
     try:
         tickers = get_watchlist()
         watchlist_data = []
-        
         for ticker in tickers:
-            # Get data from cache
             data = get_complete_data(ticker)
             financial_scores = get_financial_scores(ticker)
-            
             if data:
                 watchlist_data.append({
-                    'ticker': ticker,
-                    'company_name': data.get('company_name'),
-                    'short_float': data.get('short_float'),
-                    'total_score_percentile_rank': data.get('total_score_percentile_rank'),
+                    'ticker': ticker, 'company_name': data.get('company_name'),
+                    'short_float': data.get('short_float'), 'total_score_percentile_rank': data.get('total_score_percentile_rank'),
                     'financial_total_percentile': financial_scores.get('total_percentile') if financial_scores else None,
                     'adjusted_pe_ratio': data.get('adjusted_pe_ratio'),
                 })
             else:
-                # Include ticker even if no data available
-                watchlist_data.append({
-                    'ticker': ticker,
-                    'company_name': None,
-                    'short_float': None,
-                    'total_score_percentile_rank': None,
-                    'financial_total_percentile': None,
-                    'adjusted_pe_ratio': None,
-                })
-        
-        return jsonify({
-            'success': True,
-            'watchlist': watchlist_data
-        })
+                watchlist_data.append({'ticker': ticker, 'company_name': None, 'short_float': None, 'total_score_percentile_rank': None, 'financial_total_percentile': None, 'adjusted_pe_ratio': None})
+        return jsonify({'success': True, 'watchlist': watchlist_data})
     except Exception as e:
-        print(f"Error getting watchlist: {e}")
-        return jsonify({
-            'success': False,
-            'message': str(e)
-        }), 500
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/api/watchlist/add/<ticker>', methods=['POST'])
 def add_to_watchlist_api(ticker):
-    """Add a ticker to the watchlist. Validates that the ticker exists and has data."""
+    """Add a ticker to the watchlist."""
     try:
         ticker = ticker.strip().upper()
-        
-        # Validate that the ticker exists and has data
-        data = get_complete_data(ticker)
-        if not data:
-            return jsonify({
-                'success': False,
-                'message': f'Ticker "{ticker}" not found or has no data. Please check that the ticker is valid.'
-            }), 404
-        
-        # Check if ticker is already in watchlist
+        if not get_complete_data(ticker):
+            return jsonify({'success': False, 'message': f'Ticker "{ticker}" not found'}), 404
         if is_in_watchlist(ticker):
-            return jsonify({
-                'success': False,
-                'message': f'{ticker} is already in watchlist'
-            }), 400
-        
-        # Add to watchlist
-        added = add_to_watchlist(ticker)
-        if added:
-            return jsonify({
-                'success': True,
-                'message': f'{ticker} added to watchlist'
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'message': f'Failed to add {ticker} to watchlist'
-            }), 500
+            return jsonify({'success': False, 'message': f'{ticker} is already in watchlist'}), 400
+        if add_to_watchlist(ticker):
+            return jsonify({'success': True, 'message': f'{ticker} added to watchlist'})
+        return jsonify({'success': False, 'message': f'Failed to add {ticker} to watchlist'}), 500
     except Exception as e:
-        print(f"Error adding to watchlist: {e}")
-        return jsonify({
-            'success': False,
-            'message': str(e)
-        }), 500
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/watchlist/remove/<ticker>', methods=['POST'])
+def remove_from_watchlist_api(ticker):
+    """Remove a ticker from the watchlist."""
+    try:
+        if remove_from_watchlist(ticker.strip().upper()):
+            return jsonify({'success': True, 'message': f'{ticker} removed from watchlist'})
+        return jsonify({'success': False, 'message': f'{ticker} not found in watchlist'}), 404
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 def fetch_peer_data(peer_ticker):
-    """Fetch data for a single peer ticker."""
     peer_data = get_complete_data(peer_ticker)
     peer_financial_scores = get_financial_scores(peer_ticker)
-
     return {
         'ticker': peer_ticker,
         'company_name': peer_data.get('company_name') if peer_data else None,
@@ -629,17 +438,11 @@ def fetch_peer_data(peer_ticker):
     }
 
 def find_peers_for_ticker_ai(ticker, company_name=None):
-    """Find peers for a ticker using AI (simplified version for web app)."""
-    if not AI_AVAILABLE:
-        return None, "AI functionality not available"
-
+    if not AI_AVAILABLE: return None, "AI functionality not available"
     try:
-        # Get company name if not provided
         if not company_name:
             ticker_data = get_complete_data(ticker)
             company_name = ticker_data.get('company_name') if ticker_data else ticker
-
-        # Create AI prompt
         prompt = f"""You are analyzing companies to find the 10 most comparable companies to {company_name}.
 
 Your task is to find the 10 MOST comparable companies to {company_name}.
@@ -666,404 +469,103 @@ Do not include explanations, ranking numbers, or any other text - just the 10 en
 Example format: "Microsoft|MSFT; Alphabet|GOOG; Meta|META; Amazon|AMZN; Nvidia|NVDA; Intel|INTC; Advanced Micro Devices|AMD; Salesforce|CRM; Oracle|ORCL; Adobe|ADBE"
 
 Return exactly 10 entries in ranked order, separated by semicolons, nothing else."""
-
-        # Query AI
         grok = get_api_client()
         model = get_model_for_ticker(ticker)
         start_time = time.time()
         response, token_usage = grok.simple_query_with_tokens(prompt, model=model)
         elapsed_time = time.time() - start_time
-
-        # Parse company names and tickers
-        response_clean = response.strip()
-
-        # Split by semicolons first (preferred), then fall back to commas if needed
-        if ';' in response_clean:
-            entries = [entry.strip() for entry in response_clean.split(';') if entry.strip()]
-        else:
-            # Fallback: try to split by commas, but this is less reliable
-            entries = [entry.strip() for entry in response_clean.split(',') if entry.strip()]
-
-        # Parse each entry into company name and ticker
+        entries = [entry.strip() for entry in response.strip().split(';') if entry.strip()]
         peers_data = []
-        for entry in entries[:10]:  # Limit to 10
+        for entry in entries[:10]:
             if '|' in entry:
                 parts = entry.split('|', 1)
-                company_name = parts[0].strip()
-                ticker = parts[1].strip() if len(parts) > 1 else None
-                if ticker == 'NONE':
-                    ticker = None
-                peers_data.append({
-                    'name': company_name,
-                    'ticker': ticker
-                })
+                peers_data.append({'name': parts[0].strip(), 'ticker': parts[1].strip() if parts[1].strip() != 'NONE' else None})
             else:
-                # Fallback: treat as company name only
-                peers_data.append({
-                    'name': entry,
-                    'ticker': None
-                })
-
+                peers_data.append({'name': entry, 'ticker': None})
         return peers_data, None, token_usage, elapsed_time
-
-    except Exception as e:
-        return None, str(e)
+    except Exception as e: return None, str(e)
 
 @app.route('/api/peers/<ticker>', methods=['GET'])
 def get_peers_api(ticker):
-    """Get peer data for a ticker with their stats using multithreading."""
+    """Get peer data for a ticker."""
     try:
         ticker = ticker.strip().upper()
-
-        # Get peer data from peers_results.db (includes both names and tickers)
-        peers_data_from_db = get_peers_for_ticker(ticker)  # Returns list of dicts with 'name' and 'ticker'
-
-        # Extract tickers from peer data
-        peer_tickers = []
-        for peer_data in peers_data_from_db:
-            peer_ticker = peer_data.get('ticker')
-            if peer_ticker:
-                peer_tickers.append(peer_ticker)
-
+        peers_data_from_db = get_peers_for_ticker(ticker)
+        peer_tickers = [p.get('ticker') for p in peers_data_from_db if p.get('ticker')]
         if not peer_tickers:
-            # No peers found in database, automatically generate them using AI
-            print(f"No peers found for {ticker}, generating new peers using AI...")
-
-            # Get company name for AI peer finding
             ticker_data = get_complete_data(ticker)
             company_name = ticker_data.get('company_name') if ticker_data else ticker
-
-            # Generate peers using AI (same process as peer_getter.py)
             peers_data, error, token_usage, elapsed_time = find_peers_for_ticker_ai(ticker, company_name)
-
-            if error or not peers_data:
-                return jsonify({
-                    'success': False,
-                    'message': f'Failed to generate peers for {ticker}: {error or "No peers generated"}'
-                }), 500
-
-            # Save the AI-generated peers to database
-            try:
-                from web_app.peers.peers_results_db import save_peer_analysis
-                from datetime import datetime
-                analysis_timestamp = datetime.now().isoformat()
-
-                # Calculate cost
-                cost_cents = None
-                if token_usage:
-                    from company_keywords.generate_company_keywords import calculate_grok_cost
-                    cost = calculate_grok_cost(token_usage, "grok-4-1-fast-reasoning")
-                    cost_cents = cost * 100
-
-                db_success = save_peer_analysis(
-                    ticker=ticker,
-                    company_name=company_name,
-                    peers=peers_data,
-                    token_usage=token_usage,
-                    estimated_cost_cents=cost_cents,
-                    analysis_timestamp=analysis_timestamp
-                )
-
-                if db_success:
-                    print(f"Successfully saved AI-generated peer analysis for {ticker}")
-                else:
-                    print(f"Warning: Failed to save peer analysis for {ticker} to database")
-
-            except Exception as db_error:
-                print(f"Database save error for {ticker}: {db_error}")
-                # Continue anyway since we have the peer data
-
-            # Extract tickers from the newly generated peers
-            peer_tickers = []
-            for peer_data in peers_data:
-                peer_ticker = peer_data.get('ticker')
-                if peer_ticker:
-                    peer_tickers.append(peer_ticker)
-
-            # Update peers_data_from_db for consistency
-            peers_data_from_db = peers_data
-
-            if not peer_tickers:
-                return jsonify({
-                    'success': False,
-                    'message': f'Generated peers for {ticker} but no valid tickers found'
-                }), 500
-
-        # Get data for the main ticker
+            if error or not peers_data: return jsonify({'success': False, 'message': f'Failed to generate peers: {error}'}), 500
+            peer_tickers = [p.get('ticker') for p in peers_data if p.get('ticker')]
+        
         main_ticker_data = get_complete_data(ticker)
         main_financial_scores = get_financial_scores(ticker)
-
         main_data = {
-            'ticker': ticker,
-            'company_name': main_ticker_data.get('company_name') if main_ticker_data else None,
+            'ticker': ticker, 'company_name': main_ticker_data.get('company_name') if main_ticker_data else None,
             'total_score_percentile_rank': main_ticker_data.get('total_score_percentile_rank') if main_ticker_data else None,
             'financial_total_percentile': main_financial_scores.get('total_percentile') if main_financial_scores else None,
             'adjusted_pe_ratio': main_ticker_data.get('adjusted_pe_ratio') if main_ticker_data else None,
             'short_float': main_ticker_data.get('short_float') if main_ticker_data else None,
         }
-
-        # Get data for all peers using multithreading - one thread per peer
         peers_data = []
-        with ThreadPoolExecutor(max_workers=len(peer_tickers)) as executor:
-            # Submit all peer data fetching tasks
-            future_to_peer = {executor.submit(fetch_peer_data, peer_ticker): peer_ticker for peer_ticker in peer_tickers}
-
-            # Collect results as they complete
+        with ThreadPoolExecutor(max_workers=max(1, len(peer_tickers))) as executor:
+            future_to_peer = {executor.submit(fetch_peer_data, pt): pt for pt in peer_tickers}
             for future in as_completed(future_to_peer):
-                try:
-                    peer_data = future.result()
-                    peers_data.append(peer_data)
-                except Exception as exc:
-                    peer_ticker = future_to_peer[future]
-                    print(f'Peer {peer_ticker} generated an exception: {exc}')
-                    # Add empty data for failed peers
-                    peers_data.append({
-                        'ticker': peer_ticker,
-                        'company_name': None,
-                        'total_score_percentile_rank': None,
-                        'financial_total_percentile': None,
-                        'adjusted_pe_ratio': None,
-                        'short_float': None,
-                    })
-
-        return jsonify({
-            'success': True,
-            'main_ticker': main_data,
-            'peers': peers_data
-        })
-    except Exception as e:
-        print(f"Error getting peers for {ticker}: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            'success': False,
-            'message': str(e)
-        }), 500
+                peers_data.append(future.result())
+        return jsonify({'success': True, 'main_ticker': main_data, 'peers': peers_data})
+    except Exception as e: return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/api/find_peers/<ticker>', methods=['GET'])
 def find_peers_api(ticker):
     """Find peers for a ticker using AI."""
     try:
         ticker = ticker.strip().upper()
-
-        # Get company name
         ticker_data = get_complete_data(ticker)
         company_name = ticker_data.get('company_name') if ticker_data else ticker
-
-        # Find peers using AI
         peers, error, token_usage, elapsed_time = find_peers_for_ticker_ai(ticker, company_name)
-
-        if error:
-            return jsonify({
-                'success': False,
-                'message': f'Error finding peers: {error}'
-            }), 500
-
-        if not peers:
-            return jsonify({
-                'success': False,
-                'message': f'No peers found for {ticker}'
-            }), 404
-
-        # Calculate cost
-        from company_keywords.generate_company_keywords import calculate_grok_cost
-        cost = calculate_grok_cost(token_usage, "grok-4-1-fast-reasoning") if token_usage else 0
-
-        # Save results to database
-        try:
-            from web_app.peers.peers_results_db import save_peer_analysis
-            analysis_timestamp = datetime.now().isoformat()
-            db_success = save_peer_analysis(
-                ticker=ticker,
-                company_name=company_name,
-                peers=peers,
-                token_usage=token_usage,
-                estimated_cost_cents=cost * 100,  # Convert to cents
-                analysis_timestamp=analysis_timestamp
-            )
-            if db_success:
-                print(f"Successfully saved peer analysis for {ticker} to database")
-            else:
-                print(f"Failed to save peer analysis for {ticker} to database")
-        except Exception as db_error:
-            print(f"Database save error for {ticker}: {db_error}")
-
-        return jsonify({
-            'success': True,
-            'ticker': ticker,
-            'company_name': company_name,
-            'peers': peers,
-            'elapsed_time': elapsed_time,
-            'token_usage': token_usage,
-            'estimated_cost': cost
-        })
-
-    except Exception as e:
-        print(f"Error finding peers for {ticker}: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            'success': False,
-            'message': str(e)
-        }), 500
+        if error: return jsonify({'success': False, 'message': f'Error: {error}'}), 500
+        return jsonify({'success': True, 'ticker': ticker, 'company_name': company_name, 'peers': peers, 'elapsed_time': elapsed_time})
+    except Exception as e: return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/api/adjusted_pe/<ticker>', methods=['GET'])
 def get_adjusted_pe_api(ticker):
-    """Get adjusted PE ratio and breakdown for a ticker."""
+    """Get adjusted PE ratio."""
     try:
         ticker = ticker.strip().upper()
-
-        # Try cache in adjusted_pe.db first
         stored = get_adjusted_pe(ticker)
         ratio = stored.get('adjusted_pe_ratio') if stored else None
-
-        # Check if we need to refresh the data
-        should_refresh = False
         if not stored or ratio is None:
-            should_refresh = True
-        else:
-            # Check if data was fetched today
-            from datetime import datetime
-            last_updated = stored.get('last_updated')
-            if last_updated:
-                try:
-                    # Parse the timestamp and check if it's from today
-                    updated_date = datetime.fromisoformat(last_updated).date()
-                    today = datetime.now().date()
-                    if updated_date != today:
-                        should_refresh = True
-                except (ValueError, TypeError):
-                    # If we can't parse the date, refresh to be safe
-                    should_refresh = True
-            else:
-                # No timestamp, refresh to be safe
-                should_refresh = True
-
-        if should_refresh:
-            # Compute and persist if missing or outdated
             ratio, breakdown = fetch_adjusted_pe_ratio_and_breakdown(ticker)
-        else:
-            breakdown = stored
-
-        if ratio is None or breakdown is None:
-            return jsonify({
-                'success': False,
-                'message': f'Adjusted PE data not available for {ticker}'
-            }), 404
-
+        else: breakdown = stored
+        if ratio is None or breakdown is None: return jsonify({'success': False, 'message': 'Data not available'}), 404
         breakdown['ticker'] = ticker
-        return jsonify({
-            'success': True,
-            'adjusted_pe_ratio': ratio,
-            'breakdown': breakdown
-        })
-    except Exception as e:
-        print(f"Error getting adjusted PE for {ticker}: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            'success': False,
-            'message': str(e)
-        }), 500
-
-@app.route('/api/revenue_growth/<ticker>', methods=['GET'])
-def get_revenue_growth_api(ticker):
-    """Get revenue growth analyst estimates for a ticker."""
-    try:
-        ticker = ticker.strip().upper()
-
-        # Fetch revenue growth estimates
-        data, error = get_revenue_growth_estimates(ticker)
-
-        if error:
-            return jsonify({
-                'success': False,
-                'message': error
-            }), 404
-
-        if not data:
-            return jsonify({
-                'success': False,
-                'message': f'No revenue growth estimates available for {ticker}'
-            }), 404
-
-        return jsonify({
-            'success': True,
-            'data': data
-        })
-    except Exception as e:
-        print(f"Error getting revenue growth for {ticker}: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            'success': False,
-            'message': str(e)
-        }), 500
-
-@app.route('/api/watchlist/remove/<ticker>', methods=['POST'])
-def remove_from_watchlist_api(ticker):
-    """Remove a ticker from the watchlist."""
-    try:
-        removed = remove_from_watchlist(ticker)
-        if removed:
-            return jsonify({
-                'success': True,
-                'message': f'{ticker} removed from watchlist'
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'message': f'{ticker} not found in watchlist'
-            }), 404
-    except Exception as e:
-        print(f"Error removing from watchlist: {e}")
-        return jsonify({
-            'success': False,
-            'message': str(e)
-        }), 500
+        return jsonify({'success': True, 'adjusted_pe_ratio': ratio, 'breakdown': breakdown})
+    except Exception as e: return jsonify({'success': False, 'message': str(e)}), 500
 
 AI_SCORES_DB = os.path.join(os.path.dirname(__file__), 'data', 'ai_scores.db')
-
-@app.route('/ai_scores')
-def ai_scores_page():
-    """Render the AI scores page."""
-    return render_template('ai_scores.html')
-
 @app.route('/api/ai_scores')
 def get_ai_scores_api():
-    """Get all AI scores from the database with company names."""
+    """Get all AI scores."""
     try:
-        # Connect to AI scores DB
         conn = sqlite3.connect(AI_SCORES_DB)
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
-        
-        # Attach tickers database to perform join
-        tickers_db_path = os.path.join(os.path.dirname(__file__), 'data', 'tickers.db')
-        cur.execute(f"ATTACH DATABASE '{tickers_db_path}' AS tickers_db")
-        
-        # Select all scores joined with company name
-        cur.execute("""
-            SELECT s.*, t.company_name 
-            FROM scores s
-            LEFT JOIN tickers_db.tickers t ON s.ticker = t.ticker
-            ORDER BY s.total_score_percentile_rank DESC
-        """)
-        
-        rows = cur.fetchall()
-        scores = [dict(row) for row in rows]
+        cur.execute(f"ATTACH DATABASE '{os.path.join(os.path.dirname(__file__), 'data', 'tickers.db')}' AS tickers_db")
+        cur.execute("SELECT s.*, t.company_name FROM scores s LEFT JOIN tickers_db.tickers t ON s.ticker = t.ticker ORDER BY s.total_score_percentile_rank DESC")
+        scores = [dict(row) for row in cur.fetchall()]
         conn.close()
-        return jsonify({
-            'success': True,
-            'scores': scores
-        })
-    except Exception as e:
-        print(f"Error getting AI scores: {e}")
-        return jsonify({
-            'success': False,
-            'message': str(e)
-        }), 500
+        return jsonify({'success': True, 'scores': scores})
+    except Exception as e: return jsonify({'success': False, 'message': str(e)}), 500
+
+# Serve React App
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    if path != "" and os.path.exists(app.static_folder + '/' + path):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
-

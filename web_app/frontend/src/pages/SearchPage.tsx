@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { AlertCircle, Loader2 } from 'lucide-react';
+import { useTheme } from '../components/ThemeContext';
 import * as api from '../api';
 
 interface SearchSuggestion {
@@ -21,6 +22,7 @@ interface StockData {
 }
 
 const SearchPage: React.FC = () => {
+  const { theme } = useTheme();
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get('q') || '');
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
@@ -196,9 +198,9 @@ const SearchPage: React.FC = () => {
       </div>
 
       {/* Search Section */}
-      <div className="p-12 bg-bg-secondary flex flex-col items-center border-b border-border-color relative z-[50]">
+      <div className="p-12 bg-bg-secondary flex flex-col items-center border-b border-border-color relative z-[1000]">
         <div className="flex gap-4 w-full max-w-[700px]">
-          <div className="relative flex-1 z-[60]">
+          <div className="relative flex-1 z-[1100]">
             <input
               ref={inputRef}
               type="text"
@@ -213,17 +215,17 @@ const SearchPage: React.FC = () => {
             {showDropdown && suggestions.length > 0 && (
               <div 
                 ref={dropdownRef}
-                className="absolute top-full left-0 right-0 mt-2 bg-bg-primary border-2 border-border-color shadow-[0_20px_50px_rgba(0,0,0,0.5)] max-h-[400px] overflow-y-auto z-[3000] !opacity-100"
-                style={{ backgroundColor: 'var(--bg-primary)' }}
+                className="absolute top-full left-0 right-0 mt-2 border-2 border-border-color shadow-[0_30px_60px_rgba(0,0,0,0.8)] max-h-[400px] overflow-y-auto z-[2000] !opacity-100"
+                style={{ backgroundColor: theme === 'light' ? '#ffffff' : '#0a0a0a' }}
               >
                 {suggestions.map((suggestion, index) => (
                   <div
                     key={suggestion.ticker}
                     onClick={() => selectSuggestion(suggestion)}
-                    className={`p-5 border-b border-border-color last:border-b-0 cursor-pointer transition-all flex justify-between items-center text-text-secondary bg-bg-primary hover:bg-table-hover-bg ${
+                    className={`p-5 border-b border-border-color last:border-b-0 cursor-pointer transition-all flex justify-between items-center text-text-secondary hover:bg-table-hover-bg ${
                       index === selectedIndex ? 'bg-table-hover-bg border-l-8 border-accent-secondary' : ''
                     }`}
-                    style={{ backgroundColor: 'var(--bg-primary)' }}
+                    style={{ backgroundColor: theme === 'light' ? '#ffffff' : '#0a0a0a' }}
                   >
                     <div className="font-bold text-xl text-accent-secondary flex-shrink-0 min-w-[80px]">
                       {suggestion.ticker}
@@ -263,7 +265,7 @@ const SearchPage: React.FC = () => {
 
         {/* Result Card */}
         {result && (
-          <div className="w-full max-w-[1000px] bg-card-bg p-10 mt-10 border border-border-color shadow-2xl animate-[slideIn_0.3s_ease-out]">
+          <div className="w-full max-w-[1000px] bg-card-bg p-10 mt-10 border border-border-color shadow-2xl animate-[slideIn_0.3s_ease-out] relative z-[1]">
             <div className="flex justify-between items-center mb-10 flex-wrap gap-8 text-left">
               <div className="flex flex-wrap items-baseline gap-4 flex-1 min-w-[200px]">
                 <h2 className="text-4xl font-black text-text-secondary">

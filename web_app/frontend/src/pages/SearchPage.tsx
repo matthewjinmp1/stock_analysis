@@ -268,11 +268,11 @@ const SearchPage: React.FC = () => {
         {result && (
           <div className="w-full max-w-[1000px] bg-card-bg p-10 mt-10 border border-border-color shadow-2xl animate-[slideIn_0.3s_ease-out]">
             <div className="flex justify-between items-center mb-10 flex-wrap gap-8 text-left">
-              <div className="flex flex-wrap items-baseline gap-12 flex-1 min-w-[200px]">
+              <div className="flex flex-wrap items-baseline gap-24 flex-1 min-w-[200px]">
                 <h2 className="text-4xl font-black text-text-secondary">
                   {result.data.company_name || result.ticker}
                 </h2>
-                <div className="text-2xl text-accent-secondary font-black bg-button-bg px-4 py-1 border border-border-color shadow-sm">
+                <div className="ml-10 text-2xl text-accent-secondary font-black bg-button-bg px-4 py-1 border border-border-color shadow-sm">
                   {result.ticker}
                 </div>
               </div>

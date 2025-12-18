@@ -64,31 +64,6 @@
         }
 
         /* High Contrast Theme Variables */
-        body.high-contrast {
-            --bg-primary: #000000;
-            --bg-secondary: #111111;
-            --bg-tertiary: #000000;
-            --text-primary: #ffffff;
-            --text-secondary: #cccccc;
-            --text-muted: #cccccc;
-            --accent-primary: #ffffff;
-            --accent-secondary: #ffffff;
-            --accent-success: #ffffff;
-            --accent-danger: #ff6666;
-            --border-color: #ffffff;
-            --border-light: #ffffff;
-            --shadow-color: rgba(255, 255, 255, 0.1);
-            --shadow-inset: rgba(255, 255, 255, 0.02);
-            --glow-primary: rgba(255, 255, 255, 0.1);
-            --glow-secondary: rgba(255, 255, 255, 0.3);
-            --input-bg: #000000;
-            --button-bg: #222222;
-            --card-bg: #1a1a1a;
-            --header-bg: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-            --animation-glow: pulse-glow 4s ease-in-out infinite;
-        }
-
-
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: var(--bg-primary);
@@ -118,7 +93,7 @@
 
         .header h1 {
             font-size: 2em;
-            color: #a5d8ff;
+            color: var(--text-secondary);
             margin-bottom: 10px;
             text-shadow: 0 0 8px rgba(125, 211, 252, 0.3);
         }
@@ -146,7 +121,7 @@
 
         .input-group label {
             display: block;
-            color: #a5d8ff;
+            color: var(--text-secondary);
             margin-bottom: 8px;
             font-weight: 500;
         }
@@ -154,10 +129,10 @@
         .input-group input {
             width: 100%;
             padding: 12px;
-            background: rgba(10, 10, 10, 0.6);
+            background: var(--card-bg);
             border: 1px solid rgba(125, 211, 252, 0.3);
             border-radius: 8px;
-            color: #a5d8ff;
+            color: var(--text-secondary);
             font-size: 1em;
         }
 
@@ -186,7 +161,7 @@
 
         .back-link {
             display: inline-block;
-            color: #a5d8ff;
+            color: var(--text-secondary);
             text-decoration: none;
             margin-bottom: 20px;
             padding: 10px 20px;
@@ -224,7 +199,7 @@
         }
 
         .company-info h2 {
-            color: #a5d8ff;
+            color: var(--text-secondary);
             margin-bottom: 5px;
         }
 
@@ -238,7 +213,7 @@
         }
 
         .peer-item {
-            background: rgba(10, 10, 10, 0.6);
+            background: var(--card-bg);
             padding: 15px;
             border-radius: 8px;
             border: 1px solid rgba(125, 211, 252, 0.2);
@@ -257,7 +232,7 @@
         }
 
         .peer-name {
-            color: #a5d8ff;
+            color: var(--text-secondary);
             font-weight: 500;
         }
 
@@ -314,7 +289,7 @@
             <div id="resultsContent">
                 <!-- Results will be loaded here -->
             </div>
-            <div id="statsSection" class="stats-section" style="display: none; margin-top: 20px; padding: 15px; background: rgba(10, 10, 10, 0.6); border-radius: 8px; border: 1px solid rgba(125, 211, 252, 0.2);">
+            <div id="statsSection" class="stats-section" style="display: none; margin-top: 20px; padding: 15px; background: var(--card-bg); border-radius: 8px; border: 1px solid rgba(125, 211, 252, 0.2);">
                 <!-- Stats will be loaded here -->
             </div>
         </div>
@@ -388,7 +363,7 @@
 
             // Display stats if available
             if (data.elapsed_time || data.token_usage || data.estimated_cost) {
-                let statsHtml = '<h3 style="color: #a5d8ff; margin-bottom: 10px;">Query Statistics</h3>';
+                let statsHtml = '<h3 style="color: var(--text-secondary); margin-bottom: 10px;">Query Statistics</h3>';
                 if (data.elapsed_time) {
                     statsHtml += `<p style="color: rgba(125, 211, 252, 0.7); margin: 5px 0;">Time taken: ${data.elapsed_time.toFixed(2)} seconds</p>`;
                 }

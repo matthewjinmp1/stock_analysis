@@ -205,19 +205,13 @@ const WatchlistPage: React.FC = () => {
         <p className="opacity-85 text-xl text-text-primary [text-shadow:0_0_3px_var(--glow-primary)] font-medium">
           Your saved tickers with basic stats
         </p>
-        <div className="mt-6 flex justify-center gap-6">
-          <button 
-            onClick={() => navigate(-1)} 
+        <div className="mt-6 flex justify-center">
+          <button
+            onClick={() => navigate(-1)}
             className="flex items-center gap-3 px-8 py-3 bg-button-bg text-text-secondary border border-border-color font-black text-lg transition-all hover:bg-accent-primary hover:text-bg-primary hover:border-accent-primary active:scale-95 shadow-lg"
           >
             <ArrowLeft className="w-5 h-5" /> Back
           </button>
-          <Link 
-            to="/ai-scores" 
-            className="flex items-center gap-3 px-8 py-3 bg-button-bg text-text-secondary border border-border-color font-black text-lg transition-all hover:bg-accent-primary hover:text-bg-primary hover:border-accent-primary shadow-lg"
-          >
-            AI Analysis Scores
-          </Link>
         </div>
       </div>
 

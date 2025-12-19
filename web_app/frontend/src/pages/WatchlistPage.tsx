@@ -5,10 +5,11 @@ import { useTheme } from '../components/ThemeContext';
 import * as api from '../api';
 
 const COLUMN_LABELS: Record<string, string> = {
-  'total_score_percentile_rank': 'Total Score',
+  'total_score_percentile_rank': 'Quality Score',
   'financial_total_percentile': 'Financial',
   'adjusted_pe_ratio': 'Adj PE',
   'two_year_annualized_growth': '2Y Growth',
+  'two_year_forward_pe': '2Y Fwd PE',
   'short_float': 'Short Float'
 };
 
@@ -19,7 +20,12 @@ interface WatchlistItem {
   total_score_percentile_rank: number | null;
   financial_total_percentile: number | null;
   adjusted_pe_ratio: number | null;
+  adjusted_pe_loading: boolean;
+  growth_loading: boolean;
+  short_interest_loading: boolean;
+  financial_loading: boolean;
   two_year_annualized_growth: number | null;
+  two_year_forward_pe: number | null;
 }
 
 interface SearchSuggestion {
@@ -39,31 +45,58 @@ const WatchlistPage: React.FC = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [addMessage, setAddMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
-  const [visibleColumns, setVisibleColumns] = useState<string[]>(['total_score_percentile_rank', 'financial_total_percentile', 'adjusted_pe_ratio', 'two_year_annualized_growth', 'short_float']);
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(['total_score_percentile_rank', 'financial_total_percentile', 'adjusted_pe_ratio', 'two_year_annualized_growth', 'two_year_forward_pe', 'short_float']);
   const [sortColumn, setSortColumn] = useState<keyof WatchlistItem | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const fetchWatchlist = async () => {
+  const fetchWatchlist = async (isBackground = false) => {
     try {
+      if (!isBackground) setLoading(true);
       const data = await api.getWatchlist();
       if (data.success) {
         setWatchlist(data.watchlist || []);
       } else {
-        setError(data.message || 'Error loading watchlist');
+        if (!isBackground) setError(data.message || 'Error loading watchlist');
       }
     } catch (err) {
-      setError('Error loading watchlist. Please try again.');
+      if (!isBackground) setError('Error loading watchlist. Please try again.');
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchWatchlist();
+    // Trigger calculation of missing adjusted PE data
+    calculateMissingAdjustedPE();
   }, []);
+
+  // Polling logic for loading states
+  useEffect(() => {
+    const isAnyItemLoading = watchlist.some(
+      item => item.adjusted_pe_loading || item.growth_loading || item.short_interest_loading || item.financial_loading
+    );
+
+    if (isAnyItemLoading) {
+      const interval = setInterval(() => {
+        fetchWatchlist(true);
+      }, 3000); // Poll every 3 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [watchlist]);
+
+  const calculateMissingAdjustedPE = async () => {
+    try {
+      await api.calculateMissingAdjustedPE();
+      console.log('Triggered calculation of missing adjusted PE data');
+    } catch (error) {
+      console.error('Failed to trigger adjusted PE calculations:', error);
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -135,11 +168,11 @@ const WatchlistPage: React.FC = () => {
   const selectSuggestion = (suggestion: SearchSuggestion) => {
     setNewTicker(suggestion.ticker);
     setShowDropdown(false);
-    handleAddTicker();
+    handleAddTicker(suggestion.ticker);
   };
 
-  const handleAddTicker = async () => {
-    const ticker = newTicker.trim().toUpperCase();
+  const handleAddTicker = async (overrideTicker?: string) => {
+    const ticker = (overrideTicker || newTicker).trim().toUpperCase();
     if (!ticker) {
       setAddMessage({ type: 'error', text: 'Please enter a ticker symbol' });
       return;
@@ -190,10 +223,13 @@ const WatchlistPage: React.FC = () => {
       let aVal: any = a[column];
       let bVal: any = b[column];
 
-      if (aVal === null) aVal = column === 'adjusted_pe_ratio' ? Infinity : -1;
-      if (bVal === null) bVal = column === 'adjusted_pe_ratio' ? Infinity : -1;
+      // Handle nulls for sorting (PE ratios should go to end if null in ASC)
+      const isPeColumn = column === 'adjusted_pe_ratio' || column === 'two_year_forward_pe';
+      if (aVal === null) aVal = isPeColumn ? Infinity : -1;
+      if (bVal === null) bVal = isPeColumn ? Infinity : -1;
 
-      if (typeof aVal === 'string') {
+      // Ensure both are strings before using replace
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
         const numA = parseFloat(aVal.replace(/[^\d.-]/g, ''));
         const numB = parseFloat(bVal.replace(/[^\d.-]/g, ''));
         if (!isNaN(numA) && !isNaN(numB)) {
@@ -201,7 +237,9 @@ const WatchlistPage: React.FC = () => {
         }
         return isAsc ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
       }
-      return isAsc ? bVal - aVal : aVal - bVal;
+      
+      // Default numeric sort
+      return isAsc ? Number(bVal) - Number(aVal) : Number(aVal) - Number(bVal);
     });
     setWatchlist(sortedData);
   };
@@ -368,7 +406,7 @@ const WatchlistPage: React.FC = () => {
                           case 'total_score_percentile_rank':
                             return (
                               <td key={column} className="p-5 text-center">
-                                {item.total_score_percentile_rank !== null ? (
+                                {item.total_score_percentile_rank != null ? (
                                   <Link to={`/metrics/${item.ticker}`} className="text-accent-secondary font-black text-lg hover:underline decoration-2 underline-offset-4">
                                     {item.total_score_percentile_rank}%
                                   </Link>
@@ -378,7 +416,11 @@ const WatchlistPage: React.FC = () => {
                           case 'financial_total_percentile':
                             return (
                               <td key={column} className="p-5 text-center">
-                                {item.financial_total_percentile !== null ? (
+                                {item.financial_loading ? (
+                                  <span className="text-accent-primary font-bold text-lg">
+                                    Loading...
+                                  </span>
+                                ) : item.financial_total_percentile != null ? (
                                   <Link to={`/financial/${item.ticker}`} className="text-accent-secondary font-black text-lg hover:underline decoration-2 underline-offset-4">
                                     {Math.round(item.financial_total_percentile)}%
                                   </Link>
@@ -388,7 +430,11 @@ const WatchlistPage: React.FC = () => {
                           case 'adjusted_pe_ratio':
                             return (
                               <td key={column} className="p-5 text-center">
-                                {item.adjusted_pe_ratio !== null ? (
+                                {item.adjusted_pe_loading ? (
+                                  <span className="text-accent-primary font-bold text-lg">
+                                    Loading...
+                                  </span>
+                                ) : item.adjusted_pe_ratio != null ? (
                                   <Link to={`/adjusted-pe/${item.ticker}`} className="text-accent-secondary font-black text-lg hover:underline decoration-2 underline-offset-4">
                                     {item.adjusted_pe_ratio.toFixed(2)}
                                   </Link>
@@ -398,9 +444,27 @@ const WatchlistPage: React.FC = () => {
                           case 'two_year_annualized_growth':
                             return (
                               <td key={column} className="p-5 text-center">
-                                {item.two_year_annualized_growth !== null ? (
+                                {item.growth_loading ? (
+                                  <span className="text-accent-primary font-bold text-lg">
+                                    Loading...
+                                  </span>
+                                ) : item.two_year_annualized_growth != null ? (
                                   <span className="text-accent-secondary font-black text-lg">
                                     {item.two_year_annualized_growth.toFixed(1)}%
+                                  </span>
+                                ) : 'N/A'}
+                              </td>
+                            );
+                          case 'two_year_forward_pe':
+                            return (
+                              <td key={column} className="p-5 text-center">
+                                {item.adjusted_pe_loading || item.growth_loading ? (
+                                  <span className="text-accent-primary font-bold text-lg">
+                                    Loading...
+                                  </span>
+                                ) : item.two_year_forward_pe != null ? (
+                                  <span className="text-accent-secondary font-black text-lg">
+                                    {item.two_year_forward_pe.toFixed(2)}
                                   </span>
                                 ) : 'N/A'}
                               </td>
@@ -408,7 +472,11 @@ const WatchlistPage: React.FC = () => {
                           case 'short_float':
                             return (
                               <td key={column} className="p-5 text-center text-text-primary font-bold">
-                                {item.short_float || 'N/A'}
+                                {item.short_interest_loading ? (
+                                  <span className="text-accent-primary font-bold text-lg">
+                                    Loading...
+                                  </span>
+                                ) : item.short_float || 'N/A'}
                               </td>
                             );
                           default:

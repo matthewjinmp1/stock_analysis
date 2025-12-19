@@ -66,4 +66,9 @@ export const getFinancials = async (ticker: string) => {
   return response.data;
 };
 
+export const calculateMissingAdjustedPE = async () => {
+  const response = await api.post('/calculate_missing_adjusted_pe');
+  return response.data;
+};
+
 export default api;

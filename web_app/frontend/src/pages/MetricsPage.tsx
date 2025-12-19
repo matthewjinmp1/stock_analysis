@@ -51,9 +51,9 @@ const MetricsPage: React.FC = () => {
 
   const getScoreColorClass = (raw_score: number, is_reverse: boolean) => {
     const score = is_reverse ? 10 - raw_score : raw_score;
-    if (score >= 7.5) return 'bg-accent-success/10 text-accent-success border-accent-success/30';
-    if (score >= 5) return 'bg-accent-warning/10 text-accent-warning border-accent-warning/30';
-    return 'bg-accent-danger/10 text-accent-danger border-accent-danger/30';
+    if (score >= 7.5) return 'text-accent-success';
+    if (score >= 5) return 'text-accent-warning';
+    return 'text-accent-danger';
   };
 
   return (
@@ -91,7 +91,7 @@ const MetricsPage: React.FC = () => {
             {data.total_score_percentage !== null && (
               <div className="flex flex-wrap gap-6 mt-8 justify-center">
                 <div className="bg-bg-primary p-6 border border-border-color shadow-xl min-w-[180px] text-left">
-                  <div className="text-xs font-black text-text-muted uppercase tracking-widest mb-2 opacity-70">Total Score</div>
+            <div className="text-xs font-black text-text-muted uppercase tracking-widest mb-2 opacity-70">Quality Score</div>
                   <div className="text-4xl font-black text-text-secondary">{data.total_score_percentage.toFixed(1)}%</div>
                 </div>
                 {data.total_score_percentile_rank !== null && (
@@ -131,12 +131,12 @@ const MetricsPage: React.FC = () => {
                         </div>
                       </td>
                       <td className="p-6 text-center">
-                        <span className={`inline-block px-4 py-1.5 font-black text-base border shadow-sm ${getScoreColorClass(metric.raw_score, false)}`}>
+                        <span className={`font-black text-base ${getScoreColorClass(metric.raw_score, false)}`}>
                           {metric.raw_score.toFixed(1)}/10
                         </span>
                       </td>
                       <td className="p-6 text-center">
-                        <span className={`inline-block px-4 py-1.5 font-black text-base border shadow-sm ${getScoreColorClass(metric.raw_score, metric.is_reverse)}`}>
+                        <span className={`font-black text-base ${getScoreColorClass(metric.raw_score, metric.is_reverse)}`}>
                           {metric.adjusted_score.toFixed(1)}/10
                         </span>
                       </td>

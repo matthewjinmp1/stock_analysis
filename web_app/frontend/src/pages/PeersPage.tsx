@@ -9,6 +9,7 @@ interface PeerCompany {
   total_score_percentile_rank: number | null;
   financial_total_percentile: number | null;
   adjusted_pe_ratio: number | null;
+  adjusted_pe_unavailable?: boolean;
   short_float: string | null;
 }
 
@@ -84,9 +85,10 @@ const PeersPage: React.FC = () => {
       // We're waiting for initial peer finding to complete
       pendingTickers.add('__finding_peers__'); // Special marker
     } else if (data.peers && data.peers.length > 0) {
-      // Find peers with pending adjusted PE data
+      // Find peers with pending adjusted PE data (exclude permanently unavailable ones)
       peersWithPendingPE = data.peers.filter((peer: PeerCompany) =>
-        peer.adjusted_pe_ratio === null || peer.adjusted_pe_ratio === undefined
+        (peer.adjusted_pe_ratio === null || peer.adjusted_pe_ratio === undefined) &&
+        !peer.adjusted_pe_unavailable
       );
 
       if (peersWithPendingPE.length === 0) return;
@@ -105,6 +107,8 @@ const PeersPage: React.FC = () => {
 
     // Set up polling interval
     const pollInterval = setInterval(async () => {
+      // Use shorter interval for tests if needed, but here we just make it accessible
+      const interval = (window as any).__POLL_INTERVAL__ || 5000;
       if (pendingTickers.size === 0) {
         clearInterval(pollInterval);
         setLoading(false); // Stop loading when polling completes
@@ -163,7 +167,7 @@ const PeersPage: React.FC = () => {
         // Silently continue on poll errors
         console.warn('Error polling for updated data:', error);
       }
-    }, 5000); // Poll every 5 seconds
+    }, (window as any).__POLL_INTERVAL__ || 5000); // Poll every 5 seconds
 
     // Cleanup interval on unmount or when ticker changes
     return () => clearInterval(pollInterval);
@@ -261,7 +265,7 @@ const PeersPage: React.FC = () => {
                     Company Name {getSortIcon('company_name')}
                   </th>
                   <th className="p-[15px] text-left font-semibold border-b-2 border-border-color cursor-pointer select-none transition-all hover:bg-table-hover-bg text-text-secondary" onClick={() => handleSort('total_score_percentile_rank')}>
-                    Total Score {getSortIcon('total_score_percentile_rank')}
+                    Quality Score {getSortIcon('total_score_percentile_rank')}
                   </th>
                   <th className="p-[15px] text-left font-semibold border-b-2 border-border-color cursor-pointer select-none transition-all hover:bg-table-hover-bg text-text-secondary" onClick={() => handleSort('financial_total_percentile')}>
                     Financial Score {getSortIcon('financial_total_percentile')}
@@ -306,13 +310,15 @@ const PeersPage: React.FC = () => {
                         ) : 'N/A'}
                       </td>
                       <td className="p-[15px] border-b border-border-color">
-                        {company.adjusted_pe_ratio !== null ? (
+                        {company.adjusted_pe_ratio !== null && company.adjusted_pe_ratio !== undefined ? (
                           <Link to={`/adjusted-pe/${linkTicker}`} className="text-accent-secondary hover:text-accent-primary hover:underline transition-all">
                             {company.adjusted_pe_ratio.toFixed(2)}
                           </Link>
                         ) : (
                           <span className="text-text-muted italic text-sm">
-                            {pendingPeers.has(company.ticker || '') ? (
+                            {company.adjusted_pe_unavailable ? (
+                              'N/A'
+                            ) : pendingPeers.has(company.ticker || '') ? (
                               'Calculating...'
                             ) : (
                               'Pending'

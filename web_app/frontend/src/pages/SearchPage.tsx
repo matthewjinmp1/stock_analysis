@@ -227,7 +227,7 @@ const SearchPage: React.FC = () => {
                   <div
                     key={suggestion.ticker}
                     onClick={() => selectSuggestion(suggestion)}
-                    className={`p-5 border-b border-border-color last:border-b-0 cursor-pointer transition-all flex justify-between items-center text-text-secondary hover:bg-table-hover-bg ${
+                    className={`p-5 border-b border-border-color last:border-b-0 cursor-pointer transition-all text-text-secondary hover:bg-table-hover-bg ${
                       index === selectedIndex ? 'bg-table-hover-bg border-l-8 border-accent-secondary' : ''
                     }`}
                     style={{
@@ -235,11 +235,8 @@ const SearchPage: React.FC = () => {
                       opacity: 1
                     }}
                   >
-                    <div className="font-bold text-xl text-accent-secondary flex-shrink-0 min-w-[80px]">
-                      {suggestion.ticker}
-                    </div>
-                    <div className="text-base opacity-80 flex-1 ml-10 text-right truncate font-medium">
-                      {suggestion.company_name}
+                    <div className="font-bold text-xl truncate">
+                      {suggestion.company_name} ({suggestion.ticker})
                     </div>
                   </div>
                 ))}
@@ -268,13 +265,10 @@ const SearchPage: React.FC = () => {
         {result && (
           <div className="w-full max-w-[1000px] bg-card-bg p-10 mt-10 border border-border-color shadow-2xl animate-[slideIn_0.3s_ease-out]">
             <div className="flex justify-between items-center mb-10 flex-wrap gap-8 text-left">
-              <div className="flex flex-wrap items-baseline gap-12 flex-1 min-w-[200px]">
+              <div className="flex-1 min-w-[200px]">
                 <h2 className="text-4xl font-black text-text-secondary">
-                  {result.data.company_name || result.ticker}
+                  {result.data.company_name || result.ticker} ({result.ticker})
                 </h2>
-                <div className="text-2xl text-accent-secondary font-black bg-button-bg px-4 py-1 border border-border-color shadow-sm">
-                  {result.ticker}
-                </div>
               </div>
               
               <div className="flex items-center gap-3">
@@ -300,7 +294,7 @@ const SearchPage: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {result.data.total_score_percentile_rank !== null && (
                 <div className="bg-bg-primary/50 p-6 border border-border-color hover:border-accent-secondary transition-all group text-left shadow-sm">
-                  <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em] mb-3 opacity-70">Total Score</div>
+              <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em] mb-3 opacity-70">Quality Score</div>
                   <div className="text-4xl font-black text-text-secondary">
                     <Link to={`/metrics/${result.ticker}`} className="text-accent-secondary group-hover:text-accent-primary transition-colors">
                       {result.data.total_score_percentile_rank}%
@@ -325,7 +319,7 @@ const SearchPage: React.FC = () => {
                   <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em] mb-3 opacity-70">Adjusted PE</div>
                   <div className="text-4xl font-black text-text-secondary">
                     <Link to={`/adjusted-pe/${result.ticker}`} className="text-accent-secondary group-hover:text-accent-primary transition-colors">
-                      {result.data.adjusted_pe_ratio.toFixed(2)}
+                      {result.data.adjusted_pe_ratio?.toFixed(2)}
                     </Link>
                   </div>
                 </div>
@@ -335,7 +329,7 @@ const SearchPage: React.FC = () => {
                 <div className="bg-bg-primary/50 p-6 border border-border-color transition-all text-left shadow-sm">
                   <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em] mb-3 opacity-70">Growth (Current)</div>
                   <div className="text-4xl font-black text-text-secondary">
-                    {result.data.current_year_growth.toFixed(1)}%
+                    {result.data.current_year_growth?.toFixed(1)}%
                   </div>
                 </div>
               )}
@@ -344,7 +338,7 @@ const SearchPage: React.FC = () => {
                 <div className="bg-bg-primary/50 p-6 border border-border-color transition-all text-left shadow-sm">
                   <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em] mb-3 opacity-70">Growth (Next)</div>
                   <div className="text-4xl font-black text-text-secondary">
-                    {result.data.next_year_growth.toFixed(1)}%
+                    {result.data.next_year_growth?.toFixed(1)}%
                   </div>
                 </div>
               )}

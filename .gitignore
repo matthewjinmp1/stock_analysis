@@ -1,5 +1,5 @@
 # Cursor-specific ignore directory
-.cursor/
+cursor_ignore/
 
 # Cursor AI ignore patterns file
 .cursorignore

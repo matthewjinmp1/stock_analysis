@@ -1,0 +1,235 @@
+#!/usr/bin/env python3
+"""
+Test script for AI peer finding functionality.
+Allows testing the peer discovery from command line.
+"""
+
+import sys
+import os
+import time
+import json
+from datetime import datetime
+
+# Add project root to path (go up levels from web_app/backend/utils/peers folder)
+current_dir = os.path.abspath(os.path.dirname(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(current_dir, "..", "..", "..", ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+def save_peers_to_database(ticker, company_name, peers, token_usage=None, cost=None, analysis_timestamp=None):
+    """Save peer results to database."""
+    try:
+        from peers_results_db import save_peer_analysis
+        success = save_peer_analysis(
+            ticker=ticker,
+            company_name=company_name,
+            peers=peers,
+            token_usage=token_usage,
+            estimated_cost_cents=cost,
+            analysis_timestamp=analysis_timestamp
+        )
+        if success:
+            print("Results saved to database successfully!")
+            return True
+        else:
+            print("Failed to save results to database.")
+            return False
+    except Exception as e:
+        print(f"Error saving to database: {e}")
+        return False
+
+def test_peer_finder():
+    """Test the AI peer finding functionality."""
+    print("AI Peer Finder Test")
+    print("=" * 50)
+    print("Results will be saved to the database in the peers folder.")
+
+    # Import required modules
+    try:
+        from src.clients.grok_client import GrokClient
+        from src.clients.openrouter_client import OpenRouterClient
+        from config import XAI_API_KEY, OPENROUTER_KEY
+        AI_AVAILABLE = True
+        print("AI modules imported successfully")
+
+        # Initialize data repository
+        data_repo = DataRepository()
+
+    except ImportError as e:
+        print(f"Failed to import AI modules: {e}")
+        print("Make sure you have the required dependencies and config files.")
+        return
+
+    def get_api_client():
+        """Get configured API client."""
+        if XAI_API_KEY:
+            return GrokClient(XAI_API_KEY)
+        elif OPENROUTER_KEY:
+            return OpenRouterClient(OPENROUTER_KEY)
+        else:
+            raise ValueError("No API key configured")
+
+    def get_model_for_ticker(ticker):
+        """Get appropriate model for ticker analysis."""
+        return "grok-4-1-fast-reasoning" if XAI_API_KEY else "anthropic/claude-3.5-sonnet"
+
+    def find_peers_for_ticker_ai(ticker, company_name=None):
+        """Find peers for a ticker using AI."""
+        try:
+            # Get company name if not provided
+            if not company_name:
+                ticker_data = data_repo.get_complete_data(ticker)
+                company_name = ticker_data.get('company_name') if ticker_data else ticker
+
+            print(f"Finding peers for: {ticker} ({company_name})")
+
+            # Create AI prompt
+            prompt = f"""You are analyzing companies to find the 10 most comparable companies to {company_name}.
+
+Your task is to find the 10 MOST comparable companies to {company_name}.
+
+Consider factors such as:
+1. Industry and market segment similarity (MUST be in same or very similar industry)
+2. Business model similarity
+3. Product/service similarity
+4. Market overlap and customer base similarity
+5. Competitive dynamics (direct competitors)
+6. Company size and scale (if relevant)
+
+For each company, provide both the clean company name and its stock ticker symbol (if it has one).
+Return ONLY a semicolon-separated list of exactly 10 entries, starting with the most comparable company first.
+Each entry should be in format: "Company Name|Ticker" or "Company Name|NONE" if no ticker exists.
+
+CRITICAL: Use semicolons (;) to separate entries, NOT commas.
+IMPORTANT: Use ONLY the core company name without generic suffixes like Inc, Corp, Co, Ltd, LLC, Group, Holdings, Corporation, Incorporated, Limited, etc.
+Examples: "Microsoft|MSFT", "Alphabet|GOOG", "Apple|AAPL", "Nike|NKE", "Meta|META".
+For private companies or those without tickers, use "NONE" as the ticker.
+
+Do not include explanations, ranking numbers, or any other text - just the 10 entries separated by semicolons in order from most to least comparable.
+
+Example format: "Microsoft|MSFT; Alphabet|GOOG; Meta|META; Amazon|AMZN; Nvidia|NVDA; Intel|INTC; Advanced Micro Devices|AMD; Salesforce|CRM; Oracle|ORCL; Adobe|ADBE"
+
+Return exactly 10 entries in ranked order, separated by semicolons, nothing else."""
+
+            print("Querying AI for peer recommendations...")
+            start_time = time.time()
+
+            # Query AI
+            grok = get_api_client()
+            model = get_model_for_ticker(ticker)
+            response, token_usage = grok.simple_query_with_tokens(prompt, model=model)
+
+            elapsed_time = time.time() - start_time
+            print(f"AI query completed in {elapsed_time:.2f} seconds")
+
+            cost_cents = None
+            if token_usage:
+                # Calculate cost
+                from company_keywords.generate_company_keywords import calculate_grok_cost
+                cost = calculate_grok_cost(token_usage, "grok-4-1-fast-reasoning")
+                cost_cents = cost * 100
+                print(f"Estimated cost: {cost_cents:.4f} cents")
+                print(f"Token usage: {token_usage}")
+
+            # Parse company names and tickers
+            response_clean = response.strip()
+
+            # Split by semicolons first (preferred), then fall back to commas if needed
+            if ';' in response_clean:
+                entries = [entry.strip() for entry in response_clean.split(';') if entry.strip()]
+            else:
+                # Fallback: try to split by commas, but this is less reliable
+                entries = [entry.strip() for entry in response_clean.split(',') if entry.strip()]
+
+            # Parse each entry into company name and ticker
+            peers_data = []
+            for entry in entries[:10]:  # Limit to 10
+                if '|' in entry:
+                    parts = entry.split('|', 1)
+                    company_name = parts[0].strip()
+                    ticker = parts[1].strip() if len(parts) > 1 else None
+                    if ticker == 'NONE':
+                        ticker = None
+                    peers_data.append({
+                        'name': company_name,
+                        'ticker': ticker
+                    })
+                else:
+                    # Fallback: treat as company name only
+                    peers_data.append({
+                        'name': entry,
+                        'ticker': None
+                    })
+
+            return peers_data, None, token_usage, cost_cents
+
+        except Exception as e:
+            return None, str(e), None, None
+
+    # Main test loop
+    while True:
+        print("\n" + "=" * 50)
+        ticker = input("Enter ticker symbol (or 'quit' to exit): ").strip().upper()
+
+        if ticker.lower() in ['quit', 'exit', 'q']:
+            print("Goodbye!")
+            break
+
+        if not ticker:
+            print("Please enter a valid ticker symbol.")
+            continue
+
+        print(f"\nTesting peer finding for: {ticker}")
+
+        # Get company data first
+        print("Fetching company data...")
+        ticker_data = data_repo.get_complete_data(ticker)
+
+        if not ticker_data:
+            print(f"No data found for ticker: {ticker}")
+            print("Make sure the ticker exists and has been analyzed.")
+            continue
+
+        company_name = ticker_data.get('company_name', ticker)
+        print(f"Found company: {company_name}")
+
+        # Find peers
+        peers, error, token_usage, cost_cents = find_peers_for_ticker_ai(ticker, company_name)
+
+        if error:
+            print(f"Error finding peers: {error}")
+            continue
+
+        if not peers:
+            print("No peers found.")
+            continue
+
+        # Display results
+        print("\nAI-Generated Peer Recommendations:")
+        print("-" * 40)
+
+        for i, peer in enumerate(peers, 1):
+            print(f"{i:2d}. {peer}")
+
+        print(f"\nTotal peers found: {len(peers)}")
+        print("Test completed successfully!")
+
+        # Always save results to database
+        print("\nSaving results to database...")
+        analysis_timestamp = datetime.now().isoformat()
+        db_success = save_peers_to_database(ticker, company_name, peers, token_usage, cost_cents, analysis_timestamp)
+
+        if db_success:
+            print("Results saved successfully to database!")
+        else:
+            print("Failed to save results to database.")
+
+if __name__ == "__main__":
+    try:
+        test_peer_finder()
+    except KeyboardInterrupt:
+        print("\nInterrupted by user. Goodbye!")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        import traceback
+        traceback.print_exc()

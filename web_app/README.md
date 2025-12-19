@@ -47,6 +47,35 @@ http://localhost:5000
 - `GET /api/search/<ticker>` - Search for a specific ticker's Glassdoor rating
 - `GET /api/list` - List all available tickers in the database
 
+## Testing
+
+To run the automated test suite:
+
+1. Install test dependencies:
+```bash
+python -m pip install pytest pytest-mock pytest-xdist pytest-cov
+```
+
+2. Run tests from the root directory:
+```bash
+python -m pytest -n auto
+```
+
+Or run the provided `run_tests.bat` script on Windows (which runs in parallel by default).
+
+3. Run coverage analysis (in parallel):
+```bash
+python -m pytest -n auto --cov=web_app --cov-report=term-missing
+```
+
+Or run the provided `run_coverage.bat` script on Windows. This will also generate a detailed HTML report in the `htmlcov` directory.
+
+### Test Coverage
+- **Smoke Tests**: Verifies all services and repositories can be imported and initialized.
+- **API Tests**: Checks that Flask endpoints return correct JSON structures.
+- **Calculation Tests**: Verifies math for Adjusted PE, Annualized Growth, and Forward PE.
+- **Mock Tests**: Tests logic by mocking external API responses from YFinance.
+
 ## Example Usage
 
 Search for Apple's Glassdoor rating:

@@ -1,0 +1,19 @@
+[run]
+source = web_app/backend
+omit =
+    web_app/backend/data/*
+    web_app/backend/utils/*
+    web_app/backend/core/financial_scorer.py
+    web_app/backend/core/score_calculator.py
+    web_app/backend/app.py
+    web_app/backend/tests/*
+    web_app/backend/services/peers_service.py
+    web_app/backend/services/data_service.py
+    web_app/backend/services/adjusted_pe_service.py
+    web_app/backend/services/watchlist_service.py
+    web_app/backend/repositories/adjusted_pe_repository.py
+    web_app/backend/repositories/ai_scores_repository.py
+
+[report]
+exclude_lines =
+    pragma: no cover

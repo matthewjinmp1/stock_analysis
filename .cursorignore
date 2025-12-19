@@ -3,7 +3,7 @@
 # They should be treated as non-existent for all AI operations
 # DO NOT ACCESS, READ, OR CONSIDER THESE PATHS IN ANY WAY
 
-.cursor/
+cursor_ignore/
 
 # Add any other folders/files you want Cursor AI to ignore:
 # .cache/
